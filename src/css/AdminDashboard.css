@@ -1,0 +1,536 @@
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-glow: rgba(99, 102, 241, 0.1);
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.1);
+  --warning: #f59e0b;
+  --warning-glow: rgba(245, 158, 11, 0.1);
+  --danger: #ef4444;
+  --danger-glow: rgba(239, 68, 68, 0.1);
+  --info: #3b82f6;
+  --info-glow: rgba(59, 130, 246, 0.1);
+
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active: rgba(99, 102, 241, 0.15);
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+}
+
+.admin-dashboard {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  background-color: var(--bg-main);
+}
+
+/* Sidebar Custom Styling */
+.admin-dashboard .ant-layout-sider {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-dashboard .ant-menu-dark {
+  background: transparent !important;
+}
+
+.admin-dashboard .ant-menu-dark .ant-menu-item {
+  border-radius: 8px !important;
+  margin: 15px 12px !important;
+  width: calc(100% - 24px) !important;
+  color: #94a3b8 !important;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.admin-dashboard .ant-menu-dark .ant-menu-item:hover {
+  background: var(--sidebar-hover) !important;
+  color: #ffffff !important;
+}
+
+.admin-dashboard .ant-menu-dark .ant-menu-item-selected {
+  background: var(--sidebar-active) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.admin-dashboard .ant-menu-dark .ant-menu-item-selected::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 15%;
+  height: 70%;
+  width: 4px;
+  background-color: var(--primary);
+  border-radius: 0 4px 4px 0;
+}
+
+/* Header & Dropdown UI */
+.admin-dashboard .ant-layout-header {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+  border-bottom: 1px solid var(--border);
+}
+
+.user-profile-dropdown {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.user-profile-dropdown:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+/* Premium Dashboard Cards */
+.admin-dashboard .metric-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #ffffff !important;
+  overflow: hidden;
+  position: relative;
+  padding: 0px !important;
+}
+
+.admin-dashboard .metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.admin-dashboard .metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Specific card accents */
+.admin-dashboard .metric-card-total:hover::before {
+  background: var(--primary);
+}
+
+.admin-dashboard .metric-card-active:hover::before {
+  background: var(--success);
+}
+
+.admin-dashboard .metric-card-interviews:hover::before {
+  background: var(--warning);
+}
+
+.admin-dashboard .metric-card-expired:hover::before {
+  background: var(--danger);
+}
+
+/* Premium List & Candidate Card */
+.recent-candidates {
+  border-radius: 16px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+  background: #ffffff;
+}
+
+.recent-candidates .premium-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.recent-candidates .card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  position: relative;
+  padding-left: 12px;
+}
+
+.recent-candidates .card-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 4px;
+  height: 16px;
+  width: 4px;
+  background-color: var(--primary);
+  border-radius: 2px;
+}
+
+.recent-candidates .candidate-item {
+  padding: 16px 20px !important;
+  border-bottom: 1px solid var(--border) !important;
+  transition: background-color 0.2s ease;
+}
+
+.recent-candidates .candidate-item:hover {
+  background-color: rgba(99, 102, 241, 0.02);
+}
+
+.recent-candidates .candidate-item:last-child {
+  border-bottom: none !important;
+}
+
+.recent-candidates .view-btn {
+  color: var(--primary) !important;
+  background: var(--primary-glow) !important;
+  border: 1px solid rgba(99, 102, 241, 0.15) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.recent-candidates .view-btn:hover {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px);
+}
+
+/* User details drawer styles */
+.userDetails_drawer .ant-drawer-content {
+  background: var(--bg-main) !important;
+}
+
+.userDetails_drawer .ant-drawer-header {
+  border-bottom: 1px solid var(--border) !important;
+  background: #ffffff !important;
+}
+
+.userDetails_drawer .drawer-body {
+  padding: 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.userDetails_drawer .profile-left {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01) !important;
+  padding: 32px 24px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.userDetails_drawer .name {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: var(--text-main) !important;
+  margin-top: 16px !important;
+  margin-bottom: 6px !important;
+}
+
+.userDetails_drawer .role {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--primary) !important;
+  background: var(--primary-glow) !important;
+  padding: 6px 16px !important;
+  border-radius: 20px !important;
+  display: inline-block !important;
+  margin-bottom: 16px !important;
+}
+
+.userDetails_drawer .info-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--border) !important;
+  background: #ffffff !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01) !important;
+  overflow: hidden;
+}
+
+.userDetails_drawer .info-card .ant-card-head {
+  border-bottom: 1px solid var(--border) !important;
+  background: rgba(248, 250, 252, 0.5) !important;
+  padding: 16px 24px !important;
+}
+
+.userDetails_drawer .info-card .ant-card-head-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: var(--text-main) !important;
+}
+
+.userDetails_drawer .info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 24px;
+}
+
+.userDetails_drawer .info-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.userDetails_drawer .info-icon {
+  font-size: 18px;
+  color: var(--primary);
+  background: var(--primary-glow);
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.userDetails_drawer .info-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.userDetails_drawer .info-value {
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.userDetails_drawer .skill-pill {
+  background: rgba(99, 102, 241, 0.06) !important;
+  color: var(--primary) !important;
+  border: 1px solid rgba(99, 102, 241, 0.1) !important;
+  border-radius: 8px !important;
+  padding: 6px 14px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+/* Edit Opportunity Styles */
+.edit_opportunity .section-card {
+  border-radius: 16px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02) !important;
+  background: #ffffff;
+  padding: 24px !important;
+  margin-top: 0 !important;
+  margin-bottom: 24px !important;
+}
+
+.edit_opportunity .section-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  color: var(--text-main) !important;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 12px !important;
+  margin-bottom: 24px !important;
+}
+
+.edit_opportunity .section-title::after {
+  display: none !important;
+}
+
+.edit_opportunity .info-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--border) !important;
+  background: #ffffff !important;
+  padding: 16px 20px !important;
+  transition: all 0.2s ease;
+  box-shadow: none !important;
+}
+
+.edit_opportunity .info-card:hover {
+  border-color: var(--primary) !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05) !important;
+}
+
+.edit_opportunity .apply-button {
+  background: var(--primary) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+}
+
+.edit_opportunity .apply-button:hover {
+  background: var(--primary-hover) !important;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Custom Recharts Tooltip */
+.premium-recharts-tooltip {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.premium-recharts-tooltip .tooltip-title {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.premium-recharts-tooltip .tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 4px 0;
+}
+
+.premium-recharts-tooltip .tooltip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.premium-recharts-tooltip .tooltip-val {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-left: auto;
+}
+
+/* Tables and Inputs */
+.ant-table {
+  border-radius: 12px !important;
+}
+
+.ant-table-thead>tr>th {
+  background: #f8fafc !important;
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.ant-table-tbody>tr>td {
+  border-bottom: 1px solid var(--border) !important;
+  padding: 16px !important;
+}
+
+.ant-table-tbody>tr:hover>td {
+  background-color: rgba(99, 102, 241, 0.02) !important;
+}
+
+.ant-input-affix-wrapper,
+.ant-select-selector {
+  border-radius: 8px !important;
+  border-color: var(--border) !important;
+}
+
+.ant-input-affix-wrapper:hover,
+.ant-select-selector:hover {
+  border-color: var(--primary) !important;
+}
+
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary-glow) !important;
+}
+
+/* Timeline/Listings */
+.listings-timeline .ant-timeline-item {
+  padding-bottom: 24px !important;
+}
+
+.listings-timeline .ant-timeline-item-tail {
+  border-inline-start: 2px dashed var(--border) !important;
+}
+
+.listings-timeline .job-item-card {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.listings-timeline .job-item-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05);
+  transform: translateX(2px);
+}
+
+.see-more-btn {
+  color: var(--primary) !important;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 24px;
+  border-radius: 8px;
+  background: var(--primary-glow) !important;
+  border: 1px solid rgba(99, 102, 241, 0.15) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.see-more-btn:hover {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px);
+}
+
+/* Premium Chart Card Styles */
+.chart-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(99, 102, 241, 0.08) !important;
+  border-radius: 24px !important;
+  padding: 24px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04) !important;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 24px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-body {
+  width: 100%;
+  height: 320px;
+}
+
+.chart-card:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06) !important;
+  transform: translateY(-2px);
+  transition: all 0.3s ease;
+}
+
+.chart-card {
+  transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

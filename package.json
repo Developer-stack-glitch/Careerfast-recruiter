@@ -1,0 +1,86 @@
+{
+  "name": "markerzjobportal",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@ant-design/icons": "^5.6.1",
+    "@fortawesome/free-brands-svg-icons": "^7.0.0",
+    "@fortawesome/free-regular-svg-icons": "^7.0.0",
+    "@fortawesome/free-solid-svg-icons": "^7.0.0",
+    "@fortawesome/react-fontawesome": "^3.0.2",
+    "@react-oauth/google": "^0.12.2",
+    "@reduxjs/toolkit": "^2.8.2",
+    "@strapi/blocks-react-renderer": "^1.0.2",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "antd": "^5.26.3",
+    "axios": "^1.10.0",
+    "bootstrap": "^5.3.6",
+    "cities-list": "^1.0.3",
+    "country-state-city": "^3.2.1",
+    "currency-codes": "^2.2.0",
+    "currency-symbols": "^0.4.1",
+    "date-fns": "^4.1.0",
+    "firebase": "^11.7.3",
+    "framer-motion": "^12.15.0",
+    "jwt-decode": "^4.0.0",
+    "location": "^0.0.1",
+    "lucide-react": "^1.7.0",
+    "moment": "^2.30.1",
+    "next": "^16.2.2",
+    "particles-bg": "^2.5.5",
+    "polished": "^4.3.1",
+    "quill": "^2.0.3",
+    "react": "^18.3.1",
+    "react-calendar-heatmap": "^1.10.0",
+    "react-dom": "^18.3.1",
+    "react-helmet-async": "^2.0.5",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.5.0",
+    "react-intersection-observer": "^9.16.0",
+    "react-markdown": "^10.1.0",
+    "react-phone-number-input": "^3.4.12",
+    "react-places-autocomplete": "^7.3.0",
+    "react-quill": "^2.0.0",
+    "react-quill-new": "^3.8.3",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.5.3",
+    "react-scripts": "5.0.1",
+    "react-slick": "^0.30.3",
+    "react-toastify": "^11.0.5",
+    "recharts": "^3.0.2",
+    "slick-carousel": "^1.8.1",
+    "web-vitals": "^2.1.4"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.17"
+  }
+}

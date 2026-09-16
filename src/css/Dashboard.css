@@ -1,0 +1,421 @@
+/* ==========================================================================
+   💎 CareerFast - Superadmin Dashboard Premium Stylesheet
+   ========================================================================== */
+
+:root {
+  --dash-primary: #6366f1;
+  --dash-primary-hover: #4f46e5;
+  --dash-primary-light: rgba(99, 102, 241, 0.1);
+  --dash-secondary: #06b6d4;
+  --dash-secondary-light: rgba(6, 182, 212, 0.1);
+  --dash-accent: #f59e0b;
+  --dash-accent-light: rgba(245, 158, 11, 0.1);
+  --dash-success: #10b981;
+  --dash-success-light: rgba(16, 185, 129, 0.1);
+  --dash-danger: #ef4444;
+  --dash-danger-light: rgba(239, 68, 68, 0.1);
+
+  --dash-card-bg: rgba(255, 255, 255, 0.85);
+  --dash-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+  --dash-card-border: rgba(99, 102, 241, 0.08);
+}
+
+.dashboard-container {
+  padding: 24px;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 80px);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Header Section */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.dashboard-title-area h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-title-area p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+.dashboard-actions-area {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  height: 42px;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #334155;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* Metric Cards Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.metric-card {
+  background: var(--dash-card-bg);
+  border: 1px solid var(--dash-card-border);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: var(--dash-card-shadow);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+
+.metric-card.candidates::before {
+  background: var(--dash-primary);
+}
+
+.metric-card.recruiters::before {
+  background: var(--dash-secondary);
+}
+
+.metric-card.jobs::before {
+  background: var(--dash-accent);
+}
+
+.metric-card.applications::before {
+  background: var(--dash-success);
+}
+
+.metric-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.06);
+}
+
+.metric-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #464646;
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.1;
+  letter-spacing: -1px;
+}
+
+.btn-refresh:hover {
+  border-color: var(--dash-primary) !important;
+  color: var(--dash-primary) !important;
+}
+
+.metric-trend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dash-success);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.candidates .metric-icon-box {
+  background-color: var(--dash-primary-light);
+  color: var(--dash-primary);
+}
+
+.recruiters .metric-icon-box {
+  background-color: var(--dash-secondary-light);
+  color: var(--dash-secondary);
+}
+
+.jobs .metric-icon-box {
+  background-color: var(--dash-accent-light);
+  color: var(--dash-accent);
+}
+
+.applications .metric-icon-box {
+  background-color: var(--dash-success-light);
+  color: var(--dash-success);
+}
+
+.metric-card:hover .metric-icon-box {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Charts Grid */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 1024px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  background: var(--dash-card-bg);
+  border: 1px solid var(--dash-card-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: var(--dash-card-shadow);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-body {
+  width: 100%;
+  height: 320px;
+}
+
+/* Tabs & Tables Section */
+.data-card {
+  background: var(--dash-card-bg);
+  border: 1px solid var(--dash-card-border);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: var(--dash-card-shadow);
+  backdrop-filter: blur(10px);
+  margin-bottom: 28px;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.table-search-input {
+  border-radius: 12px;
+  height: 42px;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01) !important;
+  font-size: 14px;
+  width: 320px;
+}
+
+.table-search-input:hover,
+.table-search-input:focus {
+  border-color: var(--dash-primary);
+}
+
+.table-filters {
+  display: flex;
+  gap: 12px;
+}
+
+.filter-select {
+  width: 160px;
+}
+
+.filter-select .ant-select-selector {
+  border-radius: 12px !important;
+  height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Antd Tab Customization */
+.dashboard-tabs .ant-tabs-nav {
+  margin-bottom: 24px;
+}
+
+.dashboard-tabs .ant-tabs-tab {
+  font-weight: 500;
+  font-size: 15px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  color: #64748b;
+}
+
+.dashboard-tabs .ant-tabs-tab-active {
+  color: var(--dash-primary) !important;
+}
+
+.ant-tabs .ant-tabs-tab:hover {
+  color: var(--dash-primary) !important;
+}
+
+.ant-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--dash-primary) !important;
+}
+
+.dashboard-tabs .ant-tabs-ink-bar {
+  background-color: var(--dash-primary) !important;
+  height: 3px !important;
+  border-radius: 3px 3px 0 0;
+}
+
+/* Custom Table Styling */
+.premium-table .ant-table {
+  background: transparent !important;
+}
+
+.premium-table .ant-table-thead>tr>th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 16px !important;
+}
+
+.premium-table .ant-table-tbody>tr>td {
+  padding: 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  color: #334155 !important;
+  font-size: 14px !important;
+}
+
+.premium-table .ant-table-tbody>tr:hover>td {
+  background: rgba(99, 102, 241, 0.015) !important;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-cell-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-cell-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.user-cell-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.badge-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-status.active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-status.inactive {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Tooltip Customization */
+.recharts-default-tooltip {
+  border-radius: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(4px) !important;
+  padding: 12px 16px !important;
+}
+
+.recharts-tooltip-title {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  margin-bottom: 6px !important;
+}
+
+.recharts-tooltip-item {
+  font-weight: 500 !important;
+  padding: 2px 0 !important;
+}

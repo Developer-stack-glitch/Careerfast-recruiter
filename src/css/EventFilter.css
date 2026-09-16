@@ -1,0 +1,130 @@
+/* src/css/EventFilter.css */
+
+.workshop-filter-container {
+    margin-bottom: 20px;
+}
+
+.desktop-filter-bar {
+    display: flex;
+    background: #fff;
+    border-radius: 50px;
+    padding: 14px 20px;
+    position: sticky;
+    top: 78px;
+    z-index: 20;
+    align-items: center;
+    justify-content: space-around;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-filter-trigger {
+    display: none;
+    margin-bottom: 15px;
+}
+
+.filter-field-item {
+    margin-bottom: 15px;
+}
+
+.filter-field-item label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.filter-drawer .ant-drawer-body {
+    padding: 24px;
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+    .desktop-filter-bar {
+        gap: 5px;
+        padding: 10px 15px;
+    }
+
+    .desktop-filter-bar .ant-select {
+        min-width: 120px !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .desktop-filter-bar {
+        flex-wrap: wrap;
+        border-radius: 15px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 991px) {
+    .desktop-filter-bar {
+        display: none;
+    }
+
+    .mobile-filter-trigger {
+        display: block;
+    }
+
+    /* Adjust sticky behavior for list column on mobile */
+    .event-list-col {
+        position: static !important;
+        margin-bottom: 20px;
+    }
+
+    .event-details-col {
+        margin-top: 20px;
+    }
+
+    .event-filter-mob-card-tag {
+        white-space: unset !important;
+    }
+
+    .event-filter-mob-card {
+        flex-direction: column;
+        align-items: unset !important;
+    }
+
+    .event-details-card-text {
+        flex-direction: column;
+    }
+
+    .event-details-card-text h2 {
+        font-size: 16px;
+        font-weight: 600 !important;
+    }
+
+    .workshop_des {
+        padding: 20px 8px !important;
+    }
+
+    .event-details-card-main {
+        padding: 15px !important;
+    }
+
+}
+
+@media (max-width: 575px) {
+    .event-filter-page-container {
+        padding: 0 15px 40px 15px !important;
+    }
+
+    .event-card-item {
+        margin-bottom: 15px !important;
+    }
+}
+
+/* Scrollbar styling */
+.event-list-scroll::-webkit-scrollbar {
+    width: 3px;
+}
+
+.event-list-scroll::-webkit-scrollbar-thumb {
+    background: rgba(95, 46, 234, 0.4);
+    border-radius: 3px;
+}
+
+.event-list-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(95, 46, 234, 0.7);
+}

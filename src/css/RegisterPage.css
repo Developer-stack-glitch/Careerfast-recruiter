@@ -1,0 +1,579 @@
+:root {
+  --primary: #5f2eea;
+  --primary-light: #7f5af0;
+  --primary-dark: #4b1ea0;
+  --text-main: #1a202c;
+  --text-muted: #718096;
+  --bg-gradient: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+.register-page-wrapper {
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Background Shapes */
+.background-shapes .shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  z-index: 0;
+  opacity: 0.5;
+  animation: floatShape 20s infinite alternate;
+}
+
+.shape-1 {
+  width: 500px;
+  height: 500px;
+  background: rgba(127, 90, 240, 0.2);
+  top: -200px;
+  left: -100px;
+}
+
+.shape-2 {
+  width: 400px;
+  height: 400px;
+  background: rgba(95, 46, 234, 0.15);
+  bottom: -150px;
+  right: -50px;
+}
+
+.shape-3 {
+  width: 300px;
+  height: 300px;
+  background: rgba(67, 56, 202, 0.1);
+  top: 40%;
+  right: 15%;
+}
+
+@keyframes floatShape {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(50px, 50px) rotate(15deg);
+  }
+}
+
+.register-main-container {
+  max-width: 1200px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 32px;
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.register-form-side {
+  padding: 50px 70px;
+  display: flex;
+  flex-direction: column;
+}
+
+.register-header {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.premium-title {
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 36px !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
+  margin-bottom: 0px !important;
+  letter-spacing: -1px;
+}
+
+.premium-subtitle {
+  font-size: 17px;
+  color: var(--text-muted);
+}
+
+/* Role Selector */
+.role-selector-container {
+  margin-bottom: 40px;
+}
+
+.role-selector {
+  display: flex;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 16px;
+  position: relative;
+  width: fit-content;
+}
+
+.role-option {
+  padding: 10px 30px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  z-index: 2;
+  transition: all 0.3s;
+}
+
+.role-option.active {
+  color: var(--primary);
+}
+
+.role-indicator {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  height: calc(100% - 12px);
+  width: calc(50% - 6px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.role-selector.recruiter .role-indicator {
+  transform: translateX(100%);
+}
+
+/* Step Progress */
+.step-progress-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 35px;
+  gap: 12px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+
+.step-item.active {
+  opacity: 1;
+}
+
+.step-item.completed {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.step-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.active .step-icon-circle {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 8px 16px rgba(95, 46, 234, 0.2);
+}
+
+.completed .step-icon-circle {
+  background: #eef2ff;
+  color: var(--primary);
+}
+
+.step-label {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: #f1f5f9;
+  border-radius: 1px;
+}
+
+.step-line.filled {
+  background: var(--primary);
+}
+
+/* Form Styles */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px 20px;
+}
+
+.register-form-side .commoninputfield p,
+.register-form-side .commonselectfield p,
+.register-form-side .ant-form-item-label label {
+  margin-bottom: 10px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--text-main) !important;
+  display: block !important;
+}
+
+.register-form-side .commoninputfield p span,
+.register-form-side .commonselectfield p span,
+.register-form-side .ant-form-item-label label::before {
+  color: #ff4d4f !important;
+  margin-right: 4px !important;
+}
+
+.register-form-side .commonselectfield div {
+  margin-bottom: 0px !important;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+/* Premium Input & Select Overrides */
+.register-form-side .premium-input {
+  width: 100% !important;
+  height: 52px !important;
+  border-radius: 12px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background: #fff !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 16px !important;
+}
+
+.register-form-side .premium-input.with-prefix {
+  padding-left: 44px !important;
+}
+
+.register-form-side .premium-input:hover {
+  border-color: var(--primary-light) !important;
+}
+
+.register-form-side .premium-input:focus-within {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px rgba(95, 46, 234, 0.1) !important;
+}
+
+/* Specific Select Overrides to fix the "lines" bug */
+.register-form-side .ant-select.premium-input .ant-select-selector {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: 100% !important;
+  width: 100% !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.register-form-side .ant-select.premium-input .ant-select-selection-search {
+  inset-inline-start: 0 !important;
+}
+
+.register-form-side .ant-select.premium-input .ant-select-selection-placeholder,
+.register-form-side .ant-select.premium-input .ant-select-selection-item {
+  line-height: 50px !important;
+  padding: 0 !important;
+  font-size: 15px !important;
+  color: var(--text-main) !important;
+}
+
+.register-form-side .select-prefix-icon {
+  color: #a0aec0 !important;
+  font-size: 18px !important;
+  left: 16px !important;
+}
+
+/* Ant Design Input & Password Overrides */
+.register-form-side .ant-input-affix-wrapper.premium-input,
+.register-form-side .ant-input.premium-input {
+  background: #fff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  height: 52px !important;
+  padding: 0 16px !important;
+  transition: all 0.3s ease !important;
+}
+
+.register-form-side .ant-input-affix-wrapper.premium-input .ant-input {
+  background: transparent !important;
+  font-size: 15px !important;
+}
+
+.register-form-side .ant-input-affix-wrapper.premium-input .ant-input-prefix {
+  margin-right: 8px !important;
+  color: #a0aec0 !important;
+  font-size: 18px !important;
+}
+
+.register-form-side .ant-input-affix-wrapper.premium-input:hover,
+.register-form-side .ant-input.premium-input:hover {
+  border-color: var(--primary-light) !important;
+}
+
+.register-form-side .ant-input-affix-wrapper.premium-input-status-error,
+.register-form-side .ant-input.premium-input-status-error {
+  border-color: #ff4d4f !important;
+}
+
+.register-form-side .ant-input-affix-wrapper.premium-input:focus,
+.register-form-side .ant-input-affix-wrapper-focused.premium-input,
+.register-form-side .ant-input.premium-input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 4px rgba(95, 46, 234, 0.1) !important;
+}
+
+/* Error Message Styling */
+.register-form-side .show-premium-input-error p,
+.register-form-side .ant-form-item-explain-error {
+  color: #ff4d4f !important;
+  font-size: 13px !important;
+  margin-top: 6px !important;
+  font-weight: 500 !important;
+  animation: fadeInError 0.3s ease-out;
+  margin-bottom: 0px !important;
+}
+
+@keyframes fadeInError {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.register-form-side .hide-premium-input-error {
+  display: none !important;
+}
+
+/* Footer & Buttons */
+.register-footer-btns {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.next-btn,
+.submit-btn {
+  flex: 1;
+  height: 56px !important;
+  border-radius: 16px !important;
+  font-size: 17px !important;
+  font-weight: 500 !important;
+  margin-top: 26px;
+  background: var(--primary) !important;
+  border: none !important;
+  box-shadow: 0 10px 20px rgba(95, 46, 234, 0.2) !important;
+}
+
+.prev-btn {
+  border-radius: 16px !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  border: none !important;
+  margin-top: 26px;
+  box-shadow: none !important;
+}
+
+.register-form-side .commonpassfield .ant-form-item {
+  margin-bottom: 0 !important;
+}
+
+.login-link-footer {
+  text-align: center;
+  margin-top: 30px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.login-link-footer a {
+  color: var(--primary);
+  font-weight: 700;
+  margin-left: 5px;
+}
+
+/* Visual Side New Layout */
+.register-visual-side {
+  height: 100%;
+  background: linear-gradient(135deg, #5f2eea 0%, #7f5af0 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  overflow: hidden;
+}
+
+.visual-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+  opacity: 0.8;
+}
+
+.visual-content-new {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mini-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.mini-badge span {
+  opacity: 0.9;
+}
+
+.illustration-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin: 0px 0;
+}
+
+.main-illustration {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.15));
+  z-index: 1;
+  transition: transform 0.5s ease;
+}
+
+
+.visual-footer-stats {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  padding: 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  font-family: 'Outfit', sans-serif;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.avatar-group-small {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-group-small img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  margin-right: -10px;
+}
+
+.avatar-more-small {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: white;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .register-form-side {
+    padding: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .register-main-container {
+    border-radius: 0;
+  }
+
+  .register-form-side {
+    padding: 30px 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-title {
+    font-size: 32px !important;
+  }
+
+  .step-label {
+    display: none;
+  }
+}

@@ -17,6 +17,7 @@ import {
 } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
 import { getImageUrl } from '../utils/getImageUrl';
+import { downloadResumeFile, viewResumeFile } from '../utils/downloadResume';
 
 // Helper to escape regex special characters
 const escapeRegExp = (str) => {
@@ -2195,14 +2196,27 @@ const CandidateSearchResults = () => {
                       <FileText size={20} className="text-[#0A66C2]" />
                       Candidate Resume Attachment
                     </div>
-                    <a
-                      href={resumeModalCandidate.resume.startsWith('http') ? resumeModalCandidate.resume : `/${resumeModalCandidate.resume}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-[#0A66C2] text-white text-[12px] font-bold rounded-xl hover:bg-[#004182] flex items-center gap-1.5 shadow-sm transition-colors"
-                    >
-                      <Download size={14} /> Download PDF
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => viewResumeFile(resumeModalCandidate.resume)}
+                        className="px-3.5 py-2 bg-white text-[#0A66C2] border border-blue-200 hover:border-[#0A66C2] hover:bg-blue-50 text-[12px] font-bold rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                        title="View Resume in new tab"
+                      >
+                        <FileText size={14} /> View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadResumeFile(
+                          resumeModalCandidate.resume,
+                          `${resumeModalCandidate.first_name || ''} ${resumeModalCandidate.last_name || ''}`.trim()
+                        )}
+                        className="px-4 py-2 bg-[#0A66C2] text-white text-[12px] font-bold rounded-xl hover:bg-[#004182] flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                        title="Download Resume PDF"
+                      >
+                        <Download size={14} /> Download PDF
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-[13px] text-slate-400 italic bg-slate-50 p-4 rounded-2xl border border-slate-100">

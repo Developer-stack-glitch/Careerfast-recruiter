@@ -54,6 +54,7 @@ import {
 import { CommonToaster } from '../Common/CommonToaster';
 import Link from 'next/link';
 import { getImageUrl } from '../utils/getImageUrl';
+import { downloadResumeFile } from '../utils/downloadResume';
 
 export default function FolderManagement() {
   // Tabs: 'personal' | 'with_job' | 'shared_with_you' | 'shared_by_you' | 'default' | 'archived'
@@ -1844,15 +1845,14 @@ export default function FolderManagement() {
                               </a>
                             )}
                             {c.resume && (
-                              <a
-                                href={c.resume}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:text-[#0A66C2] hover:border-[#0A66C2] transition-colors shadow-2xs no-underline"
+                              <button
+                                type="button"
+                                onClick={() => downloadResumeFile(c.resume, c.name)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:text-[#0A66C2] hover:border-[#0A66C2] transition-colors shadow-2xs cursor-pointer"
                               >
                                 <FiDownload className="h-3.5 w-3.5" />
                                 <span>Resume</span>
-                              </a>
+                              </button>
                             )}
                           </div>
                         </div>

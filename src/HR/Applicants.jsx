@@ -38,6 +38,7 @@ import {
 } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
 import { getImageUrl } from '../utils/getImageUrl';
+import { downloadResumeFile } from '../utils/downloadResume';
 
 // Helper to escape regex special characters
 const escapeRegExp = (str) => {
@@ -2486,17 +2487,14 @@ export default function Applicants({ jobId }) {
 
               <div className="flex items-center gap-2">
                 {resumeModalApplicant.resume && (
-                  <a
-                    href={resumeModalApplicant.resume}
-                    target="_blank"
-                    rel="noreferrer"
-                    download
-                    className="flex items-center gap-1.5 text-[13px] font-semibold !text-white hover:!text-white bg-[#0A66C2] hover:bg-[#004182] px-3.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer !no-underline hover:!no-underline"
-                    style={{ textDecoration: 'none' }}
+                  <button
+                    type="button"
+                    onClick={() => downloadResumeFile(resumeModalApplicant.resume, resumeModalApplicant.name)}
+                    className="flex items-center gap-1.5 text-[13px] font-semibold !text-white hover:!text-white bg-[#0A66C2] hover:bg-[#004182] px-3.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer"
                   >
                     <Download size={14} />
                     <span className="!text-white">Download PDF</span>
-                  </a>
+                  </button>
                 )}
                 <button
                   type="button"

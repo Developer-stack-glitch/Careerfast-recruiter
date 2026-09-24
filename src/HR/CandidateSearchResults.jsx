@@ -76,6 +76,31 @@ const highlightKeywords = (text, keywordList = []) => {
   }
 };
 
+// Helper to parse, flatten, and separate all comma-separated skills into clean individual tags
+export const parseSkillsList = (rawSkills) => {
+  if (!rawSkills) return [];
+  let list = [];
+  if (Array.isArray(rawSkills)) {
+    list = rawSkills.flatMap(s => (typeof s === 'string' && s.includes(',')) ? s.split(',') : s);
+  } else if (typeof rawSkills === 'string') {
+    try {
+      const parsed = JSON.parse(rawSkills);
+      if (Array.isArray(parsed)) {
+        list = parsed.flatMap(s => (typeof s === 'string' && s.includes(',')) ? s.split(',') : s);
+      } else {
+        list = String(rawSkills).split(',');
+      }
+    } catch {
+      list = rawSkills.split(',');
+    }
+  }
+  return Array.from(new Set(
+    list
+      .map(s => String(s || '').replace(/[\[\]'"]+/g, '').trim())
+      .filter(Boolean)
+  ));
+};
+
 // Helper to generate page numbers with ellipsis
 const getPageNumbers = (currentPage, totalPages) => {
   if (totalPages <= 7) {
@@ -2304,10 +2329,15 @@ const CandidateSearchResults = () => {
                 const rawImg = candidate.profile_image || candidate.profile_picture || candidate.photo || candidate.avatar || candidate.image;
                 const candidateImgUrl = rawImg ? getImageUrl(rawImg) : null;
 
-                // Skills array fallback
-                const skillsList = Array.isArray(candidate.skills) && candidate.skills.length > 0
-                  ? candidate.skills
-                  : ['N/A'];
+                // Skills array fallback - parse and split comma-separated skills into clean individual items
+                const rawSkillsList = parseSkillsList(candidate.skills);
+                // Prioritize matched skills to appear first in top preview pills, followed by other skills
+                const skillsList = activeKeywords.length > 0
+                  ? [
+                      ...rawSkillsList.filter(s => activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase()))),
+                      ...rawSkillsList.filter(s => !activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase())))
+                    ]
+                  : rawSkillsList;
 
                 // AI About / Summary Quote
                 const aboutSummary = candidate.about || "N/A";
@@ -3325,7 +3355,7 @@ const CandidateSearchResults = () => {
               )}
 
               {/* Section 3: Core Skills & Competencies */}
-              {resumeModalCandidate.skills?.length > 0 && (
+              {parseSkillsList(resumeModalCandidate.skills).length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
@@ -3335,12 +3365,12 @@ const CandidateSearchResults = () => {
                       </h4>
                     </div>
                     <span className="text-[11.5px] font-semibold text-[#0A66C2] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                      {resumeModalCandidate.skills.length} Skills
+                      {parseSkillsList(resumeModalCandidate.skills).length} Skills
                     </span>
                   </div>
                   <div className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs">
                     <div className="flex flex-wrap gap-2">
-                      {resumeModalCandidate.skills.map((s, i) => {
+                      {parseSkillsList(resumeModalCandidate.skills).map((s, i) => {
                         const isMatch = activeKeywords.length > 0 && activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase()));
                         return (
                           <span
@@ -4191,12 +4221,12 @@ const CandidateSearchResults = () => {
                           <div className="pt-1">
                             <span className="text-[11px] text-slate-400 block mb-1">Key Skills:</span>
                             <div className="flex flex-wrap gap-1">
-                              {(cand.skills || []).slice(0, 4).map((s, sIdx) => (
+                              {parseSkillsList(cand.skills).slice(0, 4).map((s, sIdx) => (
                                 <span key={sIdx} className="px-1.5 py-0.5 rounded bg-white text-slate-700 text-[10px] font-medium border border-slate-200">
                                   {s}
                                 </span>
                               ))}
-                              {(!cand.skills || cand.skills.length === 0) && (
+                              {parseSkillsList(cand.skills).length === 0 && (
                                 <span className="text-[11px] text-slate-400 italic">Not specified</span>
                               )}
                             </div>

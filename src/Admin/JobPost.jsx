@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { getJobPosts, deleteJobPost, expireJobPost, makeJobActive } from '../ApiService/action';
 import toast from 'react-hot-toast';
+import AdminDateFilter from './AdminDateFilter';
 
 // ── Stat Card Component ──
 const StatCard = ({ title, value, icon: Icon, color, bg, accent }) => (
@@ -75,6 +76,7 @@ export default function JobPost() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [jobToDelete, setJobToDelete] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [dateFilter, setDateFilter] = useState({ preset: 'All Time', startDate: '', endDate: '', label: 'All Time' });
     const itemsPerPage = 10;
 
     useEffect(() => {
@@ -82,7 +84,7 @@ export default function JobPost() {
             fetchJobs();
         }, 500);
         return () => clearTimeout(timeout);
-    }, [currentPage, searchTerm, activeFilter]);
+    }, [currentPage, searchTerm, activeFilter, dateFilter]);
 
     const fetchJobs = async () => {
         try {
@@ -94,6 +96,8 @@ export default function JobPost() {
             if (searchTerm) payload.searchTerm = searchTerm;
             if (activeFilter === 'Active') payload.is_closed = 0;
             if (activeFilter === 'Closed') payload.is_closed = 1;
+            if (dateFilter.startDate) payload.start_date = dateFilter.startDate;
+            if (dateFilter.endDate) payload.end_date = dateFilter.endDate;
 
             const response = await getJobPosts(payload);
             const responseData = response?.data?.data || response?.data || {};
@@ -303,7 +307,7 @@ export default function JobPost() {
                     <h1 className="text-xl font-bold text-gray-900 tracking-tight mb-0">Job Postings</h1>
                     <p className="text-[13px] text-gray-500 mt-0.5 mb-0">Manage all jobs posted by recruiters across the platform.</p>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
                     <div className="relative w-full sm:w-72">
                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                             <Search className="h-4 w-4 text-gray-400" />
@@ -316,6 +320,13 @@ export default function JobPost() {
                             className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-xl text-[13px] focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white outline-none transition-all placeholder:text-gray-400"
                         />
                     </div>
+                    <AdminDateFilter
+                        value={dateFilter}
+                        onChange={(newFilter) => {
+                            setDateFilter(newFilter);
+                            setCurrentPage(1);
+                        }}
+                    />
                     <button 
                         onClick={handleExport}
                         className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all flex items-center gap-2 shrink-0 active:scale-[0.98]"

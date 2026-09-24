@@ -22,7 +22,8 @@ import {
     ArrowRight,
     Check,
     RotateCcw,
-    BookOpen
+    BookOpen,
+    Users
 } from 'lucide-react';
 import logo from '../images/hrportal_logo1.png';
 
@@ -111,15 +112,123 @@ const HrHeader = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [quickSearchOpen, locationPickerOpen, expPickerOpen]);
 
+    const [userAccess, setUserAccess] = useState({
+        isSubRecruiter: false,
+        rolePreset: 'admin',
+        designation: '',
+        permissions: {
+            can_post_jobs: true,
+            can_view_resumes: true,
+            can_download_resumes: true,
+            can_contact_candidates: true,
+            can_manage_applications: true,
+            can_edit_company_profile: true,
+            can_manage_team: true,
+        }
+    });
+
+    const [companyInfo, setCompanyInfo] = useState({
+        company_name: '',
+        company_logo: null,
+        main_recruiter_name: '',
+        is_sub_recruiter: false
+    });
+
     useEffect(() => {
         const stored = localStorage.getItem("loginDetails");
         if (stored) {
             try {
-                setRecruiterDetails(JSON.parse(stored));
+                const parsed = JSON.parse(stored);
+                setRecruiterDetails(parsed);
+                if (parsed.is_sub_recruiter || parsed.sub_recruiter_info) {
+                    const subInfo = parsed.sub_recruiter_info || {};
+                    const perms = subInfo.permissions || {};
+                    setUserAccess({
+                        isSubRecruiter: true,
+                        rolePreset: subInfo.role_preset || 'custom',
+                        designation: subInfo.designation || 'Recruiter',
+                        permissions: {
+                            can_post_jobs: perms.can_post_jobs !== false,
+                            can_view_resumes: perms.can_view_resumes !== false,
+                            can_download_resumes: perms.can_download_resumes !== false,
+                            can_contact_candidates: perms.can_contact_candidates !== false,
+                            can_manage_applications: perms.can_manage_applications !== false,
+                            can_edit_company_profile: perms.can_edit_company_profile === true,
+                            can_manage_team: false,
+                            can_manage_billing: false,
+                            ...perms
+                        }
+                    });
+                }
             } catch (e) {
                 console.error("Error parsing loginDetails", e);
             }
         }
+
+        // Live check from subscription & role API
+        const fetchAccess = async () => {
+            try {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
+                const token = typeof window !== 'undefined' ? localStorage.getItem("AccessToken") : '';
+                if (!token) return;
+
+                const res = await fetch(`${apiBase}/api/recruiter/my-subscription`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                const json = await res.json();
+                if (json?.success && json?.data) {
+                    const isSub = Boolean(json.data.is_sub_recruiter);
+                    const subInfo = json.data.sub_recruiter_info;
+                    const perms = json.data.permissions || {};
+                    const company = json.data.company || {};
+                    if (company && (company.company_name || company.company_logo || company.main_recruiter_name)) {
+                        setCompanyInfo(company);
+                    }
+                    setUserAccess({
+                        isSubRecruiter: isSub,
+                        rolePreset: subInfo?.role_preset || (isSub ? 'custom' : 'admin'),
+                        designation: subInfo?.designation || (isSub ? 'Sub-Recruiter' : 'Primary Recruiter'),
+                        permissions: {
+                            can_post_jobs: perms.can_post_jobs !== false && json.data.can_post_jobs !== false && !json.data.company_limit_reached,
+                            can_view_resumes: perms.can_view_resumes !== false,
+                            can_download_resumes: perms.can_download_resumes !== false,
+                            can_contact_candidates: perms.can_contact_candidates !== false,
+                            can_manage_applications: perms.can_manage_applications !== false,
+                            can_edit_company_profile: perms.can_edit_company_profile === true,
+                            can_manage_team: !isSub,
+                            can_manage_billing: !isSub
+                        }
+                    });
+
+                    if (isSub && subInfo) {
+                        try {
+                            const raw = localStorage.getItem("loginDetails");
+                            if (raw) {
+                                const parsed = JSON.parse(raw);
+                                parsed.is_sub_recruiter = true;
+                                parsed.sub_recruiter_info = subInfo;
+                                if (company.company_logo && !parsed.profile_image) {
+                                    parsed.profile_image = company.company_logo;
+                                }
+                                if (company.company_name) {
+                                    parsed.company_name = company.company_name;
+                                }
+                                if (company.main_recruiter_name) {
+                                    parsed.main_recruiter_name = company.main_recruiter_name;
+                                }
+                                localStorage.setItem("loginDetails", JSON.stringify(parsed));
+                                setRecruiterDetails(parsed);
+                            }
+                        } catch (e) {}
+                    }
+                }
+            } catch (err) {
+                // Silently fallback to stored state
+            }
+        };
+        fetchAccess();
     }, []);
 
     // Close dropdowns when clicking outside
@@ -265,15 +374,37 @@ const HrHeader = () => {
                             {/* Job Dropdown Menu */}
                             {jobDropdownOpen && (
                                 <div className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.16)] border border-slate-200/90 py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-                                    <Link
-                                        href="/post-job"
-                                        onClick={() => setJobDropdownOpen(false)}
-                                        style={{ textDecoration: 'none' }}
-                                        className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
-                                    >
-                                        <PlusCircle size={16} className="text-slate-500" />
-                                        <span>Post a job</span>
-                                    </Link>
+                                    {userAccess.permissions.can_post_jobs !== false && (
+                                        <>
+                                            <Link
+                                                href="/post-job"
+                                                onClick={() => setJobDropdownOpen(false)}
+                                                style={{ textDecoration: 'none' }}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
+                                            >
+                                                <PlusCircle size={16} className="text-slate-500" />
+                                                <span>Post a job</span>
+                                            </Link>
+                                            <Link
+                                                href="/post-internship"
+                                                onClick={() => setJobDropdownOpen(false)}
+                                                style={{ textDecoration: 'none' }}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
+                                            >
+                                                <FileText size={16} className="text-slate-500" />
+                                                <span>Post Internship</span>
+                                            </Link>
+                                            <Link
+                                                href="/post-course"
+                                                onClick={() => setJobDropdownOpen(false)}
+                                                style={{ textDecoration: 'none' }}
+                                                className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
+                                            >
+                                                <BookOpen size={16} className="text-slate-500" />
+                                                <span>Post course</span>
+                                            </Link>
+                                        </>
+                                    )}
                                     <Link
                                         href="/my-jobs"
                                         onClick={() => setJobDropdownOpen(false)}
@@ -282,24 +413,6 @@ const HrHeader = () => {
                                     >
                                         <Briefcase size={16} className="text-slate-500" />
                                         <span>Manage jobs</span>
-                                    </Link>
-                                    <Link
-                                        href="/post-internship"
-                                        onClick={() => setJobDropdownOpen(false)}
-                                        style={{ textDecoration: 'none' }}
-                                        className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
-                                    >
-                                        <FileText size={16} className="text-slate-500" />
-                                        <span>Post Internship</span>
-                                    </Link>
-                                    <Link
-                                        href="/post-course"
-                                        onClick={() => setJobDropdownOpen(false)}
-                                        style={{ textDecoration: 'none' }}
-                                        className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
-                                    >
-                                        <BookOpen size={16} className="text-slate-500" />
-                                        <span>Post course</span>
                                     </Link>
                                     <Link
                                         href="/my-jobs"
@@ -337,6 +450,20 @@ const HrHeader = () => {
                         >
                             <span>Reports</span>
                         </Link>
+
+                        {/* 5. Team Seats - Only visible to Primary Recruiter */}
+                        {!userAccess.isSubRecruiter && userAccess.permissions.can_manage_team !== false && (
+                            <Link
+                                href="/team"
+                                style={{ textDecoration: 'none' }}
+                                className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${pathname === '/team'
+                                    ? 'text-slate-900 font-bold bg-slate-100/70'
+                                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <span>Team Seats</span>
+                            </Link>
+                        )}
                     </nav>
                 </div>
 
@@ -404,12 +531,12 @@ const HrHeader = () => {
                             className="flex items-center gap-2.5 p-1 pl-1.5 pr-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer text-left group"
                         >
                             {/* Avatar */}
-                            <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-300 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                                {recruiterDetails?.profile_image ? (
+                            <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-300 flex items-center justify-center flex-shrink-0 shadow-2xs bg-white">
+                                {(recruiterDetails?.profile_image || companyInfo?.company_logo) ? (
                                     <img
-                                        src={recruiterDetails.profile_image}
+                                        src={recruiterDetails?.profile_image || companyInfo?.company_logo}
                                         alt={displayName}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-contain p-0.5"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-amber-800 font-bold text-[14px]">
@@ -420,9 +547,16 @@ const HrHeader = () => {
 
                             {/* Text Info */}
                             <div className="hidden sm:flex flex-col text-left leading-none">
-                                <span className="text-[11px] text-slate-400 font-normal mb-0.5">
-                                    Hello,
-                                </span>
+                                <div className="flex items-center gap-1 mb-0.5">
+                                    <span className="text-[11px] text-slate-400 font-normal">
+                                        Hello,
+                                    </span>
+                                    {userAccess.isSubRecruiter && (companyInfo?.company_name || recruiterDetails?.company_name) && (
+                                        <span className="text-[9.5px] font-semibold text-[#0A66C2] bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60 truncate max-w-[85px]" title={companyInfo?.company_name || recruiterDetails?.company_name}>
+                                            {companyInfo?.company_name || recruiterDetails?.company_name}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="text-[13px] font-bold text-slate-800 tracking-tight truncate max-w-[130px] group-hover:text-[#0A66C2] transition-colors">
                                     {displayName}
                                 </span>
@@ -447,31 +581,72 @@ const HrHeader = () => {
                                     <p className="text-[12px] text-slate-500 truncate mb-0">
                                         {recruiterDetails?.email || 'recruiter@careerfast.com'}
                                     </p>
-                                    <span className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#0A66C2] border border-blue-200/60">
-                                        Employer Portal
-                                    </span>
+                                    {userAccess.isSubRecruiter ? (
+                                        <div className="mt-2 flex flex-col gap-1.5">
+                                            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 w-fit">
+                                                Sub-Recruiter • {userAccess.designation || 'Team Member'}
+                                            </span>
+                                            {(companyInfo?.main_recruiter_name || companyInfo?.company_name || recruiterDetails?.main_recruiter_name) && (
+                                                <div className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-200/80">
+                                                    <span className="font-semibold text-slate-800 block truncate">
+                                                        🏢 {companyInfo?.company_name || recruiterDetails?.company_name || 'Organization'}
+                                                    </span>
+                                                    {(companyInfo?.main_recruiter_name || recruiterDetails?.main_recruiter_name) && (
+                                                        <span className="text-slate-500 text-[10.5px]">
+                                                            Under: <strong className="text-slate-700 font-semibold">{companyInfo?.main_recruiter_name || recruiterDetails?.main_recruiter_name}</strong>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#0A66C2] border border-blue-200/60">
+                                            Employer Portal
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Menu Items */}
                                 <div className="py-1">
-                                    <Link
-                                        href="/profile"
-                                        onClick={() => setProfileDropdownOpen(false)}
-                                        style={{ textDecoration: 'none' }}
-                                        className="flex items-center gap-3 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
-                                    >
-                                        <User size={16} className="text-slate-400" />
-                                        <span>Employers Profile</span>
-                                    </Link>
-                                    <Link
-                                        href="/billing"
-                                        onClick={() => setProfileDropdownOpen(false)}
-                                        style={{ textDecoration: 'none' }}
-                                        className="flex items-center gap-3 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
-                                    >
-                                        <CreditCard size={16} className="text-slate-400" />
-                                        <span>Plans & Billing</span>
-                                    </Link>
+                                    {/* Employers Profile - Only if allowed */}
+                                    {userAccess.permissions.can_edit_company_profile !== false && (
+                                        <Link
+                                            href="/profile"
+                                            onClick={() => setProfileDropdownOpen(false)}
+                                            style={{ textDecoration: 'none' }}
+                                            className="flex items-center gap-3 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
+                                        >
+                                            <User size={16} className="text-slate-400" />
+                                            <span>Employers Profile</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Plans & Billing - Only visible to Primary Recruiter */}
+                                    {!userAccess.isSubRecruiter && userAccess.permissions.can_manage_billing !== false && (
+                                        <Link
+                                            href="/billing"
+                                            onClick={() => setProfileDropdownOpen(false)}
+                                            style={{ textDecoration: 'none' }}
+                                            className="flex items-center gap-3 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
+                                        >
+                                            <CreditCard size={16} className="text-slate-400" />
+                                            <span>Plans & Billing</span>
+                                        </Link>
+                                    )}
+
+                                    {/* Team & Sub-Recruiters - Only visible to Primary Recruiter */}
+                                    {!userAccess.isSubRecruiter && userAccess.permissions.can_manage_team !== false && (
+                                        <Link
+                                            href="/team"
+                                            onClick={() => setProfileDropdownOpen(false)}
+                                            style={{ textDecoration: 'none' }}
+                                            className="flex items-center gap-3 px-4 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
+                                        >
+                                            <Users size={16} className="text-slate-400" />
+                                            <span>Team & Sub-Recruiters</span>
+                                        </Link>
+                                    )}
+
                                     <Link
                                         href="/settings"
                                         onClick={() => setProfileDropdownOpen(false)}

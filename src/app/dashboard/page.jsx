@@ -6,11 +6,10 @@ export const metadata = {
   description: "Manage candidate searches, job postings, outreach campaigns, credits, and downloads.",
 };
 
-export default function HrOverviewPage() {
+export default function HrDashboardPage() {
   return (
     <HrLayout>
       <HrDashboard />
     </HrLayout>
   );
 }
-

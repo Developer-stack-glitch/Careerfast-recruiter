@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import "react-quill-new/dist/quill.snow.css";
 import { nameValidator } from "../Common/Validation";
-import { useNavigate, useParams } from "@/routing-shim";
+import { useNavigate, useParams, useSearchParams } from "@/routing-shim";
 import dummyLogo from "../images/dummy_img.jpg";
 import cities from "cities-list";
 import { motion, AnimatePresence } from "framer-motion";
@@ -163,7 +163,9 @@ const salaryBracketOptions = (() => {
 })();
 
 export default function PostEdit() {
-  const { id } = useParams();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const id = params?.id || searchParams?.get('id');
   const navigate = useNavigate();
 
   // Multi-step form state
@@ -2199,7 +2201,6 @@ export default function PostEdit() {
               <ArrowLeft size={18} />
             </button>
             <h1 className="text-[22px] mb-0 font-bold text-gray-900 tracking-tight">Edit Job</h1>
-            <span className="px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] text-[11px] font-bold rounded-md">Free</span>
           </div>
 
           <div className="flex items-center w-full">

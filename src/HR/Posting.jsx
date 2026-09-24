@@ -32,11 +32,15 @@ import {
 } from "@ant-design/icons";
 import {
     CircleDollarSign,
-    ArrowLeft
+    ArrowLeft,
+    AlertTriangle,
+    Crown,
+    ExternalLink,
+    CheckCircle2
 } from 'lucide-react';
 import "react-quill-new/dist/quill.snow.css";
 import { nameValidator } from "../Common/Validation";
-import { useNavigate } from "@/routing-shim";
+import { useNavigate, useSearchParams } from "@/routing-shim";
 import dummyLogo from "../images/dummy_img.jpg";
 import currencySymbol from "currency-symbols";
 import cities from "cities-list";
@@ -60,7 +64,8 @@ import {
     getVenues,
     addVenue,
     getTeamMembers,
-    addTeamMember
+    addTeamMember,
+    getMySubscription
 } from "../ApiService/action";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -162,10 +167,38 @@ const salaryBracketOptions = (() => {
 
 export default function Posting() {
     const navigate = useNavigate();
+    const searchParams = useSearchParams();
+    const editJobId = searchParams?.get('id');
+
+    useEffect(() => {
+        if (editJobId) {
+            navigate(`/edit-job/${editJobId}`, { replace: true });
+        }
+    }, [editJobId, navigate]);
 
     // Multi-step form state
     const [currentStep, setCurrentStep] = useState(0);
     const [completedSteps, setCompletedSteps] = useState([]);
+
+    // Subscription & Quota state
+    const [subscription, setSubscription] = useState(null);
+    const [quotaLoading, setQuotaLoading] = useState(true);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [limitModalMessage, setLimitModalMessage] = useState("");
+
+    const activeJobsLimit = subscription?.limits?.active_job_limit ?? subscription?.usage?.active_job_limit ?? 0;
+    const activeJobsCount = subscription?.usage?.active_jobs_count ?? 0;
+    const pendingJobsCount = subscription?.usage?.pending_jobs_count ?? 0;
+    const activeJobsRemaining = subscription?.usage?.active_jobs_remaining ?? Math.max(0, activeJobsLimit - activeJobsCount);
+    const jobPostsLimit = subscription?.limits?.job_post_limit ?? subscription?.usage?.job_posts_limit ?? 0;
+    const jobPostsUsed = subscription?.usage?.job_posts_used ?? 0;
+    const jobPostsRemaining = subscription?.usage?.job_posts_remaining ?? Math.max(0, jobPostsLimit - jobPostsUsed);
+    const isSubRecruiter = Boolean(subscription?.is_sub_recruiter || subscription?.usage?.is_sub_recruiter || subscription?.permissions?.can_manage_team === false);
+    const isCompanyLimitReached = Boolean(subscription?.company_limit_reached || subscription?.can_post_jobs === false || subscription?.permissions?.can_post_jobs === false);
+    const isActiveLimitReached = !quotaLoading && subscription && (activeJobsRemaining <= 0 || (isSubRecruiter && isCompanyLimitReached));
+    const isMonthlyLimitReached = !quotaLoading && subscription && ((jobPostsLimit > 0 && jobPostsRemaining <= 0) || (isSubRecruiter && isCompanyLimitReached));
+    const isLimitReached = isActiveLimitReached || isMonthlyLimitReached || isCompanyLimitReached;
+    const planName = subscription?.plan?.name || subscription?.plan_name || 'Basic';
 
     // --- State Variables ---
     const [jobNatureId, setJobNatureId] = useState(null);
@@ -389,7 +422,22 @@ export default function Posting() {
         getJobNatureData();
         fetchVenues();
         fetchTeamMembersData();
+        fetchSubscriptionQuota();
     }, []);
+
+    const fetchSubscriptionQuota = async () => {
+        try {
+            setQuotaLoading(true);
+            const subRes = await getMySubscription();
+            if (subRes && subRes.success && subRes.data) {
+                setSubscription(subRes.data);
+            }
+        } catch (error) {
+            console.warn("Could not fetch recruiter subscription:", error?.message);
+        } finally {
+            setQuotaLoading(false);
+        }
+    };
 
     const fetchVenues = async () => {
         try {
@@ -731,6 +779,33 @@ export default function Posting() {
             about_company: isExternalApply ? aboutCompany : null
         };
 
+        // Quota check before submitting
+        if (subscription) {
+            const activeLimit = subscription?.limits?.active_job_limit ?? subscription?.usage?.active_job_limit ?? 0;
+            const activeRem = subscription?.usage?.active_jobs_remaining ?? Math.max(0, activeLimit - (subscription?.usage?.active_jobs_count ?? 0));
+            const postLimit = subscription?.limits?.job_post_limit ?? subscription?.usage?.job_posts_limit ?? 0;
+            const postRem = subscription?.usage?.job_posts_remaining ?? Math.max(0, postLimit - (subscription?.usage?.job_posts_used ?? 0));
+            const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+
+            if (isSubRecruiter && (isCompanyLimitReached || activeRem <= 0 || postRem <= 0)) {
+                setLimitModalMessage(subscription?.limit_reason || "Your company has reached its subscription plan job limit. Contact your primary recruiter to upgrade the plan or close an existing active job.");
+                setShowLimitModal(true);
+                return;
+            }
+
+            if (activeRem <= 0) {
+                setLimitModalMessage(`You have reached your maximum active job limit (${activeLimit}) on the ${planTitle} Plan. To publish this job, please close an existing active job from your dashboard or upgrade your plan.`);
+                setShowLimitModal(true);
+                return;
+            }
+
+            if (postLimit > 0 && postRem <= 0) {
+                setLimitModalMessage(`You have used all ${postLimit} monthly job posts available on the ${planTitle} Plan. Please upgrade your subscription plan to post more jobs.`);
+                setShowLimitModal(true);
+                return;
+            }
+        }
+
         try {
             setIsLoading(true);
             await createJobPost(payload);
@@ -738,7 +813,19 @@ export default function Posting() {
             navigate("/my-jobs");
         } catch (error) {
             console.error("Error posting job:", error);
-            toast.error(error.response?.data?.message || "Failed to post job.");
+            const errorDetails = error.response?.data?.details || error.response?.data?.message || "";
+            if (
+                error.response?.status === 403 ||
+                errorDetails.toLowerCase().includes("limit") ||
+                errorDetails.toLowerCase().includes("quota") ||
+                errorDetails.toLowerCase().includes("subscription") ||
+                errorDetails.toLowerCase().includes("active job")
+            ) {
+                setLimitModalMessage(errorDetails || "You have reached your active job posting quota limit. Close an existing job or upgrade your plan.");
+                setShowLimitModal(true);
+            } else {
+                toast.error(errorDetails || "Failed to post job.");
+            }
         } finally {
             setIsLoading(false);
         }
@@ -862,10 +949,10 @@ export default function Posting() {
                                             className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:border-[#0A66C2] outline-none text-[15px] text-gray-800 bg-white mb-4"
                                             placeholder="Enter the URL where candidates can apply"
                                         />
-                                        
+
                                         <div className="mt-4 p-4 border rounded-lg bg-gray-50">
                                             <h3 className="text-[14px] font-bold text-[#374151] mb-3">External Job Details</h3>
-                                            
+
                                             <div className="mb-4">
                                                 <label className="block text-[13px] font-medium text-gray-700 mb-2">Company Name (Optional)</label>
                                                 <input
@@ -2083,7 +2170,19 @@ export default function Posting() {
                             <ArrowLeft size={18} />
                         </button>
                         <h1 className="text-[22px] mb-0 font-bold text-gray-900 tracking-tight">Post a job</h1>
-                        <span className="px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] text-[11px] font-bold rounded-md">Free</span>
+                        {subscription && (
+                            <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold ${activeJobsRemaining <= 0
+                                ? 'bg-amber-50 text-amber-800 border-1 border-amber-200'
+                                : 'bg-blue-50 text-[#0A66C2] border-1 border-blue-100'
+                                }`}>
+                                <span>Active: {activeJobsCount}/{activeJobsLimit}</span>
+                                {activeJobsRemaining <= 0 ? (
+                                    <span className="text-[10px] font-bold uppercase bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-900">0 Free</span>
+                                ) : (
+                                    <span className="text-gray-500 font-normal">({activeJobsRemaining} left)</span>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center w-full">
@@ -2154,7 +2253,68 @@ export default function Posting() {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0 bg-white">
                 <div className="flex-1 overflow-y-auto">
-                    <div className="p-6 md:p-8 w-full max-w-5xl mx-auto pb-32">
+                    <div className="p-6 md:p-6 w-full max-w-5xl mx-auto pb-32">
+                        {/* Proactive Quota Warning Banner */}
+                        {isLimitReached && (
+                            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-1 border-amber-200/80 rounded-2xl p-3 md:p-4 mb-6 shadow-sm">
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                    <div className="flex items-start gap-3.5">
+                                        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5 md:mt-0">
+                                            <AlertTriangle size={20} />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h4 className="font-bold text-gray-900 text-sm mb-0">
+                                                    {isSubRecruiter && isCompanyLimitReached
+                                                        ? `Company Plan Limit Reached (Active Slots & Monthly Posts Exhausted)`
+                                                        : isActiveLimitReached
+                                                            ? `Active Job Limit Reached (${activeJobsCount}/${activeJobsLimit} Slots Used${pendingJobsCount > 0 ? `, ${pendingJobsCount} Pending Review` : ''})`
+                                                            : `Monthly Posting Limit Reached (${jobPostsUsed}/${jobPostsLimit} Posts Used)`}
+                                                </h4>
+                                                <span className="px-2 py-0.5 bg-amber-200/70 text-amber-900 text-[11px] font-bold rounded-full">{planName} Plan</span>
+                                            </div>
+                                            <p className="text-xs text-gray-600 mt-1 mb-0 leading-relaxed">
+                                                {isSubRecruiter
+                                                    ? `Your organization's subscription plan has filled all available active job slots or monthly postings. As a sub-recruiter, you cannot publish new jobs until your primary recruiter closes an active job or upgrades the plan.`
+                                                    : isActiveLimitReached
+                                                        ? `You currently have 0 active job slots available. You can fill out this job now, but to publish it, please either close an existing job from your dashboard or upgrade your plan.`
+                                                        : `You have used all ${jobPostsLimit} monthly job posts included in your ${planName} Plan. Please upgrade your subscription plan to post additional jobs.`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 self-end md:self-center flex-shrink-0">
+                                        {isSubRecruiter ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate('/overview')}
+                                                className="text-xs font-semibold px-3.5 py-2 border border-gray-300 rounded-xl hover:bg-white text-gray-700 transition shadow-xs"
+                                            >
+                                                Back to Dashboard
+                                            </button>
+                                        ) : (
+                                            <>
+                                                {isActiveLimitReached && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate('/my-jobs')}
+                                                        className="text-xs font-semibold px-3.5 py-2 border border-gray-300 rounded-xl hover:bg-white text-gray-700 transition shadow-xs"
+                                                    >
+                                                        Manage Active Jobs
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate('/subscription')}
+                                                    className="text-xs font-medium px-3.5 py-2 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                                                >
+                                                    <Crown size={14} /> Upgrade Plan
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <AnimatePresence mode="wait">
                             {renderStepContent()}
                         </AnimatePresence>
@@ -2178,14 +2338,21 @@ export default function Posting() {
                             Save & Next
                         </button>
                     ) : (
-                        <button
-                            onClick={handlePublishPost}
-                            disabled={isLoading}
-                            className="bg-[#0A66C2] hover:bg-[#004182] text-white px-8 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50"
-                        >
-                            {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : null}
-                            {isLoading ? 'Publishing...' : 'Publish Job'}
-                        </button>
+                        <div className="flex items-center gap-3">
+                            {activeJobsRemaining <= 0 && (
+                                <span className="text-xs text-amber-700 font-medium hidden sm:inline-flex items-center gap-1">
+                                    <AlertTriangle size={14} /> 0 active slots available
+                                </span>
+                            )}
+                            <button
+                                onClick={handlePublishPost}
+                                disabled={isLoading || (isSubRecruiter && isLimitReached)}
+                                className="bg-[#0A66C2] hover:bg-[#004182] text-white px-8 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : null}
+                                {isLoading ? 'Publishing...' : (isSubRecruiter && isLimitReached ? "Publish Job (Quota Full)" : "Publish Job")}
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -2402,6 +2569,87 @@ export default function Posting() {
                             className="w-full border border-gray-300 rounded-lg p-2 focus:border-[#0A66C2] focus:ring-1 focus:ring-[#0A66C2] outline-none"
                             placeholder="colleague@company.com"
                         />
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Hiring Quota / Plan Limit Modal */}
+            <Modal
+                open={showLimitModal}
+                onCancel={() => setShowLimitModal(false)}
+                footer={null}
+                centered
+                width={480}
+            >
+                <div className="p-0 text-center">
+                    <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle size={28} />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">Hiring Quota Limit Reached</h3>
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+                        {limitModalMessage || `You have reached your maximum active job limit (${activeJobsLimit}). Close an existing job or upgrade your subscription plan to publish more jobs.`}
+                    </p>
+
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-left mb-6 space-y-2.5">
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Current Plan</span>
+                            <span className="font-semibold text-gray-900">{planName} Plan</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Active Jobs on Portal</span>
+                            <span className={`font-semibold ${activeJobsRemaining <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {activeJobsCount} / {activeJobsLimit} ({activeJobsRemaining} {activeJobsRemaining === 1 ? 'slot' : 'slots'} available)
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Monthly Posts Used</span>
+                            <span className={`font-semibold ${jobPostsRemaining <= 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                {jobPostsUsed} / {jobPostsLimit} ({jobPostsRemaining} left)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5">
+                        {isSubRecruiter ? (
+                            <button
+                                onClick={() => {
+                                    setShowLimitModal(false);
+                                    navigate('/overview');
+                                }}
+                                className="w-full py-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white font-medium text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                Return to Dashboard
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        setShowLimitModal(false);
+                                        navigate('/subscription');
+                                    }}
+                                    className="w-full py-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white font-medium text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
+                                >
+                                    <Crown size={16} /> Upgrade Subscription Plan
+                                </button>
+                                {activeJobsRemaining <= 0 && (
+                                    <button
+                                        onClick={() => {
+                                            setShowLimitModal(false);
+                                            navigate('/my-jobs');
+                                        }}
+                                        className="w-full py-2.5 px-4 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-xl transition"
+                                    >
+                                        Manage & Close Active Jobs
+                                    </button>
+                                )}
+                            </>
+                        )}
+                        <button
+                            onClick={() => setShowLimitModal(false)}
+                            className="w-full py-1.5 text-gray-400 hover:text-gray-600 text-xs font-medium transition"
+                        >
+                            Keep Editing Draft
+                        </button>
                     </div>
                 </div>
             </Modal>

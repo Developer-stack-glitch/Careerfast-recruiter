@@ -24,7 +24,8 @@ import {
 } from "@ant-design/icons";
 import logoImg from "../images/hrportal_logo1.png";
 import { motion, AnimatePresence } from "framer-motion";
-import { insertHrProfileData, getHrProfileData, verifyEmail, verifyOtp, isProfileUpdated } from "../ApiService/action";
+import { insertHrProfileData, getHrProfileData, verifyEmail, verifyOtp, isProfileUpdated, getIndustryTypes } from "../ApiService/action";
+import { WORLDWIDE_COUNTRY_CODES } from "../Common/countryPhoneCodes";
 import dayjs from "dayjs";
 import { useNavigate } from "@/routing-shim";
 import dynamic from 'next/dynamic';
@@ -34,6 +35,69 @@ import 'react-quill-new/dist/quill.snow.css';
 import "../css/CreateHrProfile.css";
 
 const { Option } = Select;
+
+const normalizePhoneCode = (val) => {
+    if (!val) return "IN +91";
+    const stripped = val.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]+/g, '').trim();
+    const found = WORLDWIDE_COUNTRY_CODES.find(c => 
+        `${c.code} ${c.dial_code}` === stripped || 
+        c.dial_code === stripped || 
+        c.code === stripped ||
+        val.includes(c.code) ||
+        val.includes(c.dial_code)
+    );
+    return found ? `${found.code} ${found.dial_code}` : val;
+};
+
+const DEFAULT_INDUSTRIES = [
+    "IT & Software",
+    "Information Technology & Services",
+    "Software Product & SaaS",
+    "Artificial Intelligence & Machine Learning",
+    "Banking, Financial Services & Insurance (BFSI)",
+    "FinTech & Digital Payments",
+    "Investment Banking & Venture Capital",
+    "Healthcare & Hospitals",
+    "Pharmaceuticals & Biotechnology",
+    "Medical Devices & Diagnostics",
+    "E-Commerce & Digital Marketplaces",
+    "Retail & Wholesale Trade",
+    "Consumer Goods & FMCG",
+    "Automotive & Electric Vehicles",
+    "Aerospace & Aviation",
+    "Manufacturing, Industrial & Heavy Machinery",
+    "Civil Engineering & Construction",
+    "Real Estate & Property Management",
+    "Architecture & Interior Design",
+    "Telecommunications & Networking",
+    "Electronics & Semiconductor Manufacturing",
+    "Education, EdTech & Academia",
+    "Higher Education & Research Institutes",
+    "Energy, Power & Utilities",
+    "Oil, Gas & Petroleum Exploration",
+    "Renewable Energy & CleanTech",
+    "Logistics, Supply Chain & Warehousing",
+    "Freight Forwarding & Maritime Shipping",
+    "Media, Entertainment & Publishing",
+    "Gaming, Animation & VFX",
+    "Advertising, Marketing & Public Relations",
+    "Hospitality, Travel & Tourism",
+    "Restaurants & Food Services",
+    "Food Production & Processing",
+    "Agriculture, Farming & AgriTech",
+    "Management Consulting & Strategy",
+    "Legal Services & Law Practice",
+    "Accounting, Auditing & Taxation",
+    "Human Resources & Staffing Services",
+    "Non-Profit, NGO & Social Impact",
+    "Government Administration & Public Policy",
+    "Defense & Military Technology",
+    "Security & Surveillance Systems",
+    "Chemicals & Petrochemicals",
+    "Mining, Metals & Metallurgy",
+    "Textiles, Apparel & Fashion",
+    "Environmental Services & Waste Management"
+];
 
 const CreateHrProfile = () => {
     const [form] = Form.useForm();
@@ -52,6 +116,28 @@ const CreateHrProfile = () => {
     const [otpError, setOtpError] = useState("");
     const [isEmailVerified, setIsEmailVerified] = useState(false);
     const [verifyingEmail, setVerifyingEmail] = useState(false);
+
+    const [industryList, setIndustryList] = useState(DEFAULT_INDUSTRIES);
+    const [loadingIndustries, setLoadingIndustries] = useState(false);
+
+    useEffect(() => {
+        const fetchIndustries = async () => {
+            try {
+                setLoadingIndustries(true);
+                const res = await getIndustryTypes();
+                const list = res?.data?.data || res?.data || [];
+                if (Array.isArray(list) && list.length > 0) {
+                    const names = list.map(item => (typeof item === 'string' ? item : item.name)).filter(Boolean);
+                    setIndustryList(names);
+                }
+            } catch (err) {
+                console.warn("Could not fetch industry types from API, using defaults:", err);
+            } finally {
+                setLoadingIndustries(false);
+            }
+        };
+        fetchIndustries();
+    }, []);
 
     useEffect(() => {
         const init = async () => {
@@ -72,11 +158,13 @@ const CreateHrProfile = () => {
                         if (profile.instagram) socials.push({ platform: 'Instagram', url: profile.instagram });
                         if (profile.youtube) socials.push({ platform: 'Youtube', url: profile.youtube });
 
+                        const indType = profile.industry_type === 'IT' ? 'IT & Software' : profile.industry_type;
+
                         form.setFieldsValue({
                             company_name: profile.company_name,
                             about_us: profile.about_us,
                             organization_type: profile.organization_type,
-                            industry_type: profile.industry_type,
+                            industry_type: indType,
                             team_size: profile.team_size,
                             year_established: profile.year_established ? dayjs(profile.year_established) : null,
                             website_url: profile.website_url,
@@ -89,6 +177,36 @@ const CreateHrProfile = () => {
 
                         if (profile.profile_image) setLogoImage(profile.profile_image);
                         if (profile.banner_image) setBannerImage(profile.banner_image);
+
+                        const currentPhoneCode = form.getFieldValue("phone_code");
+                        if (currentPhoneCode) {
+                            form.setFieldsValue({ phone_code: normalizePhoneCode(currentPhoneCode) });
+                        } else if (loginDetails.phone_code) {
+                            form.setFieldsValue({ phone_code: normalizePhoneCode(loginDetails.phone_code) });
+                        }
+
+                        // Check if email is already verified
+                        const emailToCheck = profile.contact_email || loginDetails.email;
+                        if (profile.is_email_verified === 1 || loginDetails.is_email_verified === 1) {
+                            setIsEmailVerified(true);
+                        } else if (emailToCheck) {
+                            try {
+                                const isUpdatedRes = await isProfileUpdated({ email: emailToCheck });
+                                if (isUpdatedRes?.data?.data) {
+                                    setIsEmailVerified(true);
+                                    loginDetails.is_email_verified = 1;
+                                    localStorage.setItem("loginDetails", JSON.stringify(loginDetails));
+                                }
+                            } catch (e) { }
+                        }
+                    } else {
+                        // For fresh profile creation, prefill login email if available
+                        if (loginDetails.email) {
+                            form.setFieldsValue({ contact_email: loginDetails.email });
+                        }
+                        if (loginDetails.is_email_verified === 1) {
+                            setIsEmailVerified(true);
+                        }
                     }
                 }
             } catch (error) {
@@ -387,7 +505,7 @@ const CreateHrProfile = () => {
                     map_location: "",
                     contact_phone: "",
                     contact_email: "",
-                    phone_code: "🇧🇩 +880"
+                    phone_code: "IN +91"
                 }}
             >
                 <AnimatePresence mode="wait">
@@ -472,12 +590,26 @@ const CreateHrProfile = () => {
                                     </Select>
                                 </Form.Item>
 
-                                <Form.Item name="industry_type" label={<span className="hr-form-label">Industry Types</span>} rules={[{ required: true }]}>
-                                    <Select size="large" placeholder="Select...">
-                                        <Option value="IT">IT & Software</Option>
-                                        <Option value="Finance">Finance</Option>
-                                        <Option value="Healthcare">Healthcare</Option>
-                                        <Option value="Education">Education</Option>
+                                <Form.Item 
+                                    name="industry_type" 
+                                    label={<span className="hr-form-label">Industry Types</span>} 
+                                    rules={[{ required: true, message: "Please select an industry type" }]}
+                                >
+                                    <Select 
+                                        size="large" 
+                                        placeholder="Select industry type..." 
+                                        showSearch
+                                        loading={loadingIndustries}
+                                        optionFilterProp="children"
+                                        filterOption={(input, option) =>
+                                            (option?.children ?? '').toLowerCase().includes(input.toLowerCase())
+                                        }
+                                    >
+                                        {industryList.map((ind) => (
+                                            <Option key={ind} value={ind}>
+                                                {ind}
+                                            </Option>
+                                        ))}
                                     </Select>
                                 </Form.Item>
 
@@ -576,15 +708,34 @@ const CreateHrProfile = () => {
                             <Form.Item label={<span className="hr-form-label">Phone</span>} required style={{ marginBottom: '24px' }}>
                                 <Space.Compact style={{ width: '100%' }}>
                                     <Form.Item name="phone_code" noStyle>
-                                        <Select size="large" style={{ width: '120px' }}>
-                                            <Option value="🇧🇩 +880">🇧🇩 +880</Option>
-                                            <Option value="🇺🇸 +1">🇺🇸 +1</Option>
-                                            <Option value="🇬🇧 +44">🇬🇧 +44</Option>
-                                            <Option value="🇮🇳 +91">🇮🇳 +91</Option>
+                                        <Select 
+                                            size="large" 
+                                            showSearch
+                                            optionLabelProp="label"
+                                            popupMatchSelectWidth={320}
+                                            style={{ width: '140px' }}
+                                            filterOption={(input, option) => {
+                                                const searchStr = (option?.searchtext || '').toLowerCase();
+                                                return searchStr.includes(input.toLowerCase().trim());
+                                            }}
+                                        >
+                                            {WORLDWIDE_COUNTRY_CODES.map((c) => (
+                                                <Option 
+                                                    key={c.code} 
+                                                    value={`${c.code} ${c.dial_code}`}
+                                                    label={`${c.code} ${c.dial_code}`}
+                                                    searchtext={`${c.name} ${c.code} ${c.dial_code}`}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                                        <span style={{ color: '#333' }}>{c.name}</span>
+                                                        <span style={{ color: '#0A65CC', fontWeight: 600 }}>{c.code} {c.dial_code}</span>
+                                                    </div>
+                                                </Option>
+                                            ))}
                                         </Select>
                                     </Form.Item>
-                                    <Form.Item name="contact_phone" noStyle rules={[{ required: true }]}>
-                                        <Input size="large" style={{ width: 'calc(100% - 120px)' }} placeholder="Phone number.." />
+                                    <Form.Item name="contact_phone" noStyle rules={[{ required: true, message: "Phone number is required" }]}>
+                                        <Input size="large" style={{ width: 'calc(100% - 140px)' }} placeholder="Phone number.." />
                                     </Form.Item>
                                 </Space.Compact>
                             </Form.Item>
@@ -601,6 +752,17 @@ const CreateHrProfile = () => {
                                             onChange={() => {
                                                 setIsEmailVerified(false);
                                                 setShowOtpInput(false);
+                                            }}
+                                            onBlur={async (e) => {
+                                                const val = e.target.value?.trim();
+                                                if (val && !isEmailVerified) {
+                                                    try {
+                                                        const check = await isProfileUpdated({ email: val });
+                                                        if (check?.data?.data) {
+                                                            setIsEmailVerified(true);
+                                                        }
+                                                    } catch (err) { }
+                                                }
                                             }}
                                         />
                                     </Form.Item>
@@ -630,11 +792,33 @@ const CreateHrProfile = () => {
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             borderRadius: '0 6px 6px 0',
+                                            fontWeight: 600,
+                                            fontSize: '14px',
+                                            gap: '6px'
                                         }}>
-                                            Verified
+                                            <CheckOutlined /> Verified
                                         </div>
                                     )}
                                 </Space.Compact>
+                                {isEmailVerified && (
+                                    <div style={{ marginTop: '4px', textAlign: 'right' }}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsEmailVerified(false)}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: '#0A65CC',
+                                                cursor: 'pointer',
+                                                fontSize: '12px',
+                                                padding: 0,
+                                                textDecoration: 'underline'
+                                            }}
+                                        >
+                                            Change email
+                                        </button>
+                                    </div>
+                                )}
                             </Form.Item>
 
                             {showOtpInput && (

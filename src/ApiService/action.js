@@ -42,8 +42,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.log("Interceptor caught error:", error?.response?.status);
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      console.log("Triggering ShowModal from interceptor");
+    // Only 401 Unauthorized indicates invalid or expired session.
+    // 403 Forbidden indicates business/quota/permission limits and should NOT wipe authentication!
+    if (error.response && error.response.status === 401) {
+      console.log("Triggering ShowModal from interceptor for 401 Unauthorized");
       ShowModal();
       localStorage.removeItem("AccessToken");
     }
@@ -176,6 +178,15 @@ export const register = async (registerload) => {
 export const getOrganizationType = async () => {
   try {
     const response = await api.get("/api/organization/type/get");
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getIndustryTypes = async () => {
+  try {
+    const response = await api.get("/api/industry/type/get");
     return response;
   } catch (error) {
     throw error;
@@ -1716,5 +1727,145 @@ export const addCandidatesToFolderAPI = async (folderIdentifier, candidateIds, s
   }
 };
 
+export const getMySubscription = async () => {
+  try {
+    const response = await api.get("/api/recruiter/my-subscription");
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 
+export const getHrDashboardSummary = async (recruiterId) => {
+  try {
+    const query = recruiterId ? `?recruiter_id=${recruiterId}` : '';
+    const response = await api.get(`/api/hr/dashboard/summary${query}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const saveHrSearch = async (payload) => {
+  try {
+    const response = await api.post("/api/hr/dashboard/searches", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteHrSearch = async (id, recruiterId) => {
+  try {
+    const response = await api.delete(`/api/hr/dashboard/searches/${id}`, {
+      data: { recruiter_id: recruiterId }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const clearHrSearches = async (recruiterId, searchType) => {
+  try {
+    const query = recruiterId ? `recruiter_id=${recruiterId}&` : '';
+    const response = await api.delete(`/api/hr/dashboard/searches/clear?${query}search_type=${searchType || 'recent'}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getHrCampaigns = async (recruiterId) => {
+  try {
+    const response = await api.get(`/api/hr/dashboard/campaigns?recruiter_id=${recruiterId || 2}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getHrCredits = async (recruiterId) => {
+  try {
+    const response = await api.get(`/api/hr/dashboard/credits?recruiter_id=${recruiterId || 2}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const consumeResumeViewAPI = async (candidateId) => {
+  try {
+    const response = await api.post("/api/recruiter/subscription/consume-view", { candidateId });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const consumeResumeDownloadAPI = async (candidateId) => {
+  try {
+    const response = await api.post("/api/recruiter/subscription/consume-download", { candidateId });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const sendCandidateEmailAPI = async (payload) => {
+  try {
+    const response = await api.post("/api/recruiter/candidates/send-email", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// ==========================================
+// 👥 Sub-Recruiter Team & Seat Management API
+// ==========================================
+export const getRecruiterTeam = async (params = {}) => {
+  try {
+    const response = await api.get("/api/recruiter/team", { params });
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createSubRecruiter = async (payload) => {
+  try {
+    const response = await api.post("/api/recruiter/team", payload);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateSubRecruiterPermissions = async (id, payload) => {
+  try {
+    const response = await api.put(`/api/recruiter/team/${id}/permissions`, payload);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const toggleSubRecruiterStatus = async (id, status) => {
+  try {
+    const response = await api.patch(`/api/recruiter/team/${id}/status`, { status });
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteSubRecruiter = async (id) => {
+  try {
+    const response = await api.delete(`/api/recruiter/team/${id}`);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
 

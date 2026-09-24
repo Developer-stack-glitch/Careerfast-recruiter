@@ -70,11 +70,11 @@ export default function RootLayout({ children }) {
             gtag('config', 'G-YX6Y57X00W');
           `}
         </Script>
-        {/* Google Maps Integration */}
-        <Script
+        {/* Google Maps Integration (temporarily disabled: billing not enabled on GCP) */}
+        {/* <Script
           src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA2-QH2Uf2Jq9AyVfotBjQfgS9-VkPTLQ4&libraries=places&loading=async"
           strategy="lazyOnload"
-        />
+        /> */}
       </body>
     </html>
   );

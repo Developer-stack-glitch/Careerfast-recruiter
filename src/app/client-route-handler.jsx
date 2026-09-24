@@ -54,7 +54,7 @@ export default function ClientRouteHandler({ children }) {
           }
         }
       } catch (error) {
-        console.error("Failed to check maintenance mode");
+        console.warn("Failed to check maintenance mode:", error?.message || error);
       } finally {
         setIsCheckingMaintenance(false);
       }

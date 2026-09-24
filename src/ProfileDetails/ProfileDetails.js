@@ -15,6 +15,8 @@ import {
   Input,
   Tag,
   Upload,
+  DatePicker,
+  Select,
 } from "antd";
 import {
   UserOutlined,
@@ -153,6 +155,13 @@ const ProfileDetails = () => {
   const [loginUserId, setLoginUserId] = useState(null);
   const [loading, setLoading] = React.useState(false);
   const [genderOptions, setGenderOptions] = useState([]);
+  
+  // New Filter Fields
+  const [languages, setLanguages] = useState([]);
+  const [visaStatus, setVisaStatus] = useState(null);
+  const [preferredJobType, setPreferredJobType] = useState([]);
+  const [dob, setDob] = useState(null);
+  const [companyHeadcount, setCompanyHeadcount] = useState(null);
 
   // add company
   const [companies, setCompanies] = useState([
@@ -704,6 +713,11 @@ const ProfileDetails = () => {
         classes: Class,
       }),
       resume: resume,
+      languages: languages.length > 0 ? languages : null,
+      visa_status: visaStatus,
+      preferred_job_type: preferredJobType.length > 0 ? preferredJobType : null,
+      dob: dob ? dob.format("YYYY-MM-DD") : null,
+      company_headcount: companyHeadcount,
     };
 
     try {
@@ -1476,6 +1490,91 @@ const ProfileDetails = () => {
                   />
                 </div>
               </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <Form.Item label={<span style={{ fontWeight: 600 }}>Date of Birth</span>} style={{ marginBottom: 0 }}>
+                    <DatePicker 
+                      style={{ width: '100%', height: 42, borderRadius: 8 }}
+                      value={dob}
+                      onChange={(date) => setDob(date)}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="form-group">
+                  <Form.Item label={<span style={{ fontWeight: 600 }}>Visa Status</span>} style={{ marginBottom: 0 }}>
+                    <Select
+                      style={{ width: '100%', height: 42 }}
+                      placeholder="Select Visa Status"
+                      value={visaStatus}
+                      onChange={setVisaStatus}
+                      options={[
+                        { label: 'Citizen / Permanent Resident', value: 'Citizen / Permanent Resident' },
+                        { label: 'Work Permit / H1B', value: 'Work Permit / H1B' },
+                        { label: 'Student Visa (OPT/CPT)', value: 'Student Visa (OPT/CPT)' },
+                        { label: 'Requires Sponsorship', value: 'Requires Sponsorship' },
+                        { label: 'Not Specified', value: 'Not Specified' }
+                      ]}
+                    />
+                  </Form.Item>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <Form.Item label={<span style={{ fontWeight: 600 }}>Languages Spoken</span>} style={{ marginBottom: 0 }}>
+                    <Select
+                      mode="multiple"
+                      style={{ width: '100%' }}
+                      placeholder="Select Languages"
+                      value={languages}
+                      onChange={setLanguages}
+                      options={[
+                        'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam',
+                        'Marathi', 'Bengali', 'Gujarati', 'Punjabi', 'French', 'German',
+                        'Spanish', 'Japanese'
+                      ].map(l => ({ label: l, value: l }))}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="form-group">
+                  <Form.Item label={<span style={{ fontWeight: 600 }}>Preferred Job Type</span>} style={{ marginBottom: 0 }}>
+                    <Select
+                      mode="multiple"
+                      style={{ width: '100%' }}
+                      placeholder="Select Job Types"
+                      value={preferredJobType}
+                      onChange={setPreferredJobType}
+                      options={[
+                        'Permanent / Full Time', 'Contract / C2H', 'Freelance / Consultant',
+                        'Internship', 'Work from Home / Remote', 'Part Time'
+                      ].map(j => ({ label: j, value: j }))}
+                    />
+                  </Form.Item>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <Form.Item label={<span style={{ fontWeight: 600 }}>Preferred Company Size</span>} style={{ marginBottom: 0 }}>
+                    <Select
+                      style={{ width: '100%', height: 42 }}
+                      placeholder="Select Company Headcount"
+                      value={companyHeadcount}
+                      onChange={setCompanyHeadcount}
+                      options={[
+                        '1-10 employees', '11-50 employees', '51-200 employees',
+                        '201-500 employees', '501-1,000 employees', '1,001-5,000 employees',
+                        '5,001-10,000 employees', '10,000+ employees'
+                      ].map(h => ({ label: h, value: h }))}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="form-group">
+                  {/* Empty group for spacing */}
+                </div>
+              </div>
+
               <div className="form-group">
                 <CommonTextArea
                   label={"Address"}

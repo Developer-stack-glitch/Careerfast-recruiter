@@ -1,11 +1,13 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { Dropdown, Tooltip } from 'antd';
 import {
     getJobPostByUserId,
     expireJobPost,
     makeJobActive,
     getJobCategoryData,
-    deleteJobPost
+    deleteJobPost,
+    getMySubscription
 } from '../ApiService/action';
 import {
     Briefcase,
@@ -35,7 +37,8 @@ import {
     DollarSign,
     Sparkles,
     UserCheck,
-    Filter
+    Filter,
+    Lock
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -50,6 +53,8 @@ const MyJobs = () => {
     const [overallStats, setOverallStats] = useState({
         totalJobs: 0,
         openJobs: 0,
+        pendingJobs: 0,
+        rejectedJobs: 0,
         closedJobs: 0,
         totalApplications: 0
     });
@@ -96,7 +101,8 @@ const MyJobs = () => {
         fetchCategories();
     }, []);
 
-    // Get Logged In User
+    // Get Logged In User & Subscription Limits
+    const [subscription, setSubscription] = useState(null);
     useEffect(() => {
         const details = localStorage.getItem('loginDetails');
         if (details) {
@@ -106,13 +112,34 @@ const MyJobs = () => {
                 console.error("Error parsing login details:", e);
             }
         }
+        getMySubscription().then(res => {
+            if (res?.success && res?.data) {
+                setSubscription(res.data);
+            }
+        }).catch(() => {});
     }, []);
+
+    const isSubRecruiter = Boolean(subscription?.is_sub_recruiter || recruiterDetails?.is_sub_recruiter);
+    const isCompanyLimitReached = Boolean(subscription?.company_limit_reached || subscription?.can_post_jobs === false);
+    const isPostingRestricted = isSubRecruiter && isCompanyLimitReached;
 
     // Debounce search input
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearchQuery(searchQuery), 350);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    // Close open dropdowns on outside click
+    useEffect(() => {
+        const handleClickOutside = () => {
+            setOpenDropdownId(null);
+            setIsSortDropdownOpen(false);
+            setIsJobTypeDropdownOpen(false);
+            setIsCategoryDropdownOpen(false);
+        };
+        window.addEventListener('click', handleClickOutside);
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, []);
 
     // Reset pagination on filter changes
     useEffect(() => {
@@ -127,6 +154,7 @@ const MyJobs = () => {
 
             let selectedStatuses = [];
             if (statusFilter === 'Active') selectedStatuses = ['active'];
+            else if (statusFilter === 'Pending') selectedStatuses = ['pending'];
             else if (statusFilter === 'Expired' || statusFilter === 'Closed') selectedStatuses = ['closed'];
 
             let selectedCategories = [];
@@ -140,7 +168,7 @@ const MyJobs = () => {
                 limit: limit,
                 page: page,
                 search: debouncedSearchQuery,
-                statuses: JSON.stringify(selectedStatuses),
+                statuses: selectedStatuses.length > 0 ? JSON.stringify(selectedStatuses) : undefined,
                 categories: selectedCategories.length > 0 ? JSON.stringify(selectedCategories) : undefined,
                 job_nature: selectedJobNature || undefined,
                 sort: sortFilter === 'Oldest First' ? 'ASC' : 'DESC'
@@ -156,6 +184,8 @@ const MyJobs = () => {
                     setOverallStats({
                         totalJobs: total,
                         openJobs: Number(res.data.stats.openJobs) || 0,
+                        pendingJobs: Number(res.data.stats.pendingJobs) || 0,
+                        rejectedJobs: Number(res.data.stats.rejectedJobs) || 0,
                         closedJobs: Number(res.data.stats.closedJobs) || 0,
                         totalApplications: Number(res.data.stats.totalApplications) || 0,
                     });
@@ -197,7 +227,8 @@ const MyJobs = () => {
             }
         } catch (error) {
             console.error("Error expiring job", error);
-            toast.error('An error occurred while expiring the job.');
+            const errMsg = error.response?.data?.details || error.response?.data?.message || 'An error occurred while expiring the job.';
+            toast.error(errMsg, { duration: 6000 });
         } finally {
             setIsActionLoading(false);
             setOpenDropdownId(null);
@@ -224,7 +255,8 @@ const MyJobs = () => {
             }
         } catch (error) {
             console.error("Error making job active", error);
-            toast.error('An error occurred while activating the job.');
+            const errMsg = error.response?.data?.details || error.response?.data?.message || 'An error occurred while activating the job.';
+            toast.error(errMsg, { duration: 6000 });
         } finally {
             setIsActionLoading(false);
             setOpenDropdownId(null);
@@ -242,14 +274,16 @@ const MyJobs = () => {
             setOverallStats(prev => ({
                 ...prev,
                 totalJobs: Math.max(0, prev.totalJobs - 1),
-                openJobs: deleteModalJob.is_closed === 0 ? Math.max(0, prev.openJobs - 1) : prev.openJobs,
+                openJobs: (deleteModalJob.is_closed === 0 && deleteModalJob.approval_status === 'approved') ? Math.max(0, prev.openJobs - 1) : prev.openJobs,
+                pendingJobs: (deleteModalJob.is_closed === 0 && (deleteModalJob.approval_status === 'pending' || !deleteModalJob.approval_status)) ? Math.max(0, prev.pendingJobs - 1) : prev.pendingJobs,
                 closedJobs: deleteModalJob.is_closed === 1 ? Math.max(0, prev.closedJobs - 1) : prev.closedJobs,
             }));
             toast.success('Job posting deleted successfully');
             setDeleteModalJob(null);
         } catch (error) {
             console.error("Error deleting job", error);
-            toast.error('Failed to delete job posting');
+            const errMsg = error.response?.data?.details || error.response?.data?.message || 'Failed to delete job posting';
+            toast.error(errMsg, { duration: 6000 });
         } finally {
             setIsActionLoading(false);
             setOpenDropdownId(null);
@@ -333,13 +367,13 @@ const MyJobs = () => {
             {/* Top Glow Accent */}
             <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none" />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 relative z-10">
+            <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-4 pt-8 relative z-10">
 
                 {/* 1. Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-7">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0A66C2] border border-blue-100">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0A66C2] border-1 border-blue-100">
                                 <Sparkles size={13} className="text-[#0A66C2]" />
                                 Recruiter Workspace
                             </span>
@@ -357,13 +391,25 @@ const MyJobs = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <Link
-                            href="/post-job"
-                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#0A66C2] hover:bg-[#004182] shadow-sm shadow-blue-600/20 hover:shadow-md hover:shadow-blue-600/30 transition-all active:scale-[0.98] no-underline hover:no-underline"
-                        >
-                            <Plus size={16} strokeWidth={2.5} />
-                            <span>Post a New Job</span>
-                        </Link>
+                        {isPostingRestricted ? (
+                            <button
+                                type="button"
+                                onClick={() => alert(subscription?.limit_reason || "Job posting is locked because the company's plan limits are reached. All active job slots or monthly posts are in use.")}
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed shadow-2xs"
+                                title={subscription?.limit_reason || "Company plan limit reached"}
+                            >
+                                <Lock size={15} />
+                                <span>Post a New Job (Quota Full)</span>
+                            </button>
+                        ) : (
+                            <Link
+                                href="/post-job"
+                                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-white bg-[#0A66C2] hover:bg-[#004182] shadow-sm shadow-blue-600/20 hover:shadow-md hover:shadow-blue-600/30 transition-all active:scale-[0.98] no-underline hover:no-underline"
+                            >
+                                <Plus size={16} strokeWidth={2.5} />
+                                <span>Post a New Job</span>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
@@ -424,25 +470,34 @@ const MyJobs = () => {
                         </div>
                     </div>
 
-                    {/* Card 3: Total Applications */}
+                    {/* Card 3: Pending Approval */}
                     <div
-                        className="p-4 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 transition-all"
+                        onClick={() => { setStatusFilter('Pending'); setPage(1); }}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer bg-white ${statusFilter === 'Pending'
+                            ? 'border-amber-500 ring-2 ring-amber-500/10 shadow-sm'
+                            : 'border-slate-200/80 hover:border-slate-300'
+                            }`}
                     >
                         <div className="flex items-center justify-between">
-                            <span className="text-[14px] font-semibold text-slate-600">Total Applicants</span>
-                            <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600">
-                                <Users size={16} />
+                            <span className="text-[14px] font-semibold text-slate-600">Pending</span>
+                            <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 relative">
+                                <Clock size={16} />
+                                {overallStats.pendingJobs > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <div className="mt-1 flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-slate-900">
-                                {overallStats.totalApplications || 0}
+                            <span className="text-2xl font-bold text-amber-600">
+                                {overallStats.pendingJobs || 0}
                             </span>
-                            <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">Pipeline</span>
+                            <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">Under Review</span>
                         </div>
                         <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                            <span>Candidate submissions</span>
-                            <UserCheck size={13} className="text-sky-400" />
+                            <span>Awaiting admin</span>
+                            <ChevronRight size={13} className="text-slate-400" />
                         </div>
                     </div>
 
@@ -474,7 +529,7 @@ const MyJobs = () => {
                 </div>
 
                 {/* 3. Filter Bar & Search Controls */}
-                <div className="bg-white rounded-xl border border-slate-200/80 shadow-xs p-3.5 mb-4">
+                <div className="p-3.5 mb-4">
                     <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
 
                         {/* Search Input */}
@@ -498,8 +553,8 @@ const MyJobs = () => {
                         </div>
 
                         {/* Status Tabs */}
-                        <div className="flex items-center bg-slate-100 p-1 rounded-lg gap-1 overflow-x-auto">
-                            {['All Jobs', 'Active', 'Expired'].map((status) => {
+                        <div className="flex items-center bg-slate-200 p-1 rounded-lg gap-1 overflow-x-auto">
+                            {['All Jobs', 'Active', 'Pending', 'Expired'].map((status) => {
                                 const isSelected = statusFilter === status;
                                 return (
                                     <button
@@ -513,10 +568,15 @@ const MyJobs = () => {
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                                             }`}
                                     >
-                                        {status}
+                                        {status === 'Pending' ? 'Pending Approval' : status}
                                         {status === 'Active' && overallStats.openJobs > 0 && (
                                             <span className="ml-1.5 px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold">
                                                 {overallStats.openJobs}
+                                            </span>
+                                        )}
+                                        {status === 'Pending' && overallStats.pendingJobs > 0 && (
+                                            <span className="ml-1.5 px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold">
+                                                {overallStats.pendingJobs}
                                             </span>
                                         )}
                                         {status === 'Expired' && overallStats.closedJobs > 0 && (
@@ -835,11 +895,20 @@ const MyJobs = () => {
                                                             <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
                                                             Expired / Closed
                                                         </span>
-                                                    ) : job.approval_status === 'pending' ? (
-                                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/60">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                                            Pending Approval
-                                                        </span>
+                                                    ) : job.approval_status === 'rejected' ? (
+                                                        <Tooltip title={job.rejection_reason ? `Rejected: ${job.rejection_reason}` : "Job posting was rejected by admin."}>
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/60 cursor-help">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                                Rejected
+                                                            </span>
+                                                        </Tooltip>
+                                                    ) : (job.approval_status === 'pending' || !job.approval_status) ? (
+                                                        <Tooltip title="Under review by Careerfast admin. Usually approved within a few hours.">
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border-1 border-amber-200/60 cursor-help">
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                                Pending Approval
+                                                            </span>
+                                                        </Tooltip>
                                                     ) : (
                                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border-1 border-emerald-200/60">
                                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -895,84 +964,90 @@ const MyJobs = () => {
                                                         </Link>
 
                                                         {/* More Dropdown */}
-                                                        <div className="relative">
+                                                        <Dropdown
+                                                            menu={{
+                                                                className: "w-44 p-1 rounded-xl shadow-lg border border-slate-100",
+                                                                items: [
+                                                                    {
+                                                                        key: 'edit',
+                                                                        label: (
+                                                                            <Link href={`/edit-job/${job.id}`} className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-slate-700 hover:text-[#0A66C2] no-underline">
+                                                                                <Edit3 size={14} className="text-slate-400" />
+                                                                                <span>Edit Job</span>
+                                                                            </Link>
+                                                                        ),
+                                                                    },
+                                                                    {
+                                                                        key: 'preview',
+                                                                        label: (
+                                                                            <a
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                href={`https://careerfast.in/job-details/${job.id}?preview=true`}
+                                                                                className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-slate-700 hover:text-slate-900 no-underline"
+                                                                            >
+                                                                                <Eye size={14} className="text-slate-400" />
+                                                                                <span>Preview</span>
+                                                                            </a>
+                                                                        ),
+                                                                    },
+                                                                    {
+                                                                        key: 'copy',
+                                                                        label: (
+                                                                            <div className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-slate-700 hover:text-slate-900">
+                                                                                <Copy size={14} className="text-slate-400" />
+                                                                                <span>Copy Link</span>
+                                                                            </div>
+                                                                        ),
+                                                                        onClick: () => handleCopyLink(job.id),
+                                                                    },
+                                                                    {
+                                                                        type: 'divider',
+                                                                    },
+                                                                    ...(isExpired ? [{
+                                                                        key: 'active',
+                                                                        label: (
+                                                                            <div className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                                                                                <CheckCircle2 size={14} className="text-emerald-500" />
+                                                                                <span>Mark Active</span>
+                                                                            </div>
+                                                                        ),
+                                                                        disabled: isActionLoading,
+                                                                        onClick: () => handleMakeActive(job.id),
+                                                                    }] : (job.approval_status === 'pending' || !job.approval_status || job.approval_status === 'rejected') ? [] : [{
+                                                                        key: 'expire',
+                                                                        label: (
+                                                                            <div className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-amber-600 hover:text-amber-700">
+                                                                                <Clock size={14} className="text-amber-500" />
+                                                                                <span>Mark Expired</span>
+                                                                            </div>
+                                                                        ),
+                                                                        disabled: isActionLoading,
+                                                                        onClick: () => handleExpireJob(job.id),
+                                                                    }]),
+                                                                    {
+                                                                        key: 'delete',
+                                                                        label: (
+                                                                            <div className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-rose-600 hover:text-rose-700">
+                                                                                <Trash2 size={14} className="text-rose-500" />
+                                                                                <span>Delete Job</span>
+                                                                            </div>
+                                                                        ),
+                                                                        onClick: () => setDeleteModalJob(job),
+                                                                    },
+                                                                ],
+                                                            }}
+                                                            trigger={['click']}
+                                                            placement="bottomRight"
+                                                        >
                                                             <button
                                                                 type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setOpenDropdownId(openDropdownId === job.id ? null : job.id);
-                                                                }}
-                                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                                                                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-100 active:bg-blue-50 active:text-[#0A66C2]"
+                                                                title="More Options"
                                                             >
                                                                 <MoreVertical size={16} />
                                                             </button>
-
-                                                            <AnimatePresence>
-                                                                {openDropdownId === job.id && (
-                                                                    <motion.div
-                                                                        initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                                                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                                        exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                                                                        className={`absolute right-0 w-44 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 text-left overflow-hidden ${index >= jobs.length - 3 ? 'bottom-full mb-1' : 'top-full mt-1'}`}
-                                                                    >
-                                                                        <Link
-                                                                            href={`/edit-job/${job.id}`}
-                                                                            className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-[#0A66C2] no-underline"
-                                                                        >
-                                                                            <Edit3 size={13} /> Edit Job
-                                                                        </Link>
-                                                                        <a
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            href={`https://careerfast.in/job-details/${job.id}?preview=true`}
-                                                                            className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 no-underline"
-                                                                        >
-                                                                            <Eye size={13} /> Preview
-                                                                        </a>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => handleCopyLink(job.id)}
-                                                                            className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                                                                        >
-                                                                            <Copy size={13} /> Copy Link
-                                                                        </button>
-
-                                                                        <div className="my-1 border-t border-slate-100" />
-
-                                                                        {isExpired ? (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleMakeActive(job.id)}
-                                                                                disabled={isActionLoading}
-                                                                                className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-emerald-600 hover:bg-emerald-50"
-                                                                            >
-                                                                                <CheckCircle2 size={13} /> Mark Active
-                                                                            </button>
-                                                                        ) : (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => handleExpireJob(job.id)}
-                                                                                disabled={isActionLoading}
-                                                                                className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-amber-600 hover:bg-amber-50"
-                                                                            >
-                                                                                <Clock size={13} /> Mark Expired
-                                                                            </button>
-                                                                        )}
-
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                setDeleteModalJob(job);
-                                                                                setOpenDropdownId(null);
-                                                                            }}
-                                                                            className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50"
-                                                                        >
-                                                                            <Trash2 size={13} /> Delete Job
-                                                                        </button>
-                                                                    </motion.div>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </div>
+                                                        </Dropdown>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1001,10 +1076,19 @@ const MyJobs = () => {
                                                     <RotateCcw size={12} />
                                                     Reset Filters
                                                 </button>
+                                            ) : isPostingRestricted ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => alert(subscription?.limit_reason || "Job posting is locked because the company's plan limits are reached. All active job slots or monthly posts are in use.")}
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-slate-400 bg-slate-100 border border-slate-200 cursor-not-allowed"
+                                                >
+                                                    <Lock size={14} />
+                                                    Post a Job (Quota Full)
+                                                </button>
                                             ) : (
                                                 <Link
                                                     href="/post-job"
-                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#0A66C2] hover:bg-[#004182] shadow-sm transition-all no-underline"
+                                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white bg-[#0A66C2] hover:bg-[#004182] shadow-sm transition-all no-underline"
                                                 >
                                                     <Plus size={14} />
                                                     Post a Job Now
@@ -1102,7 +1186,7 @@ const MyJobs = () => {
                                     type="button"
                                     onClick={() => setDeleteModalJob(null)}
                                     disabled={isActionLoading}
-                                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                                    className="px-4 py-2 rounded-xl text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -1110,7 +1194,7 @@ const MyJobs = () => {
                                     type="button"
                                     onClick={handleDeleteJob}
                                     disabled={isActionLoading}
-                                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-500/20 transition-all flex items-center gap-2"
+                                    className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 shadow-sm shadow-rose-500/20 transition-all flex items-center gap-2"
                                 >
                                     {isActionLoading && <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                                     <span>{isActionLoading ? 'Deleting...' : 'Confirm Delete'}</span>

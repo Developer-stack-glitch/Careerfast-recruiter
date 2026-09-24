@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import HrLayout from '@/HR/HrLayout';
-import { Shield } from 'lucide-react';
+import { Users } from 'lucide-react';
 
-const PageComponent = dynamic(() => import('@/HR/Subscription'), { ssr: false });
+const ManageTeamPage = dynamic(() => import('@/HR/ManageTeam'), { ssr: false });
 
 export default function Page() {
   const [isSub, setIsSub] = useState(false);
@@ -26,12 +26,12 @@ export default function Page() {
       <HrLayout>
         <div className="min-h-[70vh] flex items-center justify-center p-6 bg-[#F8FAFC]">
           <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200/90 shadow-sm p-8 text-center">
-            <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-amber-100">
-              <Shield size={28} />
+            <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-rose-100">
+              <Users size={28} />
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Billing Access Restricted</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Team Access Restricted</h2>
             <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-              Subscription plans and company billing are managed exclusively by the primary account administrator.
+              Seat allocation and team member management are restricted to the primary recruiter account.
             </p>
             <button
               onClick={() => window.location.href = '/overview'}
@@ -47,7 +47,7 @@ export default function Page() {
 
   return (
     <HrLayout>
-      <PageComponent />
+      <ManageTeamPage />
     </HrLayout>
   );
 }

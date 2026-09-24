@@ -28,10 +28,7 @@ import {
   FiGrid,
   FiList,
   FiPhone,
-  FiEye,
   FiMessageSquare,
-  FiCheckSquare,
-  FiSquare,
   FiFilter,
   FiArrowLeft,
   FiTag,
@@ -136,7 +133,6 @@ export default function FolderManagement() {
   const [activeMoveDropdownId, setActiveMoveDropdownId] = useState(null);
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const [unmaskedPhones, setUnmaskedPhones] = useState({});
-  const [favouriteCandidates, setFavouriteCandidates] = useState({});
   const [expandedSkillsMap, setExpandedSkillsMap] = useState({});
   const [expandedAboutMap, setExpandedAboutMap] = useState({});
 

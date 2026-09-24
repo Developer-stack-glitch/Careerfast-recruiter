@@ -24,7 +24,10 @@ if (typeof window !== "undefined") {
       msg.includes("FedCM get() rejects") ||
       msg.includes("[GSI_LOGGER]") ||
       msg.includes("[antd: compatible]") ||
-      msg.includes("src attribute")
+      msg.includes("src attribute") ||
+      msg.includes("BillingNotEnabledMapError") ||
+      msg.includes("Places API error") ||
+      msg.includes("google.maps")
     ) {
       return;
     }

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getUsers, getUserProfile, updateUserStatus } from '../ApiService/action';
 import toast from 'react-hot-toast';
+import AdminDateFilter from './AdminDateFilter';
 
 // ── Format Last Active Dynamically ──
 const formatLastActive = (dateString) => {
@@ -232,6 +233,7 @@ export default function JobSeekers() {
     const [currentPage, setCurrentPage] = useState(1);
     const [globalStats, setGlobalStats] = useState({ total: 0, active: 0, pending: 0, new: 0 });
     const [lastActiveSort, setLastActiveSort] = useState(null); // null | 'desc' | 'asc'
+    const [dateFilter, setDateFilter] = useState({ preset: 'All Time', startDate: '', endDate: '', label: 'All Time' });
 
     // Pagination state
     const [matchedUsers, setMatchedUsers] = useState(0);
@@ -252,7 +254,7 @@ export default function JobSeekers() {
             fetchUsers();
         }, 500);
         return () => clearTimeout(timeout);
-    }, [currentPage, searchTerm, activeFilter]);
+    }, [currentPage, searchTerm, activeFilter, dateFilter]);
 
     const fetchUsers = async () => {
         try {
@@ -263,7 +265,10 @@ export default function JobSeekers() {
                 limit: itemsPerPage,
                 search: searchTerm,
                 status: statusFilter,
-                role: 2
+                role: 2,
+                start_date: dateFilter.startDate || undefined,
+                end_date: dateFilter.endDate || undefined,
+                timeFilter: dateFilter.preset !== 'Custom Range' && dateFilter.preset !== 'All Time' ? dateFilter.preset : undefined
             };
             const response = await getUsers(payload);
             const responseData = response?.data?.data;
@@ -366,7 +371,7 @@ export default function JobSeekers() {
                         <span>All Candidates</span>
                         <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold ${activeFilter === 'All' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-600'
                             }`}>
-                            {globalStats.total || matchedUsers}
+                            {globalStats.total !== undefined ? globalStats.total : matchedUsers}
                         </span>
                     </button>
 
@@ -382,7 +387,7 @@ export default function JobSeekers() {
                         <span>Active</span>
                         <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold ${activeFilter === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
                             }`}>
-                            {globalStats.active || 0}
+                            {globalStats.active !== undefined ? globalStats.active : 0}
                         </span>
                     </button>
 
@@ -398,13 +403,20 @@ export default function JobSeekers() {
                         <span>Disabled</span>
                         <span className={`px-2 py-0.5 rounded-md text-[12px] font-bold ${activeFilter === 'Disabled' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600'
                             }`}>
-                            {globalStats.pending || 0}
+                            {globalStats.pending !== undefined ? globalStats.pending : 0}
                         </span>
                     </button>
                 </div>
 
-                {/* Right: Search and Add Button */}
-                <div className="flex items-center gap-3">
+                {/* Right: Date Filter and Search */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                    <AdminDateFilter
+                        value={dateFilter}
+                        onChange={(newFilter) => {
+                            setDateFilter(newFilter);
+                            setCurrentPage(1);
+                        }}
+                    />
                     <div className="relative group w-full sm:w-[280px]">
                         <input
                             type="text"

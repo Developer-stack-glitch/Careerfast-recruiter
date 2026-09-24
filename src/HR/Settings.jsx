@@ -194,7 +194,7 @@ const Settings = () => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-6 max-w-lg"
         >
-            <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 mb-6">
+            <div className="bg-orange-50 border-1 border-orange-100 rounded-lg p-3 mb-6">
                 <h4 className="font-semibold text-orange-800 flex items-center text-sm">
                     <Shield className="w-4 h-4 mr-2" />
                     Change Password

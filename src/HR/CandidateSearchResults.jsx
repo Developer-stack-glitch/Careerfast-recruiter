@@ -17,6 +17,7 @@ import {
 } from '../ApiService/action';
 
 import { CommonToaster } from '../Common/CommonToaster';
+import CommonLoader from '../Common/CommonLoader';
 import { getImageUrl } from '../utils/getImageUrl';
 import { downloadResumeFile, viewResumeFile } from '../utils/downloadResume';
 import CandidateFilterSidebar from './CandidateFilterSidebar';
@@ -2273,10 +2274,8 @@ const CandidateSearchResults = () => {
           {/* 4. Candidates Feed (List / Grid) */}
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
             {loading ? (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-16 text-center text-slate-500 font-medium shadow-2xs col-span-full">
-                <Loader2 className="w-10 h-10 text-[#0A66C2] animate-spin mx-auto mb-3.5" />
-                <p className="text-[15px] font-bold text-slate-800">Matching & Scoring Candidates...</p>
-                <p className="text-[13px] text-slate-400 mt-1">Applying real-time filters across candidate profiles and resumes</p>
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-500 font-medium shadow-2xs col-span-full">
+                <CommonLoader fullScreen={false} text="Matching & Scoring Candidates..." />
               </div>
             ) : candidates.length > 0 ? (
               candidates.map((candidate, cardIdx) => {
@@ -2334,9 +2333,9 @@ const CandidateSearchResults = () => {
                 // Prioritize matched skills to appear first in top preview pills, followed by other skills
                 const skillsList = activeKeywords.length > 0
                   ? [
-                      ...rawSkillsList.filter(s => activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase()))),
-                      ...rawSkillsList.filter(s => !activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase())))
-                    ]
+                    ...rawSkillsList.filter(s => activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase()))),
+                    ...rawSkillsList.filter(s => !activeKeywords.some(kw => s.toLowerCase().includes(kw.toLowerCase())))
+                  ]
                   : rawSkillsList;
 
                 // AI About / Summary Quote

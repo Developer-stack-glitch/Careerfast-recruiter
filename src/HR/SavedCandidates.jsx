@@ -7,6 +7,7 @@ import { MdOutlineDateRange, MdPublic } from "react-icons/md";
 import { BiLayer } from "react-icons/bi";
 import { HiOutlineMail } from 'react-icons/hi';
 import { getSavedCandidatesHR, removeSavedCandidateHR } from '../ApiService/action';
+import CommonLoader from '../Common/CommonLoader';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
@@ -206,10 +207,7 @@ export default function SavedCandidates() {
                 {/* Candidate List */}
                 <div className="flex flex-col gap-3">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0A66C2]"></div>
-                            <p className="text-gray-500 font-medium">Loading saved candidates...</p>
-                        </div>
+                        <CommonLoader fullScreen={false} text="Loading Saved Candidates..." />
                     ) : candidates.length === 0 ? (
                         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-white rounded-xl border border-gray-100 p-8">
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5 border border-gray-100">

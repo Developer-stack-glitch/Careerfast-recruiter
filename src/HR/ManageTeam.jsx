@@ -517,7 +517,7 @@ export default function ManageTeam() {
                             </span>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
-                            <span className="text-3xl font-semibold text-slate-900">{stats.total_members}</span>
+                            <span className="text-2xl font-semibold text-slate-900">{stats.total_members}</span>
                             <span className="text-sm font-semibold text-slate-400">/ {stats.sub_recruiter_limit} Seats</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
@@ -541,7 +541,7 @@ export default function ManageTeam() {
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
-                            <span className="text-3xl font-semibold text-slate-900">{stats.pool?.job_posts?.used || 0}</span>
+                            <span className="text-2xl font-semibold text-slate-900">{stats.pool?.job_posts?.used || 0}</span>
                             <span className="text-sm font-semibold text-slate-400">/ {stats.pool?.job_posts?.total || 0} Total</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
@@ -565,7 +565,7 @@ export default function ManageTeam() {
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
-                            <span className="text-3xl font-semibold text-slate-900">{stats.pool?.resume_views?.used || 0}</span>
+                            <span className="text-2xl font-semibold text-slate-900">{stats.pool?.resume_views?.used || 0}</span>
                             <span className="text-sm font-semibold text-slate-400">/ {stats.pool?.resume_views?.total || 0} Total</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">
@@ -589,7 +589,7 @@ export default function ManageTeam() {
                             </div>
                         </div>
                         <div className="flex items-baseline gap-2 mb-2">
-                            <span className="text-3xl font-semibold text-slate-900">{stats.pool?.resume_downloads?.used || 0}</span>
+                            <span className="text-2xl font-semibold text-slate-900">{stats.pool?.resume_downloads?.used || 0}</span>
                             <span className="text-sm font-semibold text-slate-400">/ {stats.pool?.resume_downloads?.total || 0} Total</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2 mb-2 overflow-hidden">

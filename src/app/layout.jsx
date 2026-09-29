@@ -1,10 +1,12 @@
 import "../index.css";
 import "../App.css";
+import "../css/CommonLoader.css";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { Providers } from "./providers";
 import ClientRouteHandler from "./client-route-handler";
 import ScrollToTop from "../ScrollTop/ScrollToTop";
+import CommonLoader from "../Common/CommonLoader";
 import Script from "next/script";
 import { Suspense } from "react";
 import { Outfit } from "next/font/google";

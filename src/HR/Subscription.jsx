@@ -18,6 +18,7 @@ import {
 import { getBillingPlans, getMySubscription } from '../ApiService/action';
 import { Spin } from 'antd';
 import toast from 'react-hot-toast';
+import CommonLoader from '../Common/CommonLoader';
 
 const Subscription = () => {
     const [billingPlans, setBillingPlans] = useState([]);
@@ -349,9 +350,7 @@ const Subscription = () => {
                 </div>
 
                 {loadingPlans ? (
-                    <div className="flex items-center justify-center py-20">
-                        <Spin size="large" />
-                    </div>
+                    <CommonLoader fullScreen={false} text="Loading Subscription Plans..." />
                 ) : billingPlans.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
                         {billingPlans.map((p) => {

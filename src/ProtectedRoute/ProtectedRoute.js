@@ -2,9 +2,7 @@
 import { message } from "antd";
 import { useEffect, useState, useLayoutEffect } from "react";
 import { useNavigate } from "@/routing-shim";
-import { motion } from "framer-motion";
-import logo from "../images/careerfastlogofinal.png";
-import { getImageUrl } from "../utils/getImageUrl";
+import CommonLoader from "../Common/CommonLoader";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const navigate = useNavigate();
@@ -58,39 +56,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     // Show premium loader while checking
     if (isAuthenticated === null) {
-        return (
-            <div style={{ 
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                background: 'rgba(255, 255, 255, 1)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                zIndex: 10000,
-                backdropFilter: 'blur(10px)'
-            }}>
-                <motion.div
-                    initial={{ opacity: 0.3, scale: 0.95 }}
-                    animate={{ opacity: [0.3, 1, 0.3], scale: [0.95, 1, 0.95] }}
-                    transition={{
-                        duration: 1.5,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                    style={{ textAlign: 'center' }}
-                >
-                    <img 
-                        src={getImageUrl(logo)} 
-                        alt="CareerFast Logo" 
-                        style={{ width: 180, objectFit: 'contain' }} 
-                    />
-                </motion.div>
-            </div>
-        );
+        return <CommonLoader fullScreen={true} text="Verifying Recruiter Access..." />;
     }
 
     if (isAuthenticated === false) {

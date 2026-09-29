@@ -1,5 +1,7 @@
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  turbopack: {},
   env: Object.keys(process.env)
     .filter(key => key.startsWith('REACT_APP_'))
     .reduce((acc, key) => {
@@ -23,8 +25,30 @@ const nextConfig = {
       },
     ],
   },
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 4,
+  },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'react-icons', '@ant-design/icons', 'antd', 'date-fns', 'framer-motion'],
+    optimizePackageImports: [
+      'lucide-react',
+      'react-icons',
+      '@ant-design/icons',
+      'antd',
+      'date-fns',
+      'framer-motion',
+      'recharts',
+    ],
+  },
+  webpack: (config, { dev, isServer }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: false,
+        aggregateTimeout: 300,
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+      };
+    }
+    return config;
   },
   async redirects() {
     return [
@@ -56,7 +80,7 @@ const nextConfig = {
       // Redirect job & internship details to public frontend
       { source: '/job-details/:path*', destination: 'https://careerfast.in/job-details/:path*', permanent: false },
       { source: '/internship-details/:path*', destination: 'https://careerfast.in/internship-details/:path*', permanent: false },
-    ]
+    ];
   },
 };
 

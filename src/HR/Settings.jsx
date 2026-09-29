@@ -22,6 +22,7 @@ import {
 } from '../ApiService/action';
 import { Spin } from 'antd';
 import toast from 'react-hot-toast';
+import CommonLoader from '../Common/CommonLoader';
 import { officialEmailValidator } from '../Common/Validation';
 
 const Settings = () => {
@@ -428,9 +429,7 @@ const Settings = () => {
                 </div>
 
                 {isLoading ? (
-                    <div className="flex justify-center items-center py-20">
-                        <Spin size="large" />
-                    </div>
+                    <CommonLoader fullScreen={false} text="Loading Account Settings..." />
                 ) : (
                     <div className="flex flex-col lg:flex-row gap-8">
                         {/* Sidebar Navigation */}

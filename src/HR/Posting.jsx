@@ -14,6 +14,7 @@ import {
     Upload
 } from "antd";
 import toast from "react-hot-toast";
+import CommonLoader from "../Common/CommonLoader";
 import {
     DeleteOutlined,
     PlusOutlined,
@@ -844,12 +845,7 @@ export default function Posting() {
     };
 
     if (pageLoading) {
-        return (
-            <div className="flex flex-col justify-center items-center h-screen bg-white gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0A66C2]"></div>
-                <p className="text-gray-500 font-medium">Loading form...</p>
-            </div>
-        );
+        return <CommonLoader fullScreen={true} text="Loading Job Editor..." />;
     }
 
     const handleSaveNewVenue = async () => {

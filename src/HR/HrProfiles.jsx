@@ -14,6 +14,7 @@ import {
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { getHrProfileData } from '../ApiService/action';
+import CommonLoader from '../Common/CommonLoader';
 import '../css/HrProfiles.css';
 
 const cleanHtml = (htmlString) => {
@@ -61,12 +62,7 @@ const HrProfiles = () => {
     };
 
     if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0A66C2]"></div>
-                <p className="text-gray-500 font-medium">Loading profile...</p>
-            </div>
-        );
+        return <CommonLoader fullScreen={false} text="Loading Recruiter Profile..." />;
     }
 
     if (!profile) {

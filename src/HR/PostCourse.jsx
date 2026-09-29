@@ -33,7 +33,7 @@ import {
     CheckCircle2
 } from "lucide-react";
 import { compressImage } from "../utils/imageCompressor";
-import Loader from "../Components/Loader";
+import CommonLoader from "../Common/CommonLoader";
 import { getImageUrl, getPlaceholderSvg } from "../utils/getImageUrl";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -1617,7 +1617,7 @@ export default function PostCourse() {
 
     return (
         <div className="min-h-screen bg-slate-50/60 font-sans flex flex-col">
-            {loading && <Loader />}
+            {loading && <CommonLoader fullScreen={true} backdropBlur={true} text="Loading Courses..." />}
 
             {formMode === "list" ? (
                 /* ========================================================================= */

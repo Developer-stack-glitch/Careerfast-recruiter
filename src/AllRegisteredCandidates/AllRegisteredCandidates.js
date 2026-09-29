@@ -53,6 +53,8 @@ import { getUsers, getUserProfile } from "../ApiService/action";
 import { FaBehance, FaDribbble, FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa6";
 import "../css/AllRegisteredCandidates.css";
 
+import { useDebounce } from "../utils/useDebounce";
+
 const { Content } = Layout;
 const { Title, Text } = Typography;
 
@@ -63,6 +65,7 @@ export default function AllRegisteredCandidates() {
 
     // Search and Filters
     const [searchTerm, setSearchTerm] = useState("");
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
     const [statusFilter, setStatusFilter] = useState("all");
     const [userTypeFilter, setUserTypeFilter] = useState("all");
     const [experienceRange, setExperienceRange] = useState([0, 10]);
@@ -144,11 +147,11 @@ export default function AllRegisteredCandidates() {
     // Filter Logic
     const filteredCandidates = candidates.filter((user) => {
         const matchesSearch =
-            !searchTerm ||
-            (user.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.phone?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.skills?.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())));
+            !debouncedSearchTerm ||
+            (user.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (user.phone?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (user.skills?.some(skill => skill.toLowerCase().includes(debouncedSearchTerm.toLowerCase())));
 
         const matchesStatus =
             statusFilter === "all" ||
@@ -179,11 +182,11 @@ export default function AllRegisteredCandidates() {
 
     const filteredRecruiters = recruiters.filter((user) => {
         const matchesSearch =
-            !searchTerm ||
-            (user.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.phone?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.organization?.toLowerCase().includes(searchTerm.toLowerCase()));
+            !debouncedSearchTerm ||
+            (user.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (user.phone?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (user.organization?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
 
         const matchesOrgType =
             orgTypeFilter === "all" ||

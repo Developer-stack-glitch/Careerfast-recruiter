@@ -6,6 +6,54 @@ const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
 });
 
+// In-memory & SessionStorage cache for static master data (15 minutes TTL)
+const masterDataCache = new Map();
+
+export const fetchCachedGet = async (url, params = null, ttlMs = 15 * 60 * 1000) => {
+  const cacheKey = params ? `${url}_${JSON.stringify(params)}` : url;
+  const now = Date.now();
+
+  // 1. Check in-memory cache
+  if (masterDataCache.has(cacheKey)) {
+    const entry = masterDataCache.get(cacheKey);
+    if (now - entry.timestamp < ttlMs) {
+      return entry.response;
+    }
+  }
+
+  // 2. Check browser sessionStorage
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      const stored = sessionStorage.getItem(`cf_cache_${cacheKey}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (now - parsed.timestamp < ttlMs) {
+          masterDataCache.set(cacheKey, parsed);
+          return parsed.response;
+        }
+      }
+    } catch (e) {
+      // Ignore storage errors
+    }
+  }
+
+  // 3. Fetch from network
+  const response = await api.get(url, params ? { params } : undefined);
+  const cacheEntry = {
+    timestamp: now,
+    response: { data: response.data, status: response.status, headers: response.headers },
+  };
+
+  masterDataCache.set(cacheKey, cacheEntry);
+  if (typeof window !== "undefined" && window.sessionStorage) {
+    try {
+      sessionStorage.setItem(`cf_cache_${cacheKey}`, JSON.stringify(cacheEntry));
+    } catch (e) {}
+  }
+
+  return response;
+};
+
 let isModalVisible = false;
 let modalInstance = null;
 
@@ -177,8 +225,7 @@ export const register = async (registerload) => {
 
 export const getOrganizationType = async () => {
   try {
-    const response = await api.get("/api/organization/type/get");
-    return response;
+    return await fetchCachedGet("/api/organization/type/get");
   } catch (error) {
     throw error;
   }
@@ -186,8 +233,7 @@ export const getOrganizationType = async () => {
 
 export const getIndustryTypes = async () => {
   try {
-    const response = await api.get("/api/industry/type/get");
-    return response;
+    return await fetchCachedGet("/api/industry/type/get");
   } catch (error) {
     throw error;
   }
@@ -195,8 +241,7 @@ export const getIndustryTypes = async () => {
 
 export const getJobNature = async () => {
   try {
-    const response = await api.get("/api/job/getJobNature");
-    return response;
+    return await fetchCachedGet("/api/job/getJobNature");
   } catch (error) {
     throw error;
   }
@@ -204,8 +249,7 @@ export const getJobNature = async () => {
 
 export const getDurationTypes = async () => {
   try {
-    const response = await api.get("/api/job/durationTypes/get");
-    return response;
+    return await fetchCachedGet("/api/job/durationTypes/get");
   } catch (error) {
     throw error;
   }
@@ -213,8 +257,7 @@ export const getDurationTypes = async () => {
 
 export const getDuration = async (payload) => {
   try {
-    const response = await api.get("/api/getDuration", { params: payload });
-    return response;
+    return await fetchCachedGet("/api/getDuration", payload);
   } catch (error) {
     throw error;
   }
@@ -222,8 +265,7 @@ export const getDuration = async (payload) => {
 
 export const getWorkPlaceType = async () => {
   try {
-    const response = await api.get("/api/job/workplace-type/get");
-    return response;
+    return await fetchCachedGet("/api/job/workplace-type/get");
   } catch (error) {
     throw error;
   }
@@ -276,8 +318,7 @@ export const deleteTeamMember = async (id) => {
 
 export const getWorkPlaceLocation = async () => {
   try {
-    const response = await api.get("/api/job/workLocation/get");
-    return response;
+    return await fetchCachedGet("/api/job/workLocation/get");
   } catch (error) {
     throw error;
   }
@@ -285,8 +326,7 @@ export const getWorkPlaceLocation = async () => {
 
 export const getBenifitsData = async () => {
   try {
-    const response = await api.get("/api/getBenefits");
-    return response;
+    return await fetchCachedGet("/api/getBenefits");
   } catch (error) {
     throw error;
   }
@@ -294,8 +334,7 @@ export const getBenifitsData = async () => {
 
 export const getGenderData = async () => {
   try {
-    const response = await api.get("/api/getGender");
-    return response;
+    return await fetchCachedGet("/api/getGender");
   } catch (error) {
     throw error;
   }
@@ -303,8 +342,7 @@ export const getGenderData = async () => {
 
 export const getEligibilityData = async () => {
   try {
-    const response = await api.get("/api/getEligibility");
-    return response;
+    return await fetchCachedGet("/api/getEligibility");
   } catch (error) {
     throw error;
   }
@@ -312,8 +350,7 @@ export const getEligibilityData = async () => {
 
 export const getYears = async () => {
   try {
-    const response = await api.get("/api/getYears");
-    return response;
+    return await fetchCachedGet("/api/getYears");
   } catch (error) {
     throw error;
   }
@@ -321,8 +358,7 @@ export const getYears = async () => {
 
 export const getSalaryData = async () => {
   try {
-    const response = await api.get("/api/getSalaryType");
-    return response;
+    return await fetchCachedGet("/api/getSalaryType");
   } catch (error) {
     throw error;
   }
@@ -330,8 +366,7 @@ export const getSalaryData = async () => {
 
 export const getSkillsData = async () => {
   try {
-    const response = await api.get("/api/getSkills");
-    return response;
+    return await fetchCachedGet("/api/getSkills");
   } catch (error) {
     throw error;
   }
@@ -339,8 +374,7 @@ export const getSkillsData = async () => {
 
 export const getJobCategoryData = async (payload) => {
   try {
-    const response = await api.get("/api/getJobCategories", { params: payload });
-    return response;
+    return await fetchCachedGet("/api/getJobCategories", payload);
   } catch (error) {
     throw error;
   }
@@ -690,8 +724,7 @@ export const getUserProfile = async (payload) => {
 
 export const getQualification = async () => {
   try {
-    const response = await api.get("/api/getQualification");
-    return response;
+    return await fetchCachedGet("/api/getQualification");
   } catch (error) {
     throw error;
   }
@@ -701,8 +734,7 @@ export const getQualification = async () => {
 
 export const getCourses = async () => {
   try {
-    const response = await api.get("/api/getCourses");
-    return response;
+    return await fetchCachedGet("/api/getCourses");
   } catch (error) {
     throw error;
   }
@@ -712,8 +744,7 @@ export const getCourses = async () => {
 
 export const getSpecialization = async () => {
   try {
-    const response = await api.get("/api/getSpecialization");
-    return response;
+    return await fetchCachedGet("/api/getSpecialization");
   } catch (error) {
     throw error;
   }
@@ -723,8 +754,7 @@ export const getSpecialization = async () => {
 
 export const getColleges = async () => {
   try {
-    const response = await api.get("/api/getColleges");
-    return response;
+    return await fetchCachedGet("/api/getColleges");
   } catch (error) {
     throw error;
   }
@@ -734,8 +764,7 @@ export const getColleges = async () => {
 
 export const getCourseType = async () => {
   try {
-    const response = await api.get("/api/getCourseType");
-    return response;
+    return await fetchCachedGet("/api/getCourseType");
   } catch (error) {
     throw error;
   }

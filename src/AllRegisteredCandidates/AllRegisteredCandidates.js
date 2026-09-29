@@ -51,10 +51,7 @@ import {
 // ✅ Import APIs
 import { getUsers, getUserProfile } from "../ApiService/action";
 import { FaBehance, FaDribbble, FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa6";
-import Footer from "../Footer/Footer";
-import Header from "../Header/Header";
 import "../css/AllRegisteredCandidates.css";
-import "../css/AdminDashboard.css";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;

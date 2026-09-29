@@ -5,7 +5,12 @@ module.exports = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-outfit)', 'Outfit', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        outfit: ['var(--font-outfit)', 'Outfit', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }

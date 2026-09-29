@@ -7,6 +7,14 @@ import ClientRouteHandler from "./client-route-handler";
 import ScrollToTop from "../ScrollTop/ScrollToTop";
 import Script from "next/script";
 import { Suspense } from "react";
+import { Outfit } from "next/font/google";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-outfit",
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
+});
 
 export const viewport = {
   width: "device-width",
@@ -37,16 +45,16 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${outfit.variable} ${outfit.className}`} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.transparenttextures.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@100..900&family=Raleway:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" precedence="default" />
 
       </head>
-      <body suppressHydrationWarning>
+      <body className={`${outfit.className} antialiased`} suppressHydrationWarning>
         <Providers>
           <Suspense fallback={null}>
             <ClientRouteHandler>

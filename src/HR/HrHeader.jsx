@@ -316,7 +316,7 @@ const HrHeader = () => {
             {/* Top subtle brand gradient line */}
             <div className="h-[3px] w-full bg-gradient-to-r from-[#0A66C2] via-blue-500 to-amber-500 sticky top-0 z-50" />
 
-            <header className="h-[64px] bg-white border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-[3px] z-50 shadow-xs [&_a]:no-underline [&_a:hover]:no-underline">
+            <header className="h-[64px] bg-white border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-[3px] z-50 shadow-xs [&_a]:no-underline [&_a:hover]:no-underline font-outfit font-sans" style={{ fontFamily: "var(--font-outfit), 'Outfit', sans-serif" }}>
 
                 {/* Left Side: Logo & Main Navigation */}
                 <div className="flex items-center gap-8 lg:gap-10">

@@ -24,7 +24,7 @@
   padding: 24px;
   background-color: #f8fafc;
   min-height: calc(100vh - 80px);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-outfit), 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Header Section */

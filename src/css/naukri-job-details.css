@@ -17,7 +17,7 @@
     background-color: var(--njd-bg);
     min-height: 100vh;
     padding: 30px 0;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-outfit), 'Outfit', sans-serif;
 }
 
 .basicdetails_edit .form-group {

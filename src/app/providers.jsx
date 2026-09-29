@@ -5,7 +5,7 @@ import { store } from "../Redux/store";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "react-hot-toast";
-import { App } from "antd";
+import { App, ConfigProvider } from "antd";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { requestForToken, messaging } from "../firebase/fireBase";
@@ -119,9 +119,17 @@ export function Providers({ children }) {
     <HelmetProvider>
       <GoogleOAuthProvider clientId={CLIENT_ID}>
         <Provider store={store}>
-          <App>
-            {children}
-          </App>
+          <ConfigProvider
+            theme={{
+              token: {
+                fontFamily: "var(--font-outfit), 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              },
+            }}
+          >
+            <App>
+              {children}
+            </App>
+          </ConfigProvider>
           <Toaster 
             position="top-center"
             toastOptions={{

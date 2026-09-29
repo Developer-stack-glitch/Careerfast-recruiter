@@ -2,7 +2,7 @@
 .courses-page-v2 {
     background: #F8F9FA;
     min-height: 100vh;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-outfit), 'Outfit', sans-serif;
     padding-bottom: 60px;
 }
 

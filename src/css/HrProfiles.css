@@ -1,7 +1,7 @@
 .hr-view-container {
     max-width: 1000px;
     margin: 40px auto;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-outfit), 'Outfit', sans-serif;
     color: #333;
 }
 

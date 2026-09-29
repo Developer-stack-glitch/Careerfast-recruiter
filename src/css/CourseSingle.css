@@ -1176,18 +1176,84 @@
   margin-bottom: 10px;
 }
 
-.module-rich-text ul,
-.module-rich-text ol {
-  padding-left: 20px;
-  margin-bottom: 10px;
+.module-rich-text ul {
+  list-style-type: disc !important;
+  padding-left: 24px !important;
+  margin-top: 6px !important;
+  margin-bottom: 12px !important;
 }
 
-.ql-editor {
-  background-color: #fff !important;
+.module-rich-text ol {
+  list-style-type: decimal !important;
+  padding-left: 24px !important;
+  margin-top: 6px !important;
+  margin-bottom: 12px !important;
+}
+
+.module-rich-text ul > li {
+  list-style-type: disc !important;
+}
+
+.module-rich-text ol > li {
+  list-style-type: decimal !important;
 }
 
 .module-rich-text li {
   margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.module-rich-text li::marker {
+  color: inherit;
+}
+
+/* Quill data-list bullet and ordered list support */
+.module-rich-text li[data-list="bullet"] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 20px !important;
+}
+
+.module-rich-text li[data-list="bullet"]::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  color: inherit;
+}
+
+.module-rich-text li[data-list="bullet"] > .ql-ui {
+  display: none !important;
+}
+
+.module-rich-text li[data-list="ordered"] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 24px !important;
+  counter-increment: module-list-counter;
+}
+
+.module-rich-text ol:has(li[data-list="ordered"]) {
+  counter-reset: module-list-counter;
+}
+
+.module-rich-text li[data-list="ordered"]::before {
+  content: counter(module-list-counter, decimal) ". ";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 500;
+  color: inherit;
+}
+
+.module-rich-text li[data-list="ordered"] > .ql-ui {
+  display: none !important;
+}
+
+.ql-editor {
+  background-color: #fff !important;
 }
 
 .module-content-features {
@@ -6658,12 +6724,32 @@
   overflow-wrap: break-word;
 }
 
+.about-course-desc-html h2 {
+  font-size: 24px !important;
+  font-weight: 700;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  color: #1e293b;
+}
+
 .about-course-desc-html h3 {
   font-size: 22px !important;
   font-weight: 600;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  color: #1e293b;
 }
 
-.about-course-desc-html strong {
+.about-course-desc-html h4 {
+  font-size: 18px !important;
+  font-weight: 600;
+  margin-top: 16px;
+  margin-bottom: 8px;
+  color: #1e293b;
+}
+
+.about-course-desc-html strong,
+.about-course-desc-html b {
   font-weight: 600 !important;
 }
 
@@ -6675,11 +6761,106 @@
 }
 
 .about-course-desc-html p {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .about-course-desc-html p:last-child {
   margin-bottom: 0;
+}
+
+/* Bullet points and list styling */
+.about-course-desc-html ul {
+  list-style-type: disc !important;
+  padding-left: 24px !important;
+  margin-top: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+.about-course-desc-html ol {
+  list-style-type: decimal !important;
+  padding-left: 24px !important;
+  margin-top: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+.about-course-desc-html ul ul,
+.about-course-desc-html ol ul {
+  list-style-type: circle !important;
+  padding-left: 20px !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+.about-course-desc-html ol ol,
+.about-course-desc-html ul ol {
+  list-style-type: lower-alpha !important;
+  padding-left: 20px !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+}
+
+.about-course-desc-html li {
+  font-size: 15px;
+  color: #475569;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.about-course-desc-html ul > li {
+  list-style-type: disc !important;
+}
+
+.about-course-desc-html ol > li {
+  list-style-type: decimal !important;
+}
+
+.about-course-desc-html li::marker {
+  color: #475569;
+}
+
+/* Quill-specific data-list rendering support */
+.about-course-desc-html li[data-list="bullet"] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 20px !important;
+}
+
+.about-course-desc-html li[data-list="bullet"]::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.about-course-desc-html li[data-list="bullet"] > .ql-ui {
+  display: none !important;
+}
+
+.about-course-desc-html li[data-list="ordered"] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 24px !important;
+  counter-increment: about-list-counter;
+}
+
+.about-course-desc-html ol:has(li[data-list="ordered"]) {
+  counter-reset: about-list-counter;
+}
+
+.about-course-desc-html li[data-list="ordered"]::before {
+  content: counter(about-list-counter, decimal) ". ";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 500;
+  color: #475569;
+}
+
+.about-course-desc-html li[data-list="ordered"] > .ql-ui {
+  display: none !important;
 }
 
 /* Other Cities Section */

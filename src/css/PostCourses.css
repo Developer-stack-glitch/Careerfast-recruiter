@@ -201,7 +201,7 @@
 
 .delete-btn {
     background: transparent;
-    color: #dc2626;
+    color: #dc2626 !important;
     border: none;
     width: 36px;
     height: 36px;

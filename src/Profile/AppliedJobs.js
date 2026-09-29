@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Input, Card, Tag, Typography, Badge, Skeleton, Button } from "antd";
 import { SearchOutlined, CalendarOutlined } from "@ant-design/icons";
-import { debounce } from "lodash";
 import { useNavigate } from "@/routing-shim";
 import {
   getUserAppliedJobs,

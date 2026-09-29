@@ -327,7 +327,18 @@ export default function Applicants({ jobId }) {
       setJobData(jobItem);
 
       const rawUsers = jobItem?.users || [];
-      const parsedApplicants = rawUsers.map((cand, idx) => {
+      // Deduplicate candidates by user id / applied_jobs_id to prevent duplicate candidate cards or React key collisions
+      const seenCandIds = new Set();
+      const uniqueRawUsers = [];
+      for (const cand of rawUsers) {
+        const candKey = cand.id !== undefined && cand.id !== null ? cand.id : cand.applied_jobs_id;
+        if (candKey === undefined || candKey === null || !seenCandIds.has(candKey)) {
+          if (candKey !== undefined && candKey !== null) seenCandIds.add(candKey);
+          uniqueRawUsers.push(cand);
+        }
+      }
+
+      const parsedApplicants = uniqueRawUsers.map((cand, idx) => {
         const skillsList = parseSkills(cand.skills);
         const expYears = Number(cand.total_years) || 0;
         const expMonths = Number(cand.total_months) || 0;
@@ -345,7 +356,7 @@ export default function Applicants({ jobId }) {
         const candNotice = cand.notice_period || '15 Days or less';
 
         return {
-          id: cand.id ?? idx,
+          id: cand.id ?? (idx + 1),
           applied_jobs_id: appliedId,
           first_name: cand.first_name || '',
           last_name: cand.last_name || '',
@@ -1803,7 +1814,7 @@ export default function Applicants({ jobId }) {
 
                 return (
                   <div
-                    key={app.id || cardIdx}
+                    key={`applicant-${app.id ?? 'item'}-${app.applied_jobs_id ?? cardIdx}`}
                     className={`relative rounded-2xl border bg-white p-4 shadow-2xs hover:border-[#cbd5e1] hover:shadow-xs transition-all space-y-3 ${isSelected ? 'border-[#0A66C2] ring-2 ring-[#0A66C2]/15' : 'border-slate-200/90'
                       }`}
                   >

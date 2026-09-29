@@ -14,7 +14,6 @@ import {
   SearchOutlined,
   HeartFilled,
 } from "@ant-design/icons";
-import { debounce } from "lodash";
 import { CommonToaster } from "../Common/CommonToaster";
 import { getSavedJobs, removeSavedJobs } from "../ApiService/action";
 import { useNavigate } from "@/routing-shim";

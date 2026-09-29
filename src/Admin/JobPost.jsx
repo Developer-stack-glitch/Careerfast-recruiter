@@ -92,6 +92,7 @@ export default function JobPost() {
             const payload = {
                 limit: itemsPerPage,
                 page: currentPage,
+                include_stats: true,
             };
             if (searchTerm) payload.searchTerm = searchTerm;
             if (activeFilter === 'Active') payload.is_closed = 0;

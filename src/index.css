@@ -116,3 +116,75 @@ a.whatsapp-btn span {
   color: inherit !important;
 }
 
+/* ==========================================================================
+   Universal Rich-Text, CMS, and WYSIWYG List Styling (Restores Bullets & Numbers)
+   ========================================================================== */
+
+.ql-editor ul,
+.rich-text ul,
+.rich-text-content ul,
+.wysiwyg-content ul {
+  list-style-type: disc !important;
+  padding-left: 24px !important;
+  margin-top: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.ql-editor ol,
+.rich-text ol,
+.rich-text-content ol,
+.wysiwyg-content ol {
+  list-style-type: decimal !important;
+  padding-left: 24px !important;
+  margin-top: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+.ql-editor ul > li,
+.rich-text ul > li,
+.rich-text-content ul > li,
+.wysiwyg-content ul > li {
+  list-style-type: disc !important;
+}
+
+.ql-editor ol > li:not([data-list]),
+.rich-text ol > li:not([data-list]),
+.rich-text-content ol > li:not([data-list]),
+.wysiwyg-content ol > li:not([data-list]) {
+  list-style-type: decimal !important;
+}
+
+/* Quill 2.0+ data-list bullet and ordered items */
+li[data-list="bullet"] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 20px !important;
+}
+
+li[data-list="bullet"]::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  top: 0;
+  font-size: 18px;
+  line-height: 1.4;
+  color: inherit;
+}
+
+li[data-list="bullet"] > .ql-ui {
+  display: none !important;
+}
+
+li[data-list="ordered"] {
+  list-style-type: none !important;
+  position: relative !important;
+  padding-left: 24px !important;
+}
+
+li[data-list="ordered"] > .ql-ui {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+

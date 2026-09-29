@@ -1550,7 +1550,7 @@ export default function FolderManagement() {
               <div className="space-y-3.5">
                 {drawerLoading ? (
                   <div className="rounded-2xl bg-white p-16 text-center shadow-xs border border-slate-200">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-3 border-[#0A66C2] border-t-transparent" />
+                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#0A66C2] border-t-transparent" />
                     <p className="mt-2 text-xs text-slate-500 font-medium">Loading candidate pipeline...</p>
                   </div>
                 ) : filteredPipelineCandidates.length === 0 ? (
@@ -2277,7 +2277,7 @@ export default function FolderManagement() {
                 <div className="mt-3 space-y-3">
                   {loading ? (
                     <div className="py-20 text-center">
-                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-3 border-[#0A66C2] border-t-transparent"></div>
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#0A66C2] border-t-transparent"></div>
                       <p className="mt-3 text-xs font-medium text-slate-500">Loading folders...</p>
                     </div>
                   ) : paginatedFolders.length === 0 ? (

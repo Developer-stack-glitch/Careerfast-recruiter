@@ -11,7 +11,7 @@ export default function Page() {
       <Suspense fallback={
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-3">
-            <div className="w-10 h-10 border-3 border-[#0A66C2] border-t-transparent rounded-full animate-spin mx-auto" />
+            <div className="w-10 h-10 border-4 border-[#0A66C2] border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-[14px] font-semibold text-slate-600">Loading candidate search...</p>
           </div>
         </div>

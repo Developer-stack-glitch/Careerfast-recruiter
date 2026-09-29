@@ -6,7 +6,7 @@ import {
   MessageSquare, FileText, Bookmark, Link as LinkIcon, Download, Users as UsersIcon, Send,
   SlidersHorizontal, CheckCircle2, ArrowRight, ArrowLeft, MoreVertical,
   Star, Check, Folder, Heart, Plus, Layers, GraduationCap, Sparkles, Copy, Clock, ExternalLink,
-  Calendar, LayoutGrid, List, Crown, Lock
+  Calendar, LayoutGrid, List, Crown, Lock, Loader2
 } from 'lucide-react';
 import {
   searchCandidatesAPI, getCandidateFilterOptionsAPI,
@@ -2274,7 +2274,7 @@ const CandidateSearchResults = () => {
           <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
             {loading ? (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-16 text-center text-slate-500 font-medium shadow-2xs col-span-full">
-                <div className="w-9 h-9 border-3 border-[#0A66C2] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <Loader2 className="w-10 h-10 text-[#0A66C2] animate-spin mx-auto mb-3.5" />
                 <p className="text-[15px] font-bold text-slate-800">Matching & Scoring Candidates...</p>
                 <p className="text-[13px] text-slate-400 mt-1">Applying real-time filters across candidate profiles and resumes</p>
               </div>

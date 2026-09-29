@@ -1773,7 +1773,7 @@ export default function Applicants({ jobId }) {
           <div className="space-y-4">
             {loading ? (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-16 text-center text-slate-500 font-medium shadow-2xs">
-                <div className="w-9 h-9 border-3 border-[#0A66C2] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                <div className="w-9 h-9 border-4 border-[#0A66C2] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-[15px] font-bold text-slate-800">Loading Job Applicants...</p>
                 <p className="text-[13px] text-slate-400 mt-1">Retrieving candidate profiles, applications, and screening data</p>
               </div>

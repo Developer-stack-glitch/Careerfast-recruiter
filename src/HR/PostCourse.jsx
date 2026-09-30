@@ -144,7 +144,7 @@ export default function PostCourse() {
     const [courseData, setCourseData] = useState(INITIAL_FORM_STATE);
     const [loading, setLoading] = useState(false);
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3006';
 
     useEffect(() => {
         const stored = localStorage.getItem("loginDetails");
@@ -170,13 +170,19 @@ export default function PostCourse() {
     const fetchCourses = async () => {
         setLoading(true);
         try {
+            console.log("Fetching from:", `${API_URL}/api/courses`);
             const response = await fetch(`${API_URL}/api/courses`);
             if (response.ok) {
                 const data = await response.json();
+                console.log("Fetched courses:", data);
                 setCourses(data);
+            } else {
+                console.error("Failed to fetch courses, status:", response.status);
+                toast.error("Failed to fetch courses. Status: " + response.status);
             }
         } catch (err) {
             console.error("Error fetching courses:", err);
+            toast.error("Error fetching courses: " + err.message);
         } finally {
             setTimeout(() => setLoading(false), 500);
         }

@@ -1725,7 +1725,7 @@ export default function PostCourse() {
                                                         <Edit size={14} /> Edit
                                                     </button>
                                                     <Link
-                                                        href={`${NEXT_PUBLIC_COURSE_URL}/courses/${course.slug}`}
+                                                        href={`${NEXT_PUBLIC_API_URL}/courses/${course.slug}`}
                                                         target="_blank"
                                                         className="px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-[12.5px] font-medium rounded-lg transition-colors flex items-center gap-1 cursor-pointer no-underline"
                                                     >

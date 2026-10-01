@@ -56,6 +56,8 @@ const MyJobs = () => {
         pendingJobs: 0,
         rejectedJobs: 0,
         closedJobs: 0,
+        jobsCount: 0,
+        internshipsCount: 0,
         totalApplications: 0
     });
 
@@ -187,6 +189,8 @@ const MyJobs = () => {
                         pendingJobs: Number(res.data.stats.pendingJobs) || 0,
                         rejectedJobs: Number(res.data.stats.rejectedJobs) || 0,
                         closedJobs: Number(res.data.stats.closedJobs) || 0,
+                        jobsCount: Number(res.data.stats.jobsCount) || 0,
+                        internshipsCount: Number(res.data.stats.internshipsCount) || 0,
                         totalApplications: Number(res.data.stats.totalApplications) || 0,
                     });
                 }
@@ -435,7 +439,10 @@ const MyJobs = () => {
                             </span>
                         </div>
                         <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                            <span>All postings</span>
+                            <div className="flex items-center gap-1.5">
+                                <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">{overallStats.jobsCount || 0} Jobs</span>
+                                <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">{overallStats.internshipsCount || 0} Internships</span>
+                            </div>
                             <ChevronRight size={13} className="text-slate-400" />
                         </div>
                     </div>

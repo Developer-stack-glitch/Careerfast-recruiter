@@ -221,7 +221,7 @@ const HrHeader = () => {
                                 localStorage.setItem("loginDetails", JSON.stringify(parsed));
                                 setRecruiterDetails(parsed);
                             }
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                 }
             } catch (err) {
@@ -412,7 +412,7 @@ const HrHeader = () => {
                                         className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline"
                                     >
                                         <Briefcase size={16} className="text-slate-500" />
-                                        <span>Manage jobs</span>
+                                        <span>Manage jobs & internships</span>
                                     </Link>
                                     <Link
                                         href="/my-jobs"

@@ -1686,7 +1686,7 @@ export default function PostCourse() {
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                             />
                                             {course.category && (
-                                                <span className="absolute top-3 left-3 px-2.5 py-1 bg-white/95 backdrop-blur-xs text-[#0A66C2] text-[11px] font-bold rounded-md shadow-xs">
+                                                <span className="absolute top-3 left-3 px-2.5 py-1 bg-white/95 backdrop-blur-xs text-[#ff6e16] text-[11px] font-bold rounded-md shadow-xs">
                                                     {course.category}
                                                 </span>
                                             )}
@@ -1725,7 +1725,7 @@ export default function PostCourse() {
                                                         <Edit size={14} /> Edit
                                                     </button>
                                                     <Link
-                                                        href={`/courses/${course.slug}`}
+                                                        href={`${NEXT_PUBLIC_COURSE_URL}/courses/${course.slug}`}
                                                         target="_blank"
                                                         className="px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-[12.5px] font-medium rounded-lg transition-colors flex items-center gap-1 cursor-pointer no-underline"
                                                     >

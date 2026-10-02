@@ -6,14 +6,14 @@ import {
   MessageSquare, FileText, Bookmark, Link as LinkIcon, Download, Users as UsersIcon, Send,
   SlidersHorizontal, CheckCircle2, ArrowRight, ArrowLeft, MoreVertical,
   Star, Check, Folder, Heart, Plus, Layers, GraduationCap, Sparkles, Copy, Clock, ExternalLink,
-  Calendar, LayoutGrid, List, Crown, Lock, Loader2
+  Calendar, LayoutGrid, List, Crown, Lock, Loader2, FileSpreadsheet
 } from 'lucide-react';
 import {
   searchCandidatesAPI, getCandidateFilterOptionsAPI,
   saveCandidateHR, removeSavedCandidateHR, getSavedCandidatesHR,
   getCandidateFoldersAPI, addCandidatesToFolderAPI, updateFolderCandidateStageAPI,
   saveHrSearch, getMySubscription, consumeResumeViewAPI, consumeResumeDownloadAPI,
-  sendCandidateEmailAPI
+  consumeExcelDownloadAPI, sendCandidateEmailAPI, recordCandidateWhatsAppAPI
 } from '../ApiService/action';
 
 import { CommonToaster } from '../Common/CommonToaster';
@@ -321,6 +321,8 @@ const CandidateSearchResults = () => {
   // Interactive UI States
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'grid'
   const [unmaskedPhones, setUnmaskedPhones] = useState({});
+  const [loadingViewNumber, setLoadingViewNumber] = useState({});
+  const [loadingDownload, setLoadingDownload] = useState({});
   const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
   const [savedCandidateIds, setSavedCandidateIds] = useState([]);
   const [resumeModalCandidate, setResumeModalCandidate] = useState(null);
@@ -345,6 +347,7 @@ const CandidateSearchResults = () => {
   const [comparedCandidates, setComparedCandidates] = useState([]);
   const [compareModalOpen, setCompareModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
+  const [exportingExcel, setExportingExcel] = useState(false);
 
   // Saved in Folders Popover state
   const [activeSavedPopoverId, setActiveSavedPopoverId] = useState(null);
@@ -364,6 +367,10 @@ const CandidateSearchResults = () => {
   const resumeDownloadLimit = subscription?.limits?.resume_download_limit ?? subscription?.limits?.resume_downloads_limit ?? 10;
   const resumeDownloadsUsed = subscription?.usage?.resume_downloads_used ?? 0;
   const resumeDownloadsRemaining = subscription?.usage?.resume_downloads_remaining ?? Math.max(0, resumeDownloadLimit - resumeDownloadsUsed);
+
+  const excelDownloadLimit = subscription?.limits?.excel_download_limit ?? subscription?.limits?.excel_downloads_limit ?? 50;
+  const excelDownloadsUsed = subscription?.usage?.excel_downloads_used ?? 0;
+  const excelDownloadsRemaining = subscription?.usage?.excel_downloads_remaining ?? Math.max(0, excelDownloadLimit - excelDownloadsUsed);
 
   // Candidate Contact privilege from subscription plan / features
   const canContactCandidates = useMemo(() => {
@@ -477,6 +484,7 @@ const CandidateSearchResults = () => {
     }
 
     const candId = Number(candidate.id);
+    setLoadingDownload(prev => ({ ...prev, [candId]: true }));
 
     // If already downloaded in this billing cycle, download directly without re-consuming quota
     if (downloadedCandidateIds.has(candId)) {
@@ -484,6 +492,7 @@ const CandidateSearchResults = () => {
         candidate.resume,
         `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim()
       );
+      setLoadingDownload(prev => ({ ...prev, [candId]: false }));
       return;
     }
 
@@ -494,6 +503,7 @@ const CandidateSearchResults = () => {
         title: 'Resume Download Limit Reached',
         message: `You have used all ${resumeDownloadLimit} resume downloads included in your ${planTitle} Plan. Please upgrade your subscription plan to download more resumes.`
       });
+      setLoadingDownload(prev => ({ ...prev, [candId]: false }));
       return;
     }
 
@@ -533,6 +543,107 @@ const CandidateSearchResults = () => {
       } else {
         CommonToaster(err.response?.data?.message || 'Could not verify resume download quota', 'error');
       }
+    } finally {
+      setLoadingDownload(prev => ({ ...prev, [candId]: false }));
+    }
+  };
+
+  const handleExportExcel = async () => {
+    const selectedCount = selectedCandidateIds.length;
+    if (selectedCount === 0) {
+      CommonToaster('Please select at least 1 candidate to export to Excel.', 'error');
+      return;
+    }
+
+    // Check remaining quota
+    if (subscription && selectedCount > excelDownloadsRemaining) {
+      setQuotaLimitModal({
+        type: 'download',
+        title: 'Excel Download Quota Exceeded',
+        message: `You selected ${selectedCount} candidates, but have only ${excelDownloadsRemaining} Excel downloads remaining in your ${planTitle} Plan (Quota: ${excelDownloadLimit}). Please upgrade your plan to export more candidates.`
+      });
+      return;
+    }
+
+    try {
+      setExportingExcel(true);
+      const res = await consumeExcelDownloadAPI({
+        count: selectedCount,
+        candidate_ids: selectedCandidateIds
+      });
+
+      if (res && res.success) {
+        // Find target candidates
+        const targetCandidates = candidates.filter(c => selectedCandidateIds.includes(c.id));
+        
+        // Build CSV formatted data for Excel with UTF-8 BOM
+        const headers = [
+          'Candidate ID',
+          'Candidate Name',
+          'Designation / Role',
+          'Current Company',
+          'Experience',
+          'Current Location',
+          'Preferred Locations',
+          'Highest Education',
+          'Key Skills',
+          'Email Address',
+          'Phone Number',
+          'Expected Salary',
+          'Notice Period'
+        ];
+
+        const rows = targetCandidates.map(c => [
+          `"${c.id || ''}"`,
+          `"${(c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || '').replace(/"/g, '""')}"`,
+          `"${(c.title || c.job_title || c.designation || '').replace(/"/g, '""')}"`,
+          `"${(c.company || c.company_name || c.current_company || '').replace(/"/g, '""')}"`,
+          `"${(c.experience || c.total_experience || '').replace(/"/g, '""')}"`,
+          `"${(c.location || c.city || '').replace(/"/g, '""')}"`,
+          `"${(Array.isArray(c.preferred_locations) ? c.preferred_locations.join(', ') : (c.preferred_location || c.preferred_locations || '')).replace(/"/g, '""')}"`,
+          `"${(c.education || c.highest_qualification || '').replace(/"/g, '""')}"`,
+          `"${(Array.isArray(c.skills) ? c.skills.join(', ') : (c.skills || '')).replace(/"/g, '""')}"`,
+          `"${(c.email || '').replace(/"/g, '""')}"`,
+          `"${(unmaskedPhones[c.id] || c.phone || c.mobile || '').replace(/"/g, '""')}"`,
+          `"${(c.expected_salary || c.salary || '').replace(/"/g, '""')}"`,
+          `"${(c.notice_period || '').replace(/"/g, '""')}"`
+        ]);
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Candidates_Export_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Update local subscription quota
+        const updatedUsed = res.used !== undefined ? res.used : (excelDownloadsUsed + selectedCount);
+        const updatedRemaining = res.remaining !== undefined ? res.remaining : Math.max(0, excelDownloadLimit - updatedUsed);
+
+        setSubscription(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            usage: {
+              ...prev.usage,
+              excel_downloads_used: updatedUsed,
+              excel_downloads_remaining: updatedRemaining
+            }
+          };
+        });
+
+        CommonToaster(`Exported ${selectedCount} candidate(s) successfully! ${updatedRemaining} Excel download credits remaining.`, 'success');
+      }
+    } catch (err) {
+      console.error("Export Excel error:", err);
+      const errMsg = err?.response?.data?.details || err?.response?.data?.message || "Failed to export candidates to Excel.";
+      CommonToaster(errMsg, 'error');
+    } finally {
+      setExportingExcel(false);
     }
   };
 
@@ -950,6 +1061,8 @@ const CandidateSearchResults = () => {
       setUnmaskedPhones(prev => ({ ...prev, [candId]: true }));
       return;
     }
+    
+    setLoadingViewNumber(prev => ({ ...prev, [candId]: true }));
 
     // Check if view limit reached
     if (subscription && resumeViewsRemaining <= 0) {
@@ -958,6 +1071,7 @@ const CandidateSearchResults = () => {
         title: 'Resume View Limit Reached',
         message: `You have used all ${resumeViewLimit} candidate resume views included in your ${planTitle} Plan. Please upgrade your subscription plan to reveal candidate contact numbers.`
       });
+      setLoadingViewNumber(prev => ({ ...prev, [candId]: false }));
       return;
     }
 
@@ -994,6 +1108,8 @@ const CandidateSearchResults = () => {
       } else {
         CommonToaster(err.response?.data?.message || 'Could not verify resume view quota', 'error');
       }
+    } finally {
+      setLoadingViewNumber(prev => ({ ...prev, [candId]: false }));
     }
   };
 
@@ -1743,6 +1859,11 @@ const CandidateSearchResults = () => {
         setSendingEmail(false);
       }
     } else if (contactModal?.type === 'WhatsApp') {
+      try {
+        recordCandidateWhatsAppAPI({ count: contactModal.candidates.length }).catch(() => {});
+      } catch (err) {
+        console.warn("WhatsApp count record error:", err);
+      }
       contactModal.candidates.forEach((cand, idx) => {
         const ph = cand.phone || '';
         if (ph) {
@@ -2103,6 +2224,18 @@ const CandidateSearchResults = () => {
                   ({resumeDownloadsRemaining} left)
                 </span>
               </div>
+
+              <div className="hidden sm:block text-slate-300">|</div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500 font-medium">Excel Downloads:</span>
+                <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
+                  {excelDownloadsUsed} / {excelDownloadLimit}
+                </span>
+                <span className={`font-semibold ${excelDownloadsRemaining > 5 ? 'text-emerald-600' : excelDownloadsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                  ({excelDownloadsRemaining} left)
+                </span>
+              </div>
             </div>
 
             <button
@@ -2141,7 +2274,7 @@ const CandidateSearchResults = () => {
               </span>
             </div>
 
-            {/* Right: Email | WhatsApp | SMS | Save to folder | Add to pipeline | More */}
+            {/* Right: Email | WhatsApp | SMS | Save to folder | Export Excel | More */}
             <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
               {/* Email */}
               <button
@@ -2222,6 +2355,22 @@ const CandidateSearchResults = () => {
                 <span>Save to folder</span>
               </button>
 
+              {/* Export Excel */}
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                disabled={exportingExcel}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50/90 hover:bg-emerald-100 text-emerald-800 border border-emerald-300/80 rounded-xl font-semibold transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                title={`Export ${selectedCandidateIds.length > 0 ? selectedCandidateIds.length : 'selected'} candidates to Excel spreadsheet (${excelDownloadsRemaining} downloads remaining)`}
+              >
+                {exportingExcel ? (
+                  <Loader2 size={14} className="animate-spin text-emerald-700" />
+                ) : (
+                  <FileSpreadsheet size={14} className="text-emerald-700" />
+                )}
+                <span>Export Excel</span>
+              </button>
+
               {/* Three dots menu */}
               <div className="relative" id="more-menu-container">
                 <button
@@ -2238,8 +2387,21 @@ const CandidateSearchResults = () => {
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <button
                       type="button"
+                      onClick={handleExportExcel}
+                      disabled={exportingExcel}
+                      className="w-full text-left px-4 py-2.5 hover:bg-emerald-50/60 flex items-center gap-3 transition-colors cursor-pointer group"
+                    >
+                      <FileSpreadsheet size={15} className="text-emerald-600 group-hover:text-emerald-700 shrink-0" />
+                      <div>
+                        <span className="text-[13px] font-semibold text-slate-800 group-hover:text-slate-900 block">Export to Excel</span>
+                        <span className="text-[11px] text-slate-400 block">{excelDownloadsRemaining} download(s) left</span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={handleAddToCompare}
-                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-start gap-3 transition-colors cursor-pointer group"
+                      className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-start gap-3 transition-colors cursor-pointer group border-t border-slate-100"
                     >
                       <Plus size={16} className="text-slate-600 group-hover:text-slate-900 mt-0.5 shrink-0" />
                       <div>
@@ -2971,16 +3133,19 @@ const CandidateSearchResults = () => {
                           <Phone size={12.5} className="text-[#0A66C2]" />
                           <span>
                             {isUnmasked
-                              ? (candidate.phone_code ? `${candidate.phone_code} ${candidate.phone}` : candidate.phone)
+                              ? `${candidate.phone_code ? `${candidate.phone_code} ` : ''}${candidate.phone || 'Not Available'} (Viewed)`
                               : `+91-${candidate.phone ? candidate.phone.slice(0, 3) : '638'}******`}
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleUnmaskPhone(candidate)}
-                            className="text-[#0A66C2] font-bold hover:underline cursor-pointer ml-1 text-[11.5px]"
-                          >
-                            {isUnmasked ? "Hide" : "Show"}
-                          </button>
+                          {!isUnmasked && (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleUnmaskPhone(candidate)}
+                              className="text-[#0A66C2] font-bold hover:underline cursor-pointer ml-1 text-[11.5px] disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={loadingViewNumber[candidate.id]}
+                            >
+                              {loadingViewNumber[candidate.id] ? "Loading..." : "Show"}
+                            </button>
+                          )}
                         </div>
 
                         {/* Email Button */}
@@ -3461,9 +3626,11 @@ const CandidateSearchResults = () => {
                       <button
                         type="button"
                         onClick={() => handleDownloadResume(resumeModalCandidate)}
-                        className="px-4 py-2 bg-[#0A66C2] hover:bg-[#004182] text-white text-[12.5px] font-medium rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-98"
+                        className="px-4 py-2 bg-[#0A66C2] hover:bg-[#004182] text-white text-[12.5px] font-medium rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={loadingDownload[resumeModalCandidate.id]}
                       >
-                        <Download size={14} /> Download PDF
+                        {loadingDownload[resumeModalCandidate.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} 
+                        {loadingDownload[resumeModalCandidate.id] ? 'Loading...' : 'Download PDF'}
                       </button>
                     </div>
                   </div>

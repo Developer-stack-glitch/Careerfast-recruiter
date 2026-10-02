@@ -1,12 +1,12 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { BsBookmarkFill, BsThreeDotsVertical, BsStar, BsGenderMale, BsGenderFemale, BsEnvelope, BsTelephone, BsDownload } from 'react-icons/bs';
-import { FiInfo, FiArrowRight, FiDownload as FiDownloadIcon, FiMapPin, FiBriefcase, FiPhone, FiBook, FiX, FiBookmark, FiSearch, FiChevronDown } from 'react-icons/fi';
+import { FiInfo, FiArrowRight, FiDownload as FiDownloadIcon, FiMapPin, FiBriefcase, FiPhone, FiBook, FiX, FiBookmark, FiSearch, FiChevronDown, FiLoader } from 'react-icons/fi';
 import { FaLinkedinIn, FaTwitter, FaInstagram, FaFacebookF, FaDribbble } from "react-icons/fa";
-import { MdOutlineDateRange, MdPublic } from "react-icons/md";
+import { MdPublic } from "react-icons/md";
 import { BiLayer } from "react-icons/bi";
 import { HiOutlineMail } from 'react-icons/hi';
-import { getSavedCandidatesHR, removeSavedCandidateHR } from '../ApiService/action';
+import { getSavedCandidatesHR, removeSavedCandidateHR, consumeResumeDownloadAPI } from '../ApiService/action';
 import CommonLoader from '../Common/CommonLoader';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,7 @@ export default function SavedCandidates() {
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
     const [experienceFilter, setExperienceFilter] = useState('All Experience');
     const [isExperienceDropdownOpen, setIsExperienceDropdownOpen] = useState(false);
+    const [loadingDownload, setLoadingDownload] = useState(false);
     const dropdownRef = useRef(null);
     const router = useRouter();
 
@@ -52,10 +53,27 @@ export default function SavedCandidates() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleDownload = async (url, name) => {
+    const handleDownload = async (url, name, candidateId) => {
         if (!url || url === '#') {
             toast.error("No resume available for this candidate.");
             return;
+        }
+        setLoadingDownload(true);
+        try {
+            if (candidateId) {
+                const res = await consumeResumeDownloadAPI(candidateId);
+                if (res && res.success && !res.already_unlocked) {
+                    const leftCount = res.remaining !== undefined ? res.remaining : 0;
+                    toast.success(`Resume downloaded! (${leftCount} downloads remaining)`);
+                }
+            }
+        } catch (error) {
+            console.error("Error consuming resume download:", error);
+            const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
+            if (limitReached) {
+                toast.error(error.response?.data?.details || "Resume download limit reached.");
+                return;
+            }
         }
         try {
             const response = await fetch(url);
@@ -70,10 +88,12 @@ export default function SavedCandidates() {
             a.click();
             window.URL.revokeObjectURL(blobUrl);
             document.body.removeChild(a);
-            toast.success("Resume downloaded successfully.");
+            // toast.success("Resume downloaded successfully.");
         } catch (error) {
             console.error('Download failed, opening in new tab instead.', error);
             window.open(url, '_blank');
+        } finally {
+            setLoadingDownload(false);
         }
     };
 
@@ -538,10 +558,12 @@ export default function SavedCandidates() {
                                         <h3 className="text-[16px] font-bold mb-1">Resume & CV</h3>
                                         <p className="text-blue-100 text-[13px] font-medium mb-3">Download candidate's full profile</p>
                                         <button
-                                            onClick={() => handleDownload(selectedApplicant.resume, selectedApplicant.name)}
-                                            className="w-full py-3.5 rounded-xl bg-white text-blue-600 font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-sm"
+                                            onClick={() => handleDownload(selectedApplicant.resume, selectedApplicant.name, selectedApplicant.candidate_id || selectedApplicant.id)}
+                                            className="w-full py-3.5 rounded-xl bg-white text-blue-600 font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={loadingDownload}
                                         >
-                                            <BsDownload className="text-[16px]" /> Download PDF
+                                            {loadingDownload ? <FiLoader className="text-[16px] animate-spin" /> : <BsDownload className="text-[16px]" />}
+                                            {loadingDownload ? 'Loading...' : 'Download PDF'}
                                         </button>
                                     </div>
                                 </div>

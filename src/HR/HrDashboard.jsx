@@ -39,8 +39,9 @@ import {
     Lock,
     Building2
 } from 'lucide-react';
-import { getHrDashboardSummary, deleteHrSearch, clearHrSearches } from '../ApiService/action';
+import { getHrDashboardSummary, deleteHrSearch, clearHrSearches, consumeResumeDownloadAPI } from '../ApiService/action';
 import { downloadResumeFile } from '../utils/downloadResume';
+import { CommonToaster } from '../Common/CommonToaster';
 
 // Helper to format numbers into clean compact strings (e.g., 45.3k, 1.4M)
 const formatCompactNumber = (number) => {
@@ -97,6 +98,31 @@ export default function HrDashboard() {
     const [activeNav, setActiveNav] = useState('your-searches');
     const [searchTab, setSearchTab] = useState('recent'); // 'recent' | 'saved'
     const [expandedCampaigns, setExpandedCampaigns] = useState({});
+    const [loadingDownload, setLoadingDownload] = useState({});
+    
+    const handleDownloadResume = async (resume, name, candidateId) => {
+        setLoadingDownload(prev => ({ ...prev, [candidateId]: true }));
+        try {
+            if (candidateId) {
+                const res = await consumeResumeDownloadAPI(candidateId);
+                if (res && res.success && !res.already_unlocked) {
+                    const leftCount = res.remaining !== undefined ? res.remaining : 0;
+                    CommonToaster(`Resume downloaded! (${leftCount} downloads remaining)`, 'success');
+                }
+            }
+            downloadResumeFile(resume, name);
+        } catch (error) {
+            console.error("Error consuming resume download:", error);
+            const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
+            if (limitReached) {
+                CommonToaster(error.response?.data?.details || "Resume download limit reached.", "error");
+            } else {
+                CommonToaster("Failed to process resume download.", "error");
+            }
+        } finally {
+            setLoadingDownload(prev => ({ ...prev, [candidateId]: false }));
+        }
+    };
     const [expandedJobId, setExpandedJobId] = useState(null);
     const [demoModalOpen, setDemoModalOpen] = useState(false);
     const [recruiterName, setRecruiterName] = useState('Recruiter');
@@ -2458,7 +2484,7 @@ export default function HrDashboard() {
                                                         Excel downloads
                                                     </span>
                                                     <span className="font-bold text-slate-900">
-                                                        {credits.excel_downloads || 0}
+                                                        {credits.excel_downloads || 0} <span className="text-slate-400 font-normal">/ {credits.excel_download_limit || 50}</span>
                                                     </span>
                                                 </div>
                                             </div>
@@ -2598,7 +2624,7 @@ export default function HrDashboard() {
                                                         Email
                                                     </span>
                                                     <span className="font-bold text-slate-900">
-                                                        {credits.email_count || 0}
+                                                        {credits.email_count || 0} <span className="text-slate-400 font-normal">/ {credits.email_limit || 50}</span>
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
@@ -2607,7 +2633,7 @@ export default function HrDashboard() {
                                                         WhatsApp
                                                     </span>
                                                     <span className="font-bold text-slate-900">
-                                                        {credits.whatsapp_count || 0}
+                                                        {credits.whatsapp_count || 0} <span className="text-slate-400 font-normal">/ {credits.whatsapp_limit || 50}</span>
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
@@ -2924,12 +2950,13 @@ export default function HrDashboard() {
                                                             {cand.has_resume ? (
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => downloadResumeFile(cand.resume, cand.name)}
-                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0A66C2] border border-blue-200/80 text-xs font-semibold transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-95"
+                                                                    onClick={() => handleDownloadResume(cand.resume, cand.name, cand.candidate_id || cand.id)}
+                                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#0A66C2] border border-blue-200/80 text-xs font-semibold transition-all shadow-2xs hover:shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                                                     title="Download Resume PDF"
+                                                                    disabled={loadingDownload[cand.candidate_id || cand.id]}
                                                                 >
-                                                                    <Download size={13} strokeWidth={2.4} />
-                                                                    <span>Resume PDF</span>
+                                                                    {loadingDownload[cand.candidate_id || cand.id] ? <Loader2 size={13} strokeWidth={2.4} className="animate-spin" /> : <Download size={13} strokeWidth={2.4} />}
+                                                                    <span>{loadingDownload[cand.candidate_id || cand.id] ? 'Loading...' : 'Resume PDF'}</span>
                                                                 </button>
                                                             ) : (
                                                                 <span className="text-[11px] font-medium text-slate-400 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/60">

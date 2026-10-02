@@ -1841,9 +1841,27 @@ export const consumeResumeDownloadAPI = async (candidateId) => {
   }
 };
 
+export const consumeExcelDownloadAPI = async (payload) => {
+  try {
+    const response = await api.post("/api/recruiter/subscription/consume-excel-download", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const sendCandidateEmailAPI = async (payload) => {
   try {
     const response = await api.post("/api/recruiter/candidates/send-email", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const recordCandidateWhatsAppAPI = async (payload = { count: 1 }) => {
+  try {
+    const response = await api.post("/api/recruiter/candidates/record-whatsapp", payload);
     return response.data;
   } catch (error) {
     throw error;

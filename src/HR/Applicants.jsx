@@ -2,29 +2,27 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Search, X, MapPin, Briefcase, ChevronDown, ChevronRight,
-  GraduationCap, Phone, Mail, MessageSquare, FileText, Bookmark,
-  Filter, Download, Users as UsersIcon, Send, CheckCircle2,
-  ArrowLeft, Plus, Calendar, UserCheck, MoreVertical, ExternalLink,
-  Share2, Check, Sparkles, HelpCircle, Eye, RefreshCw,
-  Folder, FolderPlus, AlertTriangle
+  Search, X, ChevronDown, Mail, FileText, Bookmark,
+  Filter, Download, Users as UsersIcon, Send,
+  ArrowLeft, Plus,
+  Share2, Check, HelpCircle, RefreshCw,
+  Folder, FolderPlus, AlertTriangle, Loader2
 } from 'lucide-react';
 import {
   FiFolder,
   FiPlus,
-  FiSearch,
   FiMail,
   FiDownload,
   FiX,
   FiCheck,
   FiBriefcase,
-  FiStar,
   FiFileText,
   FiChevronDown,
   FiPhone,
   FiMessageSquare,
   FiMapPin,
-  FiAward
+  FiAward,
+  FiLoader
 } from 'react-icons/fi';
 import { FaWhatsapp, FaLinkedin } from 'react-icons/fa';
 import {
@@ -34,7 +32,11 @@ import {
   removeSavedCandidateHR,
   getSavedCandidatesHR,
   getCandidateFoldersAPI,
-  addCandidatesToFolderAPI
+  addCandidatesToFolderAPI,
+  consumeResumeViewAPI,
+  consumeResumeDownloadAPI,
+  getMySubscription,
+  recordCandidateWhatsAppAPI
 } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
 import { getImageUrl } from '../utils/getImageUrl';
@@ -190,6 +192,9 @@ export default function Applicants({ jobId }) {
   // Interactive UI states
   const [selectedIds, setSelectedIds] = useState([]);
   const [unmaskedPhones, setUnmaskedPhones] = useState({});
+  const [unlockedCandidateIds, setUnlockedCandidateIds] = useState(new Set());
+  const [loadingViewNumber, setLoadingViewNumber] = useState({});
+  const [loadingDownload, setLoadingDownload] = useState({});
   const [expandedAboutMap, setExpandedAboutMap] = useState({});
   const [expandedSkillsMap, setExpandedSkillsMap] = useState({});
   const [expandedQuestionsMap, setExpandedQuestionsMap] = useState({});
@@ -420,11 +425,24 @@ export default function Applicants({ jobId }) {
     }
   }, []);
 
+  // Load Subscription Data
+  const loadSubscription = useCallback(async () => {
+    try {
+      const res = await getMySubscription();
+      if (res?.success && res.data && Array.isArray(res.data.viewed_candidate_ids)) {
+        setUnlockedCandidateIds(new Set(res.data.viewed_candidate_ids.map(Number)));
+      }
+    } catch (e) {
+      console.error("Failed to load subscription for views", e);
+    }
+  }, []);
+
   useEffect(() => {
     fetchApplicantsData();
     loadSavedCandidates();
     fetchRecruiterFolders();
-  }, [fetchApplicantsData, loadSavedCandidates, fetchRecruiterFolders]);
+    loadSubscription();
+  }, [fetchApplicantsData, loadSavedCandidates, fetchRecruiterFolders, loadSubscription]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Dynamic Available Options Extracted from Real Applicants
@@ -968,8 +986,53 @@ export default function Applicants({ jobId }) {
   };
 
   // Unmask Phone
-  const toggleUnmaskPhone = (id) => {
+  const toggleUnmaskPhone = async (id) => {
+    if (!unmaskedPhones[id] && !unlockedCandidateIds.has(Number(id))) {
+      setLoadingViewNumber(prev => ({ ...prev, [id]: true }));
+      try {
+        const res = await consumeResumeViewAPI(id);
+        if (res && res.success && !res.already_unlocked) {
+           const leftCount = res.remaining !== undefined ? res.remaining : 0;
+           CommonToaster(`Contact number revealed! (${leftCount} views remaining)`, 'success');
+           setUnlockedCandidateIds(prev => new Set(prev).add(Number(id)));
+        }
+      } catch (error) {
+        console.error("Error consuming resume view:", error);
+        const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
+        if (limitReached) {
+          CommonToaster(error.response?.data?.details || "Resume view limit reached.", "error");
+          setLoadingViewNumber(prev => ({ ...prev, [id]: false }));
+          return;
+        }
+      }
+      setLoadingViewNumber(prev => ({ ...prev, [id]: false }));
+    }
     setUnmaskedPhones(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Download Resume Handler
+  const handleDownloadResume = async (resume, name, candidateId) => {
+    setLoadingDownload(prev => ({ ...prev, [candidateId]: true }));
+    try {
+      if (candidateId) {
+        const res = await consumeResumeDownloadAPI(candidateId);
+        if (res && res.success && !res.already_unlocked) {
+          const leftCount = res.remaining !== undefined ? res.remaining : 0;
+          CommonToaster(`Resume downloaded! (${leftCount} downloads remaining)`, 'success');
+        }
+      }
+      downloadResumeFile(resume, name);
+    } catch (error) {
+      console.error("Error consuming resume download:", error);
+      const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
+      if (limitReached) {
+        CommonToaster(error.response?.data?.details || "Resume download limit reached.", "error");
+      } else {
+        CommonToaster("Failed to process resume download.", "error");
+      }
+    } finally {
+      setLoadingDownload(prev => ({ ...prev, [candidateId]: false }));
+    }
   };
 
   // Accordion Toggle
@@ -1781,7 +1844,7 @@ export default function Applicants({ jobId }) {
               paginatedApplicants.map((app, cardIdx) => {
                 const isSelected = selectedIds.includes(app.id);
                 const isSaved = savedCandidateIds.includes(app.id);
-                const isPhoneRevealed = unmaskedPhones[app.id];
+                const isPhoneRevealed = unmaskedPhones[app.id] || unlockedCandidateIds.has(Number(app.id));
                 const isAboutExpanded = expandedAboutMap[app.id];
                 const areSkillsExpanded = expandedSkillsMap[app.id];
                 const areQuestionsExpanded = expandedQuestionsMap[app.id];
@@ -2244,19 +2307,23 @@ export default function Applicants({ jobId }) {
                     {/* ── BOTTOM ACTION BAR: View Number, Comment, Move to, Favourite, Quick Comms ── */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs">
                       <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                        {/* View Number Button */}
-                        <button
-                          type="button"
-                          onClick={() => toggleUnmaskPhone(app.id)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0A66C2] hover:bg-blue-100 transition-colors cursor-pointer"
-                        >
-                          <FiPhone className="h-3.5 w-3.5" />
-                          <span>
-                            {isPhoneRevealed
-                              ? (app.phone || app.rawPhone || 'Not Available')
-                              : 'View Number'}
-                          </span>
-                        </button>
+                        {/* View Number Button or Badge */}
+                        {isPhoneRevealed ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[12px] text-slate-700 font-semibold shadow-2xs select-none">
+                            <FiPhone className="h-3.5 w-3.5 text-[#0A66C2]" />
+                            <span>{app.phone || app.rawPhone || 'Not Available'} (Viewed)</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleUnmaskPhone(app.id)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0A66C2] hover:bg-blue-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loadingViewNumber[app.id]}
+                          >
+                            {loadingViewNumber[app.id] ? <FiLoader className="h-3.5 w-3.5 animate-spin" /> : <FiPhone className="h-3.5 w-3.5" />}
+                            <span>{loadingViewNumber[app.id] ? 'Loading...' : 'View Number'}</span>
+                          </button>
+                        )}
 
                         {/* Comment Button */}
                         <button
@@ -2365,6 +2432,7 @@ export default function Applicants({ jobId }) {
                             href={`https://wa.me/${app.rawPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello ${app.name}, this is regarding your application for ${app.role} on Careerfast.`)}`}
                             target="_blank"
                             rel="noreferrer"
+                            onClick={() => recordCandidateWhatsAppAPI({ count: 1 }).catch(() => {})}
                             className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                             title="Chat on WhatsApp"
                           >
@@ -2500,11 +2568,12 @@ export default function Applicants({ jobId }) {
                 {resumeModalApplicant.resume && (
                   <button
                     type="button"
-                    onClick={() => downloadResumeFile(resumeModalApplicant.resume, resumeModalApplicant.name)}
-                    className="flex items-center gap-1.5 text-[13px] font-semibold !text-white hover:!text-white bg-[#0A66C2] hover:bg-[#004182] px-3.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer"
+                    onClick={() => handleDownloadResume(resumeModalApplicant.resume, resumeModalApplicant.name, resumeModalApplicant.id)}
+                    className="flex items-center gap-1.5 text-[13px] font-semibold !text-white hover:!text-white bg-[#0A66C2] hover:bg-[#004182] px-3.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loadingDownload[resumeModalApplicant.id]}
                   >
-                    <Download size={14} />
-                    <span className="!text-white">Download PDF</span>
+                    {loadingDownload[resumeModalApplicant.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    <span className="!text-white">{loadingDownload[resumeModalApplicant.id] ? 'Loading...' : 'Download PDF'}</span>
                   </button>
                 )}
                 <button

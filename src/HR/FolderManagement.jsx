@@ -34,7 +34,8 @@ import {
   FiTag,
   FiMapPin,
   FiAward,
-  FiSliders
+  FiSliders,
+  FiLoader
 } from 'react-icons/fi';
 import { FaWhatsapp, FaLinkedin } from 'react-icons/fa';
 import {
@@ -46,7 +47,11 @@ import {
   updateFolderCandidateStageAPI,
   removeCandidateFromFolderAPI,
   addCandidatesToFolderAPI,
-  getJobPostByUserId
+  getJobPostByUserId,
+  consumeResumeViewAPI,
+  consumeResumeDownloadAPI,
+  getMySubscription,
+  recordCandidateWhatsAppAPI
 } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
 import Link from 'next/link';
@@ -133,6 +138,9 @@ export default function FolderManagement() {
   const [activeMoveDropdownId, setActiveMoveDropdownId] = useState(null);
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const [unmaskedPhones, setUnmaskedPhones] = useState({});
+  const [unlockedCandidateIds, setUnlockedCandidateIds] = useState(new Set());
+  const [loadingViewNumber, setLoadingViewNumber] = useState({});
+  const [loadingDownload, setLoadingDownload] = useState({});
   const [expandedSkillsMap, setExpandedSkillsMap] = useState({});
   const [expandedAboutMap, setExpandedAboutMap] = useState({});
 
@@ -225,6 +233,21 @@ export default function FolderManagement() {
   useEffect(() => {
     fetchFolders();
   }, [activeTab]);
+
+  // Fetch Subscription Data for Unlocked Candidates
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      try {
+        const res = await getMySubscription();
+        if (res?.success && res.data && Array.isArray(res.data.viewed_candidate_ids)) {
+          setUnlockedCandidateIds(new Set(res.data.viewed_candidate_ids.map(Number)));
+        }
+      } catch (e) {
+        console.error("Failed to load subscription for views", e);
+      }
+    };
+    fetchSubscription();
+  }, []);
 
   // Search debounce
   useEffect(() => {
@@ -577,8 +600,49 @@ export default function FolderManagement() {
   };
 
   // Toggle Unmask Phone
-  const toggleUnmaskPhone = (candidateId) => {
+  const toggleUnmaskPhone = async (candidateId) => {
+    if (!unmaskedPhones[candidateId] && !unlockedCandidateIds.has(Number(candidateId))) {
+      setLoadingViewNumber(prev => ({ ...prev, [candidateId]: true }));
+      try {
+        const res = await consumeResumeViewAPI(candidateId);
+        if (res && res.success && !res.already_unlocked) {
+           const leftCount = res.remaining !== undefined ? res.remaining : 0;
+           CommonToaster(`Contact number revealed! (${leftCount} views remaining)`, 'success');
+           setUnlockedCandidateIds(prev => new Set(prev).add(Number(candidateId)));
+        }
+      } catch (error) {
+        console.error("Error consuming resume view:", error);
+        const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
+        if (limitReached) {
+           CommonToaster(error.response?.data?.details || "Resume view limit reached.", "error");
+           setLoadingViewNumber(prev => ({ ...prev, [candidateId]: false }));
+           return;
+        }
+      }
+      setLoadingViewNumber(prev => ({ ...prev, [candidateId]: false }));
+    }
     setUnmaskedPhones((prev) => ({ ...prev, [candidateId]: !prev[candidateId] }));
+  };
+
+  // Download Resume Handler
+  const handleDownloadResume = async (resume, name, candidateId) => {
+    setLoadingDownload(prev => ({ ...prev, [candidateId]: true }));
+    try {
+      if (candidateId) {
+        await consumeResumeDownloadAPI(candidateId);
+      }
+      downloadResumeFile(resume, name);
+    } catch (error) {
+      console.error("Error consuming resume download:", error);
+      const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
+      if (limitReached) {
+         CommonToaster(error.response?.data?.details || "Resume download limit reached.", "error");
+      } else {
+         CommonToaster("Failed to process resume download.", "error");
+      }
+    } finally {
+      setLoadingDownload(prev => ({ ...prev, [candidateId]: false }));
+    }
   };
 
   // Share Folder Link
@@ -1843,11 +1907,12 @@ export default function FolderManagement() {
                             {c.resume && (
                               <button
                                 type="button"
-                                onClick={() => downloadResumeFile(c.resume, c.name)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:text-[#0A66C2] hover:border-[#0A66C2] transition-colors shadow-2xs cursor-pointer"
+                                onClick={() => handleDownloadResume(c.resume, c.name, c.id)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:text-[#0A66C2] hover:border-[#0A66C2] transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loadingDownload[c.id]}
                               >
-                                <FiDownload className="h-3.5 w-3.5" />
-                                <span>Resume</span>
+                                {loadingDownload[c.id] ? <FiLoader className="h-3.5 w-3.5 animate-spin" /> : <FiDownload className="h-3.5 w-3.5" />}
+                                <span>{loadingDownload[c.id] ? 'Loading...' : 'Resume'}</span>
                               </button>
                             )}
                           </div>
@@ -1978,14 +2043,22 @@ export default function FolderManagement() {
                         {/* ── BOTTOM ACTION BAR: View Number, Comment, Move to, Favourite, Quick Comms ── */}
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs">
                           <div className="flex items-center gap-3">
-                            {/* View Number Button */}
-                            <button
-                              onClick={() => toggleUnmaskPhone(c.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0A66C2] hover:bg-blue-100 transition-colors cursor-pointer"
-                            >
-                              <FiPhone className="h-3.5 w-3.5" />
-                              <span>{unmaskedPhones[c.id] ? formatCandidatePhone(c) : 'View Number'}</span>
-                            </button>
+                            {/* View Number Button or Badge */}
+                            {(unmaskedPhones[c.id] || unlockedCandidateIds.has(Number(c.id))) ? (
+                              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[12px] text-slate-700 font-semibold shadow-2xs select-none">
+                                <FiPhone className="h-3.5 w-3.5 text-[#0A66C2]" />
+                                <span>{formatCandidatePhone(c)} (Viewed)</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => toggleUnmaskPhone(c.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold text-[#0A66C2] hover:bg-blue-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={loadingViewNumber[c.id]}
+                              >
+                                {loadingViewNumber[c.id] ? <FiLoader className="h-3.5 w-3.5 animate-spin" /> : <FiPhone className="h-3.5 w-3.5" />}
+                                <span>{loadingViewNumber[c.id] ? 'Loading...' : 'View Number'}</span>
+                              </button>
+                            )}
 
                             {/* Comment Button */}
                             <button
@@ -2083,6 +2156,7 @@ export default function FolderManagement() {
                                 href={`https://wa.me/${getCandidatePhone(c).replace(/[^0-9]/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
+                                onClick={() => recordCandidateWhatsAppAPI({ count: 1 }).catch(() => {})}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                                 title="WhatsApp Candidate"
                               >

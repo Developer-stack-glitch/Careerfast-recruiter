@@ -94,6 +94,18 @@ const Subscription = () => {
     const resumeDownloadsUsed = usage?.resume_downloads_used ?? 0;
     const resumeDownloadsRemaining = usage?.resume_downloads_remaining ?? Math.max(0, resumeDownloadLimit - resumeDownloadsUsed);
 
+    const emailLimit = limits?.email_limit ?? usage?.email_limit ?? 50;
+    const emailsUsed = usage?.email_count ?? usage?.emails_sent ?? 0;
+    const emailsRemaining = Math.max(0, emailLimit - emailsUsed);
+
+    const whatsappLimit = limits?.whatsapp_limit ?? usage?.whatsapp_limit ?? 50;
+    const whatsappUsed = usage?.whatsapp_count ?? usage?.whatsapp_messages_sent ?? 0;
+    const whatsappRemaining = Math.max(0, whatsappLimit - whatsappUsed);
+
+    const excelDownloadLimit = limits?.excel_download_limit ?? limits?.excel_downloads_limit ?? usage?.excel_download_limit ?? 50;
+    const excelDownloadsUsed = usage?.excel_downloads_used ?? 0;
+    const excelDownloadsRemaining = usage?.excel_downloads_remaining ?? Math.max(0, excelDownloadLimit - excelDownloadsUsed);
+
     const formattedPlanTitle = planName.toLowerCase().endsWith('plan') ? planName : `${planName} Plan`;
 
     return (
@@ -210,7 +222,7 @@ const Subscription = () => {
                         </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
                         {/* Monthly Job Posts */}
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
                             <div className="flex items-center justify-between text-xs">
@@ -294,6 +306,69 @@ const Subscription = () => {
                             </div>
                             <span className="text-[11px] text-gray-400 block">
                                 {resumeDownloadsRemaining} downloads left
+                            </span>
+                        </div>
+
+                        {/* Email Sent / Quota */}
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-gray-700">Email Outreach</span>
+                                <span className="font-bold text-gray-900">
+                                    {emailsUsed} / {emailLimit}
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all ${emailLimit > 0 && emailsUsed >= emailLimit ? 'bg-rose-500' : 'bg-blue-500'}`}
+                                    style={{
+                                        width: `${emailLimit > 0 ? Math.min((emailsUsed / emailLimit) * 100, 100) : 0}%`
+                                    }}
+                                />
+                            </div>
+                            <span className="text-[11px] text-gray-400 block">
+                                {emailsRemaining} emails remaining
+                            </span>
+                        </div>
+
+                        {/* WhatsApp Sent / Quota */}
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-gray-700">WhatsApp Messages</span>
+                                <span className="font-bold text-gray-900">
+                                    {whatsappUsed} / {whatsappLimit}
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all ${whatsappLimit > 0 && whatsappUsed >= whatsappLimit ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                                    style={{
+                                        width: `${whatsappLimit > 0 ? Math.min((whatsappUsed / whatsappLimit) * 100, 100) : 0}%`
+                                    }}
+                                />
+                            </div>
+                            <span className="text-[11px] text-gray-400 block">
+                                {whatsappRemaining} messages remaining
+                            </span>
+                        </div>
+
+                        {/* Excel Downloads / Quota */}
+                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-gray-700">Excel Downloads</span>
+                                <span className="font-bold text-gray-900">
+                                    {excelDownloadsUsed} / {excelDownloadLimit}
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all ${excelDownloadLimit > 0 && excelDownloadsUsed >= excelDownloadLimit ? 'bg-rose-500' : 'bg-teal-600'}`}
+                                    style={{
+                                        width: `${excelDownloadLimit > 0 ? Math.min((excelDownloadsUsed / excelDownloadLimit) * 100, 100) : 0}%`
+                                    }}
+                                />
+                            </div>
+                            <span className="text-[11px] text-gray-400 block">
+                                {excelDownloadsRemaining} downloads remaining
                             </span>
                         </div>
                     </div>
@@ -415,6 +490,18 @@ const Subscription = () => {
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
                                                 <span>{p.resume_download_limit || 25} Resume Downloads</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                                                <span>{p.email_limit || 50} Emails Outreach Quota</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                <span>{p.whatsapp_limit || 50} WhatsApp Messages Quota</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                                                <span>{p.excel_download_limit || 50} Excel Candidate Downloads Quota</span>
                                             </div>
                                             {p.candidate_search ? (
                                                 <div className="flex items-center gap-2 text-emerald-700 font-medium">

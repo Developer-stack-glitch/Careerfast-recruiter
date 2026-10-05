@@ -284,12 +284,13 @@ const Subscription = () => {
                 {loadingPlans ? (
                     <CommonLoader fullScreen={false} text="Loading Subscription Plans..." />
                 ) : billingPlans.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                         {billingPlans.map((p) => {
                             const isCurrent = hasActiveSub && (
                                 (planId && (p.id === planId || p.plan_id === planId)) ||
                                 (planName && (p.name?.toLowerCase() === planName.toLowerCase() || `${p.name?.toLowerCase()} plan` === planName.toLowerCase()))
                             );
+                            const isFree = p.slug === 'free' || p.price == 0 || p.name?.toLowerCase().includes('free');
                             const isPro = p.name?.toLowerCase().includes("pro") || p.name?.toLowerCase().includes("premium");
 
                             return (
@@ -297,60 +298,76 @@ const Subscription = () => {
                                     whileHover={{ y: -4, transition: { duration: 0.2 } }}
                                     key={p.id}
                                     className={`relative bg-white rounded-3xl ${isCurrent
-                                        ? 'border-2 border-emerald-500'
-                                        : isPro
-                                            ? 'border-2 border-blue-500'
-                                            : 'border border-gray-200'
-                                        } p-8 flex flex-col justify-between`}
+                                        ? 'border-2 border-emerald-500 shadow-md ring-1 ring-emerald-400/20'
+                                        : isFree
+                                            ? 'border-2 border-cyan-400'
+                                            : isPro
+                                                ? 'border-2 border-blue-500 shadow-sm'
+                                                : 'border border-gray-200'
+                                        } p-6 flex flex-col justify-between`}
                                 >
                                     {isCurrent ? (
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[10px] font-bold tracking-widest px-6 py-1.5 rounded-full uppercase">
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-600 text-white text-[10px] font-bold tracking-widest px-4 py-1.5 rounded-full uppercase shadow-sm">
                                             Current Active Plan
                                         </div>
+                                    ) : isFree ? (
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-cyan-600 text-white text-[10px] font-bold tracking-widest px-4 py-1.5 rounded-full uppercase shadow-sm">
+                                            Starter Free
+                                        </div>
                                     ) : isPro ? (
-                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] font-bold tracking-widest px-6 py-1.5 rounded-full uppercase">
+                                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] font-bold tracking-widest px-4 py-1.5 rounded-full uppercase shadow-sm">
                                             Most Popular
                                         </div>
                                     ) : null}
 
                                     <div>
                                         <div className="mb-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
-                                                <Star className="w-6 h-6" />
+                                            <div className={`w-11 h-11 rounded-2xl ${isFree ? 'bg-cyan-50 text-cyan-600' : 'bg-blue-50 text-blue-600'} flex items-center justify-center mb-3`}>
+                                                {isFree ? <Zap className="w-5 h-5" /> : <Star className="w-5 h-5" />}
                                             </div>
-                                            <h4 className="text-[20px] font-bold text-gray-900 mb-1">{p.name}</h4>
-                                            <p className="text-gray-500 text-[13px] leading-relaxed mb-0">
+                                            <h4 className="text-[18px] font-bold text-gray-900 mb-1">{p.name}</h4>
+                                            <p className="text-gray-500 text-[12px] leading-relaxed mb-0 min-h-[36px]">
                                                 {p.description || "Job posting package with portal management."}
                                             </p>
                                         </div>
 
-                                        <div className="mb-6 flex items-baseline gap-1">
-                                            <span className="text-[32px] font-bold text-gray-900 tracking-tight">
-                                                ₹{Number(p.price || p.monthly_price || 0).toLocaleString()}
+                                        <div className="mb-5 flex items-baseline gap-1">
+                                            <span className="text-[28px] font-bold text-gray-900 tracking-tight">
+                                                {Number(p.price || 0) === 0 ? "Free" : `₹${Number(p.price || p.monthly_price || 0).toLocaleString()}`}
                                             </span>
-                                            <span className="text-gray-500 text-[13px] font-medium">/{p.plan_type || 'month'}</span>
+                                            <span className="text-gray-500 text-[12px] font-medium">
+                                                {Number(p.price || 0) === 0 ? ` (${p.validity_days || 60} days)` : `/${p.plan_type || 'month'}`}
+                                            </span>
                                         </div>
 
                                         <div className="mb-6 space-y-2 text-xs text-gray-600 border-t border-gray-100 pt-4">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span className="font-semibold text-gray-800">{p.job_post_limit || 10} Job Postings / month</span>
+                                                <span className="font-semibold text-gray-800">
+                                                    {isFree ? "20 Job Postings / month" : `${p.job_post_limit || 10} Job Postings / month`}
+                                                </span>
+                                            </div>
+                                            {isFree && (
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                    <span className="font-semibold text-emerald-700">40 Total Job Postings</span>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                                                <span className="font-semibold text-gray-800">{p.active_job_limit || 20} Active Job Slots</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span className="font-semibold text-gray-800">{p.active_job_limit || 5} Active Job Slots</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span>{p.sub_recruiter_limit || 1} Team Seat{(p.sub_recruiter_limit || 1) > 1 ? 's' : ''} Included</span>
+                                                <span>{p.sub_recruiter_limit || 1} Team Seat{(p.sub_recruiter_limit || 1) > 1 ? 's' : ''}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                <span>Applications & Applicant Tracking</span>
+                                                <span>Applications & Tracking</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                <span>Recruiter Dashboard & Interview Management</span>
+                                                <span>Recruiter Dashboard</span>
                                             </div>
                                         </div>
                                     </div>
@@ -359,20 +376,27 @@ const Subscription = () => {
                                         {isCurrent ? (
                                             <button
                                                 disabled
-                                                className="w-full py-3 rounded-xl font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs flex items-center justify-center gap-2 cursor-default"
+                                                className="w-full py-2.5 rounded-xl font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs flex items-center justify-center gap-2 cursor-default"
                                             >
                                                 <Check className="w-4 h-4" />
                                                 Current Plan Active
                                             </button>
+                                        ) : isFree ? (
+                                            <button
+                                                disabled
+                                                className="w-full py-2.5 rounded-xl font-medium bg-gray-100 text-gray-600 text-xs flex items-center justify-center gap-2 cursor-default"
+                                            >
+                                                Default Signup Plan
+                                            </button>
                                         ) : (
                                             <button
-                                                onClick={() => toast.success("Upgrade request sent to Super Admin. Our account team will contact you shortly.")}
-                                                className={`w-full py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 text-sm ${isPro
-                                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                                                onClick={() => toast.success(`Upgrade request sent for ${p.name}. Super Admin will contact you shortly.`)}
+                                                className={`w-full py-2.5 rounded-xl font-medium transition-colors flex items-center justify-center gap-1.5 text-xs ${isPro
+                                                    ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
                                                     : 'bg-white border border-gray-300 hover:bg-gray-50 text-gray-800'
                                                     }`}
                                             >
-                                                Request Upgrade to {p.name} <ArrowRight className="w-3.5 h-3.5" />
+                                                Upgrade to {p.name} <ArrowRight className="w-3 h-3" />
                                             </button>
                                         )}
                                     </div>

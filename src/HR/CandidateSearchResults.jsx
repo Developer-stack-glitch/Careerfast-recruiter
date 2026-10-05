@@ -355,26 +355,36 @@ const CandidateSearchResults = () => {
 
   // Subscription Quota State
   const [subscription, setSubscription] = useState(null);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
   const [unlockedCandidateIds, setUnlockedCandidateIds] = useState(new Set());
   const [downloadedCandidateIds, setDownloadedCandidateIds] = useState(new Set());
   const [quotaLimitModal, setQuotaLimitModal] = useState(null);
 
+  const isCustomPlan = Boolean(
+    subscription?.is_custom ||
+    subscription?.plan?.plan_type === 'Custom' ||
+    subscription?.plan?.slug?.startsWith('custom') ||
+    subscription?.plan_slug?.startsWith('custom') ||
+    subscription?.plan_name?.toLowerCase().includes('custom')
+  );
+
   const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
-  const resumeViewLimit = subscription?.limits?.resume_view_limit ?? subscription?.limits?.resume_views_limit ?? 50;
+  const resumeViewLimit = subscription?.limits?.resume_view_limit ?? subscription?.limits?.resume_views_limit ?? 0;
   const resumeViewsUsed = subscription?.usage?.resume_views_used ?? 0;
   const resumeViewsRemaining = subscription?.usage?.resume_views_remaining ?? Math.max(0, resumeViewLimit - resumeViewsUsed);
 
-  const resumeDownloadLimit = subscription?.limits?.resume_download_limit ?? subscription?.limits?.resume_downloads_limit ?? 10;
+  const resumeDownloadLimit = subscription?.limits?.resume_download_limit ?? subscription?.limits?.resume_downloads_limit ?? 0;
   const resumeDownloadsUsed = subscription?.usage?.resume_downloads_used ?? 0;
   const resumeDownloadsRemaining = subscription?.usage?.resume_downloads_remaining ?? Math.max(0, resumeDownloadLimit - resumeDownloadsUsed);
 
-  const excelDownloadLimit = subscription?.limits?.excel_download_limit ?? subscription?.limits?.excel_downloads_limit ?? 50;
+  const excelDownloadLimit = subscription?.limits?.excel_download_limit ?? subscription?.limits?.excel_downloads_limit ?? 0;
   const excelDownloadsUsed = subscription?.usage?.excel_downloads_used ?? 0;
   const excelDownloadsRemaining = subscription?.usage?.excel_downloads_remaining ?? Math.max(0, excelDownloadLimit - excelDownloadsUsed);
 
   // Candidate Contact privilege from subscription plan / features
   const canContactCandidates = useMemo(() => {
-    if (!subscription) return true;
+    if (!subscription) return false;
+    if (!isCustomPlan) return false;
     if (subscription?.permissions?.candidate_contact !== undefined) {
       return Boolean(subscription.permissions.candidate_contact);
     }
@@ -385,18 +395,19 @@ const CandidateSearchResults = () => {
       return Boolean(subscription.candidate_contact);
     }
     return true;
-  }, [subscription]);
+  }, [subscription, isCustomPlan]);
 
   const triggerLockedContactModal = (channelName = 'messages') => {
     setQuotaLimitModal({
       type: 'contact',
-      title: 'Direct Messaging Restricted',
-      message: `Sending direct ${channelName} to candidates is not included in your ${planTitle} Plan. Upgrade your subscription plan to send direct Emails and WhatsApp messages.`
+      title: 'Custom Plan Required for Candidate Messaging',
+      message: `Direct ${channelName} messaging to candidates is exclusive to Custom Plans. Your current ${planTitle} Plan is configured for Job Posting only. Please upgrade to a Custom Plan to contact candidates.`
     });
   };
 
   const fetchSubscriptionData = async () => {
     try {
+      setCheckingSubscription(true);
       const res = await getMySubscription();
       if (res && res.success && res.data) {
         setSubscription(res.data);
@@ -409,6 +420,8 @@ const CandidateSearchResults = () => {
       }
     } catch (err) {
       console.warn("Could not fetch recruiter subscription:", err?.message);
+    } finally {
+      setCheckingSubscription(false);
     }
   };
 
@@ -430,12 +443,22 @@ const CandidateSearchResults = () => {
       return;
     }
 
-    // Check if views limit reached
+    // Check if recruiter is on standard Job Posting subscription plan
+    if (!isCustomPlan) {
+      setQuotaLimitModal({
+        type: 'custom_plan',
+        title: 'Custom Plan Required',
+        message: `You are currently on the ${planTitle} Plan, which is configured for Job Posting only. Candidate profile and resume views require a Custom Plan. Please contact Super Admin or upgrade to a Custom Plan to unlock candidate search access.`
+      });
+      return;
+    }
+
+    // Check if views limit reached on custom plan
     if (subscription && resumeViewsRemaining <= 0) {
       setQuotaLimitModal({
         type: 'view',
         title: 'Resume View Limit Reached',
-        message: `You have used all ${resumeViewLimit} candidate resume views included in your ${planTitle} Plan. Please upgrade your subscription plan to unlock and view more candidates.`
+        message: `You have used all ${resumeViewLimit} candidate resume views included in your Custom Plan. Please contact Super Admin to increase your custom quota.`
       });
       return;
     }
@@ -496,12 +519,23 @@ const CandidateSearchResults = () => {
       return;
     }
 
+    // Check if recruiter is on standard Job Posting subscription plan
+    if (!isCustomPlan) {
+      setQuotaLimitModal({
+        type: 'custom_plan',
+        title: 'Custom Plan Required',
+        message: `Downloading candidate resumes is not included in your ${planTitle} Plan. A Custom Plan is required to unlock Resume Downloads.`
+      });
+      setLoadingDownload(prev => ({ ...prev, [candId]: false }));
+      return;
+    }
+
     // Check if downloads limit reached
     if (subscription && resumeDownloadsRemaining <= 0) {
       setQuotaLimitModal({
         type: 'download',
         title: 'Resume Download Limit Reached',
-        message: `You have used all ${resumeDownloadLimit} resume downloads included in your ${planTitle} Plan. Please upgrade your subscription plan to download more resumes.`
+        message: `You have used all ${resumeDownloadLimit} resume downloads included in your Custom Plan. Please contact Super Admin to increase your download limit.`
       });
       setLoadingDownload(prev => ({ ...prev, [candId]: false }));
       return;
@@ -538,7 +572,7 @@ const CandidateSearchResults = () => {
         setQuotaLimitModal({
           type: 'download',
           title: err.response.data.message || 'Resume Download Limit Reached',
-          message: err.response.data.details || `You have reached your limit of ${resumeDownloadLimit} resume downloads on the ${planTitle} Plan. Please upgrade to continue downloading resumes.`
+          message: err.response.data.details || `You have reached your limit of ${resumeDownloadLimit} resume downloads on your Custom Plan. Please contact Super Admin to increase your limit.`
         });
       } else {
         CommonToaster(err.response?.data?.message || 'Could not verify resume download quota', 'error');
@@ -555,12 +589,22 @@ const CandidateSearchResults = () => {
       return;
     }
 
-    // Check remaining quota
+    // Check if recruiter is on standard Job Posting subscription plan
+    if (!isCustomPlan) {
+      setQuotaLimitModal({
+        type: 'custom_plan',
+        title: 'Custom Plan Required',
+        message: `Exporting candidates to Excel is not included in your ${planTitle} Plan. A Custom Plan is required to unlock candidate data exports.`
+      });
+      return;
+    }
+
+    // Check remaining quota on custom plan
     if (subscription && selectedCount > excelDownloadsRemaining) {
       setQuotaLimitModal({
         type: 'download',
         title: 'Excel Download Quota Exceeded',
-        message: `You selected ${selectedCount} candidates, but have only ${excelDownloadsRemaining} Excel downloads remaining in your ${planTitle} Plan (Quota: ${excelDownloadLimit}). Please upgrade your plan to export more candidates.`
+        message: `You selected ${selectedCount} candidates, but have only ${excelDownloadsRemaining} Excel downloads remaining in your Custom Plan (Quota: ${excelDownloadLimit}). Please contact Super Admin to increase your quota.`
       });
       return;
     }
@@ -575,7 +619,7 @@ const CandidateSearchResults = () => {
       if (res && res.success) {
         // Find target candidates
         const targetCandidates = candidates.filter(c => selectedCandidateIds.includes(c.id));
-        
+
         // Build CSV formatted data for Excel with UTF-8 BOM
         const headers = [
           'Candidate ID',
@@ -1061,7 +1105,7 @@ const CandidateSearchResults = () => {
       setUnmaskedPhones(prev => ({ ...prev, [candId]: true }));
       return;
     }
-    
+
     setLoadingViewNumber(prev => ({ ...prev, [candId]: true }));
 
     // Check if view limit reached
@@ -1860,7 +1904,7 @@ const CandidateSearchResults = () => {
       }
     } else if (contactModal?.type === 'WhatsApp') {
       try {
-        recordCandidateWhatsAppAPI({ count: contactModal.candidates.length }).catch(() => {});
+        recordCandidateWhatsAppAPI({ count: contactModal.candidates.length }).catch(() => { });
       } catch (err) {
         console.warn("WhatsApp count record error:", err);
       }
@@ -1881,6 +1925,215 @@ const CandidateSearchResults = () => {
       setContactMessage('');
     }
   };
+
+  if (checkingSubscription) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans pb-24 text-slate-800 antialiased">
+        {/* Top Banner (Search Summary Bar Skeleton) */}
+        <div className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 py-3.5 px-6 sticky top-[67px] z-20 shadow-2xs">
+          <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="w-20 h-8 bg-slate-100 border border-slate-200 rounded-xl animate-pulse" />
+              <div className="w-24 h-4 bg-slate-200 rounded animate-pulse" />
+              <div className="w-28 h-6 bg-blue-100/70 rounded-full animate-pulse" />
+            </div>
+            <div className="w-28 h-8 bg-slate-100 border border-slate-200 rounded-xl animate-pulse" />
+          </div>
+        </div>
+
+        {/* Content Layout Skeleton */}
+        <div className="max-w-[1440px] mx-auto px-6 pt-6">
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Left Filter Sidebar Skeleton */}
+            <div className="w-full lg:w-72 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-6 shrink-0">
+              <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                <div className="w-20 h-4 bg-slate-200 rounded animate-pulse" />
+                <div className="w-14 h-3 bg-slate-100 rounded animate-pulse" />
+              </div>
+              {[1, 2, 3, 4].map((idx) => (
+                <div key={idx} className="space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <div className="w-24 h-3.5 bg-slate-200 rounded animate-pulse" />
+                    <div className="w-4 h-4 bg-slate-100 rounded animate-pulse" />
+                  </div>
+                  <div className="w-full h-8 bg-slate-50 border border-slate-100 rounded-lg animate-pulse" />
+                </div>
+              ))}
+            </div>
+
+            {/* Right Candidates Feed Skeleton */}
+            <div className="flex-1 w-full space-y-4">
+              {/* Header Title & Sorting Bar Skeleton */}
+              <div className="flex justify-between items-center pb-2">
+                <div className="space-y-1">
+                  <div className="w-36 h-6 bg-slate-200 rounded-lg animate-pulse" />
+                  <div className="w-64 h-3 bg-slate-100 rounded-md animate-pulse" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-28 h-8 bg-slate-100 border border-slate-200 rounded-xl animate-pulse" />
+                  <div className="w-16 h-8 bg-slate-100 border border-slate-200 rounded-xl animate-pulse" />
+                </div>
+              </div>
+
+              {/* Quota Bar Skeleton */}
+              <div className="w-full h-11 bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-6 bg-slate-200 rounded-lg" />
+                  <div className="w-48 h-3.5 bg-slate-100 rounded" />
+                </div>
+                <div className="w-28 h-6 bg-slate-100 rounded-lg" />
+              </div>
+
+              {/* Toolbar Skeleton */}
+              <div className="w-full h-12 bg-white border border-slate-200 rounded-2xl p-3 flex items-center justify-between animate-pulse">
+                <div className="w-28 h-4 bg-slate-100 rounded" />
+                <div className="flex gap-2">
+                  <div className="w-20 h-7 bg-slate-100 rounded-lg" />
+                  <div className="w-20 h-7 bg-slate-100 rounded-lg" />
+                </div>
+              </div>
+
+              {/* Candidate Cards Skeleton */}
+              {[1, 2, 3].map((card) => (
+                <div key={card} className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-xs space-y-4 animate-pulse">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-full bg-slate-200 shrink-0" />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-40 h-4 bg-slate-300 rounded" />
+                          <div className="w-16 h-4 bg-emerald-100 rounded-full" />
+                        </div>
+                        <div className="w-56 h-3 bg-slate-200 rounded" />
+                        <div className="flex gap-3 pt-1">
+                          <div className="w-24 h-3 bg-slate-100 rounded" />
+                          <div className="w-24 h-3 bg-slate-100 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-24 h-9 bg-blue-600/60 rounded-xl" />
+                  </div>
+                  <div className="flex gap-2 pt-1 border-t border-slate-100">
+                    <div className="w-20 h-6 bg-slate-100 rounded-lg" />
+                    <div className="w-24 h-6 bg-slate-100 rounded-lg" />
+                    <div className="w-20 h-6 bg-slate-100 rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isCustomPlan) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans pb-28 text-slate-800 antialiased">
+        {/* Top Header */}
+        <div className="bg-white border-b border-slate-200/80 py-3.5 px-6 sticky top-[67px] z-20 shadow-2xs">
+          <div className="max-w-[1440px] mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/my-jobs')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-[#0A66C2] border border-slate-200 hover:border-blue-200 rounded-xl font-semibold text-[12.5px] transition-all cursor-pointer shadow-2xs"
+              >
+                <ArrowLeft size={14} className="text-slate-600" />
+                <span>Back to Dashboard</span>
+              </button>
+              <div className="flex items-center gap-2">
+                <h1 className="text-[17px] mb-0 font-bold text-slate-900">Candidate Search Results</h1>
+                <span className="bg-amber-50 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200">
+                  Custom Plan Exclusive
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-6 pt-10">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
+            {/* Lock Icon */}
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 mb-6 shadow-xs">
+              <Lock className="w-10 h-10" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              Candidate Search Results Restricted
+            </h2>
+            <p className="text-sm text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+              Your recruiter account is currently on the <strong className="text-slate-900 font-bold">{planTitle} Plan</strong>, which is configured exclusively for <strong className="text-[#0A66C2]">Job Posting</strong>. Candidate profile searches, resume viewing, and downloads require a <strong className="text-purple-700">Custom Plan</strong> assigned by the Super Admin.
+            </p>
+
+            {/* Feature comparison */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-8">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
+                  <span>Your Active {planTitle} Plan</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Job Postings & Active Job Slots</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Applicant Management & Tracking</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Company Profile & Branding</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-purple-700 mb-3">
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Custom Plan Unlocks</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span>Full Candidate Database Search</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span>Candidate Profile & Resume Views</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span>Resume Downloads & Excel Exports</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/billing')}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Upgrade to Custom Plan</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/my-jobs')}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-sm transition-all cursor-pointer"
+              >
+                <span>Go to Job Postings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans pb-24 text-slate-800 antialiased">
@@ -2196,57 +2449,82 @@ const CandidateSearchResults = () => {
           </div>
 
           {/* Recruiter Real-Time Hiring Quota Bar */}
-          <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-white border border-blue-100/90 rounded-2xl px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold text-[11px] shadow-2xs">
-                <Crown size={13} />
-                <span>{planTitle} Plan</span>
+          {!isCustomPlan ? (
+            <div className="bg-gradient-to-r from-slate-50 via-blue-50/40 to-white border border-slate-200/90 rounded-2xl px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0A66C2] text-white font-bold text-[11px] shadow-2xs">
+                  <Crown size={13} />
+                  <span>{planTitle} Plan</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <span className="font-semibold text-slate-800">Job Posting Plan Active</span>
+                  <span className="text-slate-300">•</span>
+                  <span className="text-slate-500">Resume Views, Downloads & Excel Exports require a Custom Plan</span>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 font-medium">Resume Views:</span>
-                <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
-                  {resumeViewsUsed} / {resumeViewLimit}
-                </span>
-                <span className={`font-semibold ${resumeViewsRemaining > 5 ? 'text-emerald-600' : resumeViewsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
-                  ({resumeViewsRemaining} left)
-                </span>
-              </div>
-
-              <div className="hidden sm:block text-slate-300">|</div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 font-medium">Resume Downloads:</span>
-                <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
-                  {resumeDownloadsUsed} / {resumeDownloadLimit}
-                </span>
-                <span className={`font-semibold ${resumeDownloadsRemaining > 2 ? 'text-emerald-600' : resumeDownloadsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
-                  ({resumeDownloadsRemaining} left)
-                </span>
-              </div>
-
-              <div className="hidden sm:block text-slate-300">|</div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 font-medium">Excel Downloads:</span>
-                <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
-                  {excelDownloadsUsed} / {excelDownloadLimit}
-                </span>
-                <span className={`font-semibold ${excelDownloadsRemaining > 5 ? 'text-emerald-600' : excelDownloadsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
-                  ({excelDownloadsRemaining} left)
-                </span>
-              </div>
+              <button
+                type="button"
+                onClick={() => router.push('/billing')}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-white hover:bg-blue-50 text-[#0A66C2] border border-blue-200 font-semibold text-[11.5px] transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+              >
+                <span>Upgrade to Custom Plan</span>
+                <ArrowRight size={12} />
+              </button>
             </div>
+          ) : (
+            <div className="bg-gradient-to-r from-purple-50/90 via-indigo-50/60 to-white border border-purple-100/90 rounded-2xl px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-600 text-white font-bold text-[11px] shadow-2xs">
+                  <Crown size={13} />
+                  <span>{planTitle}</span>
+                </div>
 
-            <button
-              type="button"
-              onClick={() => router.push('/billing')}
-              className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-white hover:bg-blue-50 text-[#0A66C2] border border-blue-200 font-semibold text-[11.5px] transition-all shadow-2xs hover:shadow-xs cursor-pointer"
-            >
-              <span>Upgrade Plan</span>
-              <ArrowRight size={12} />
-            </button>
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-medium">Resume Views:</span>
+                  <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
+                    {resumeViewsUsed} / {resumeViewLimit >= 99999 ? '∞' : resumeViewLimit}
+                  </span>
+                  <span className={`font-semibold ${resumeViewsRemaining > 5 ? 'text-emerald-600' : resumeViewsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                    ({resumeViewLimit >= 99999 ? 'Unlimited' : `${resumeViewsRemaining} left`})
+                  </span>
+                </div>
+
+                <div className="hidden sm:block text-slate-300">|</div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-medium">Resume Downloads:</span>
+                  <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
+                    {resumeDownloadsUsed} / {resumeDownloadLimit >= 99999 ? '∞' : resumeDownloadLimit}
+                  </span>
+                  <span className={`font-semibold ${resumeDownloadsRemaining > 2 ? 'text-emerald-600' : resumeDownloadsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                    ({resumeDownloadLimit >= 99999 ? 'Unlimited' : `${resumeDownloadsRemaining} left`})
+                  </span>
+                </div>
+
+                <div className="hidden sm:block text-slate-300">|</div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 font-medium">Excel Downloads:</span>
+                  <span className="font-bold text-slate-800 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md">
+                    {excelDownloadsUsed} / {excelDownloadLimit >= 99999 ? '∞' : excelDownloadLimit}
+                  </span>
+                  <span className={`font-semibold ${excelDownloadsRemaining > 5 ? 'text-emerald-600' : excelDownloadsRemaining > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
+                    ({excelDownloadLimit >= 99999 ? 'Unlimited' : `${excelDownloadsRemaining} left`})
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => router.push('/billing')}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-white hover:bg-purple-50 text-purple-700 border border-purple-200 font-semibold text-[11.5px] transition-all shadow-2xs hover:shadow-xs cursor-pointer"
+              >
+                <span>Manage Custom Plan</span>
+                <ArrowRight size={12} />
+              </button>
+            </div>
+          )}
 
           {/* 3. Unified Selection & Action Toolbar */}
           <div className="bg-white rounded-2xl px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3">
@@ -3629,7 +3907,7 @@ const CandidateSearchResults = () => {
                         className="px-4 py-2 bg-[#0A66C2] hover:bg-[#004182] text-white text-[12.5px] font-medium rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={loadingDownload[resumeModalCandidate.id]}
                       >
-                        {loadingDownload[resumeModalCandidate.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />} 
+                        {loadingDownload[resumeModalCandidate.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                         {loadingDownload[resumeModalCandidate.id] ? 'Loading...' : 'Download PDF'}
                       </button>
                     </div>

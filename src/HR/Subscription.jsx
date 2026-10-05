@@ -75,7 +75,6 @@ const Subscription = () => {
     const planId = mySubscription?.plan?.id || mySubscription?.plan_id;
     const limits = mySubscription?.limits || {};
     const usage = mySubscription?.usage || {};
-    const permissions = mySubscription?.permissions || mySubscription?.features || {};
 
     const jobPostLimit = limits?.job_post_limit ?? limits?.job_posts_limit ?? usage?.job_posts_limit ?? 0;
     const jobPostsUsed = usage?.job_posts_used ?? 0;
@@ -85,26 +84,6 @@ const Subscription = () => {
     const activeJobsCount = usage?.active_jobs_count ?? 0;
     const pendingJobsCount = usage?.pending_jobs_count ?? 0;
     const activeJobsRemaining = usage?.active_jobs_remaining ?? Math.max(0, activeJobLimit - activeJobsCount);
-
-    const resumeViewLimit = limits?.resume_view_limit ?? limits?.resume_views_limit ?? usage?.resume_views_limit ?? 0;
-    const resumeViewsUsed = usage?.resume_views_used ?? 0;
-    const resumeViewsRemaining = usage?.resume_views_remaining ?? Math.max(0, resumeViewLimit - resumeViewsUsed);
-
-    const resumeDownloadLimit = limits?.resume_download_limit ?? limits?.resume_downloads_limit ?? usage?.resume_downloads_limit ?? 0;
-    const resumeDownloadsUsed = usage?.resume_downloads_used ?? 0;
-    const resumeDownloadsRemaining = usage?.resume_downloads_remaining ?? Math.max(0, resumeDownloadLimit - resumeDownloadsUsed);
-
-    const emailLimit = limits?.email_limit ?? usage?.email_limit ?? 50;
-    const emailsUsed = usage?.email_count ?? usage?.emails_sent ?? 0;
-    const emailsRemaining = Math.max(0, emailLimit - emailsUsed);
-
-    const whatsappLimit = limits?.whatsapp_limit ?? usage?.whatsapp_limit ?? 50;
-    const whatsappUsed = usage?.whatsapp_count ?? usage?.whatsapp_messages_sent ?? 0;
-    const whatsappRemaining = Math.max(0, whatsappLimit - whatsappUsed);
-
-    const excelDownloadLimit = limits?.excel_download_limit ?? limits?.excel_downloads_limit ?? usage?.excel_download_limit ?? 50;
-    const excelDownloadsUsed = usage?.excel_downloads_used ?? 0;
-    const excelDownloadsRemaining = usage?.excel_downloads_remaining ?? Math.max(0, excelDownloadLimit - excelDownloadsUsed);
 
     const formattedPlanTitle = planName.toLowerCase().endsWith('plan') ? planName : `${planName} Plan`;
 
@@ -122,8 +101,8 @@ const Subscription = () => {
                         <Crown className="w-6 h-6" strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h1 className="text-[24px] font-bold text-gray-900 tracking-tight leading-tight mb-0.5">Recruiter Subscription & Plan</h1>
-                        <p className="text-gray-500 text-[14px] mb-0">Manage your subscription, real-time hiring quotas, and plan features.</p>
+                        <h1 className="text-[24px] font-bold text-gray-900 tracking-tight leading-tight mb-0.5">Job Posting Plans & Quota</h1>
+                        <p className="text-gray-500 text-[14px] mb-0">Manage your subscription, real-time job posting quota, and plan status.</p>
                     </div>
                 </div>
 
@@ -214,10 +193,10 @@ const Subscription = () => {
                 <motion.div variants={itemVariants} className="mb-10 bg-white p-6 rounded-2xl border border-gray-100 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-base font-bold text-gray-900 mb-0">Your Real-time Hiring Quota</h3>
-                            <p className="text-xs text-gray-500 mb-0">Limits update in real-time as you post jobs and view candidates</p>
+                            <h3 className="text-base font-bold text-gray-900 mb-0">Your Real-time Job Posting Quota</h3>
+                            <p className="text-xs text-gray-500 mb-0">Limits update in real-time as you create and manage your job listings</p>
                         </div>
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border-1 border-blue-100">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
                             Enforced by {formattedPlanTitle}
                         </span>
                     </div>
@@ -241,7 +220,7 @@ const Subscription = () => {
                                 />
                             </div>
                             <span className="text-[11px] text-gray-400 block">
-                                {jobPostsRemaining} posts remaining
+                                {jobPostsRemaining} posts remaining this cycle
                             </span>
                         </div>
 
@@ -263,149 +242,27 @@ const Subscription = () => {
                                 />
                             </div>
                             <span className="text-[11px] text-gray-400 block">
-                                {activeJobsRemaining} slots available{pendingJobsCount > 0 ? ` (${pendingJobsCount} pending review)` : ''}
+                                {activeJobsRemaining} live slots available{pendingJobsCount > 0 ? ` (${pendingJobsCount} pending review)` : ''}
                             </span>
                         </div>
 
-                        {/* Resume Views */}
+                        {/* Team Seats */}
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-gray-700">Resume Views</span>
+                                <span className="font-semibold text-gray-700">Team / Recruiter Seats</span>
                                 <span className="font-bold text-gray-900">
-                                    {resumeViewsUsed} / {resumeViewLimit}
+                                    {limits?.sub_recruiter_limit || 1} Seat{(limits?.sub_recruiter_limit || 1) > 1 ? 's' : ''}
                                 </span>
                             </div>
                             <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-violet-600 rounded-full transition-all"
-                                    style={{
-                                        width: `${resumeViewLimit > 0 ? Math.min((resumeViewsUsed / resumeViewLimit) * 100, 100) : 0}%`
-                                    }}
+                                    className="h-full rounded-full bg-violet-600"
+                                    style={{ width: '100%' }}
                                 />
                             </div>
                             <span className="text-[11px] text-gray-400 block">
-                                {resumeViewsRemaining} views left
+                                Sub-recruiter user access enabled
                             </span>
-                        </div>
-
-                        {/* Resume Downloads */}
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-gray-700">Resume Downloads</span>
-                                <span className="font-bold text-gray-900">
-                                    {resumeDownloadsUsed} / {resumeDownloadLimit}
-                                </span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-amber-500 rounded-full transition-all"
-                                    style={{
-                                        width: `${resumeDownloadLimit > 0 ? Math.min((resumeDownloadsUsed / resumeDownloadLimit) * 100, 100) : 0}%`
-                                    }}
-                                />
-                            </div>
-                            <span className="text-[11px] text-gray-400 block">
-                                {resumeDownloadsRemaining} downloads left
-                            </span>
-                        </div>
-
-                        {/* Email Sent / Quota */}
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-gray-700">Email Outreach</span>
-                                <span className="font-bold text-gray-900">
-                                    {emailsUsed} / {emailLimit}
-                                </span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all ${emailLimit > 0 && emailsUsed >= emailLimit ? 'bg-rose-500' : 'bg-blue-500'}`}
-                                    style={{
-                                        width: `${emailLimit > 0 ? Math.min((emailsUsed / emailLimit) * 100, 100) : 0}%`
-                                    }}
-                                />
-                            </div>
-                            <span className="text-[11px] text-gray-400 block">
-                                {emailsRemaining} emails remaining
-                            </span>
-                        </div>
-
-                        {/* WhatsApp Sent / Quota */}
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-gray-700">WhatsApp Messages</span>
-                                <span className="font-bold text-gray-900">
-                                    {whatsappUsed} / {whatsappLimit}
-                                </span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all ${whatsappLimit > 0 && whatsappUsed >= whatsappLimit ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                                    style={{
-                                        width: `${whatsappLimit > 0 ? Math.min((whatsappUsed / whatsappLimit) * 100, 100) : 0}%`
-                                    }}
-                                />
-                            </div>
-                            <span className="text-[11px] text-gray-400 block">
-                                {whatsappRemaining} messages remaining
-                            </span>
-                        </div>
-
-                        {/* Excel Downloads / Quota */}
-                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-gray-700">Excel Downloads</span>
-                                <span className="font-bold text-gray-900">
-                                    {excelDownloadsUsed} / {excelDownloadLimit}
-                                </span>
-                            </div>
-                            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all ${excelDownloadLimit > 0 && excelDownloadsUsed >= excelDownloadLimit ? 'bg-rose-500' : 'bg-teal-600'}`}
-                                    style={{
-                                        width: `${excelDownloadLimit > 0 ? Math.min((excelDownloadsUsed / excelDownloadLimit) * 100, 100) : 0}%`
-                                    }}
-                                />
-                            </div>
-                            <span className="text-[11px] text-gray-400 block">
-                                {excelDownloadsRemaining} downloads remaining
-                            </span>
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-
-            {/* Feature Privileges Breakdown */}
-            {hasActiveSub && (
-                <motion.div variants={itemVariants} className="mb-10 bg-white p-6 rounded-2xl border border-gray-100 space-y-4">
-                    <h3 className="text-base font-bold text-gray-900">Plan Feature Access & Privileges</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                        <div className={`p-3 rounded-xl border-1 flex items-center gap-3 ${permissions.candidate_search ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-gray-50 border-gray-200 text-gray-400'
-                            }`}>
-                            {permissions.candidate_search ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-gray-400" />}
-                            <span className="font-semibold text-sm">Candidate Search Database</span>
-                        </div>
-                        <div className={`p-3 rounded-xl border-1 flex items-center gap-3 ${permissions.candidate_contact ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-gray-50 border-gray-200 text-gray-400'
-                            }`}>
-                            {permissions.candidate_contact ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-gray-400" />}
-                            <span className="font-semibold text-sm">Direct Candidate Contact</span>
-                        </div>
-                        <div className={`p-3 rounded-xl border flex items-center gap-3 ${permissions.company_branding ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-gray-50 border-gray-200 text-gray-400'
-                            }`}>
-                            {permissions.company_branding ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-gray-400" />}
-                            <span className="font-semibold text-sm">Custom Employer Branding</span>
-                        </div>
-                        <div className="p-3 rounded-xl border-1 bg-emerald-50/60 border-emerald-200 text-emerald-900 flex items-center gap-3">
-                            <Check className="w-4 h-4 text-emerald-600" />
-                            <span className="font-semibold text-sm">Recruiter Portal Dashboard</span>
-                        </div>
-                        <div className="p-3 rounded-xl border-1 bg-emerald-50/60 border-emerald-200 text-emerald-900 flex items-center gap-3">
-                            <Check className="w-4 h-4 text-emerald-600" />
-                            <span className="font-semibold text-sm">Application Management Suite</span>
-                        </div>
-                        <div className="p-3 rounded-xl border-1 bg-emerald-50/60 border-emerald-200 text-emerald-900 flex items-center gap-3">
-                            <Check className="w-4 h-4 text-emerald-600" />
-                            <span className="font-semibold text-sm">Interview Management</span>
                         </div>
                     </div>
                 </motion.div>
@@ -416,7 +273,7 @@ const Subscription = () => {
                 <div className="flex justify-between items-end mb-8">
                     <div>
                         <h3 className="text-[22px] font-bold text-gray-900 mb-1">CareerFast Subscription Plans</h3>
-                        <p className="text-xs text-gray-500">Choose the plan that fits your organization's hiring volume</p>
+                        <p className="text-xs text-gray-500">Choose the job posting plan that fits your organization's hiring volume</p>
                     </div>
                     <div className="flex items-center gap-2 text-[13px] text-gray-500 font-medium">
                         <ShieldCheck className="w-4 h-4 text-green-500" />
@@ -463,7 +320,7 @@ const Subscription = () => {
                                             </div>
                                             <h4 className="text-[20px] font-bold text-gray-900 mb-1">{p.name}</h4>
                                             <p className="text-gray-500 text-[13px] leading-relaxed mb-0">
-                                                {p.description || "Comprehensive talent recruitment tools."}
+                                                {p.description || "Job posting package with portal management."}
                                             </p>
                                         </div>
 
@@ -477,38 +334,24 @@ const Subscription = () => {
                                         <div className="mb-6 space-y-2 text-xs text-gray-600 border-t border-gray-100 pt-4">
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span className="font-semibold">{p.job_post_limit || 10} Job Postings / month</span>
+                                                <span className="font-semibold text-gray-800">{p.job_post_limit || 10} Job Postings / month</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span className="font-semibold">{p.active_job_limit || 5} Active Job Slots</span>
+                                                <span className="font-semibold text-gray-800">{p.active_job_limit || 5} Active Job Slots</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span>{p.resume_view_limit || 100} Candidate Resume Views</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span>{p.resume_download_limit || 25} Resume Downloads</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
-                                                <span>{p.email_limit || 50} Emails Outreach Quota</span>
+                                                <span>{p.sub_recruiter_limit || 1} Team Seat{(p.sub_recruiter_limit || 1) > 1 ? 's' : ''} Included</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                <span>{p.whatsapp_limit || 50} WhatsApp Messages Quota</span>
+                                                <span>Applications & Applicant Tracking</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
-                                                <span>{p.excel_download_limit || 50} Excel Candidate Downloads Quota</span>
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                <span>Recruiter Dashboard & Interview Management</span>
                                             </div>
-                                            {p.candidate_search ? (
-                                                <div className="flex items-center gap-2 text-emerald-700 font-medium">
-                                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                    <span>Candidate Search Database</span>
-                                                </div>
-                                            ) : null}
                                         </div>
                                     </div>
 

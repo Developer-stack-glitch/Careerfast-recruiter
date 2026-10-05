@@ -22,9 +22,46 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
   const [newPassword, setNewPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
 
-  // Load remembered email
+  // Load remembered email or auto-login with token
   useEffect(() => {
     try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const incomingToken = urlParams.get('token') || urlParams.get('impersonate_token');
+        const incomingData = urlParams.get('data') || urlParams.get('impersonate_data');
+
+        if (incomingToken) {
+          setIsLoading(true);
+          localStorage.setItem('AccessToken', incomingToken);
+          document.cookie = `AccessToken=${incomingToken}; path=/; max-age=86400`;
+
+          let parsedDetails = null;
+          if (incomingData) {
+            try {
+              parsedDetails = JSON.parse(decodeURIComponent(incomingData));
+            } catch (e) {
+              try {
+                parsedDetails = JSON.parse(incomingData);
+              } catch (e2) {}
+            }
+          }
+
+          if (parsedDetails) {
+            localStorage.setItem('loginDetails', JSON.stringify(parsedDetails));
+            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(parsedDetails))}; path=/; max-age=86400`;
+          }
+
+          const greetingName = parsedDetails?.first_name ? `, ${parsedDetails.first_name}` : '';
+          showToast(`Logged in successfully${greetingName}! Redirecting to Recruiter Portal...`, 'success');
+
+          const target = urlParams.get('target') || '/overview';
+          setTimeout(() => {
+            window.location.href = target;
+          }, 600);
+          return;
+        }
+      }
+
       const savedEmail = localStorage.getItem('careerfast_hr_email');
       if (savedEmail) {
         setFormData((prev) => ({ ...prev, workEmail: savedEmail, rememberMe: true }));
@@ -125,8 +162,13 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
     } catch (error) {
       console.error('Recruiter login error:', error);
       const backendError = error?.response?.data?.details || error?.response?.data?.message || error?.message || '';
+      const isSuspended =
+        error?.response?.data?.account_suspended === true ||
+        backendError.toLowerCase().includes('suspended');
 
-      if (
+      if (isSuspended) {
+        showToast('Your recruiter account has been suspended. Please contact the administrator.', 'error');
+      } else if (
         backendError.toLowerCase().includes('invalid email and password') ||
         backendError.toLowerCase().includes('invalid email or password') ||
         backendError.toLowerCase().includes('not allowed') ||

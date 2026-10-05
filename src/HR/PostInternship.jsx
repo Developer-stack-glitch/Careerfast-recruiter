@@ -641,6 +641,7 @@ export default function Posting() {
     };
 
     const handlePublishPost = async () => {
+        if (isLoading) return;
         // Validation logic for final step
         const getUserDetails = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("loginDetails") || "{}") : {};
         const now = new Date();

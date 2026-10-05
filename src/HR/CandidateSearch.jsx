@@ -5,7 +5,7 @@ import {
   Search, Bookmark, ChevronDown, PlusCircle, MapPin, Check, Briefcase,
   FileText, Sparkles, X, Info,
   Clock, Mic, MicOff, Trash2, ArrowRight, RotateCcw,
-  SlidersHorizontal, GraduationCap, AlertCircle
+  SlidersHorizontal, GraduationCap, AlertCircle, Crown, Lock, Loader2
 } from 'lucide-react';
 import { KeywordsAutocomplete, CheckboxDropdown, TwoPaneIndustryDropdown, CompanySearchDropdown, DegreeMultiSelect } from './CandidateSearchComponents';
 import { getCandidateFilterOptionsAPI, saveHrSearch, deleteHrSearch, clearHrSearches, getMySubscription } from '../ApiService/action';
@@ -92,22 +92,42 @@ const CandidateSearch = () => {
   const [savedSearches, setSavedSearches] = useState([]);
   const [saveSearchModal, setSaveSearchModal] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
-  const [hasSearchPermission, setHasSearchPermission] = useState(true);
+
+  // Subscription & Permission Access States
+  const [subscription, setSubscription] = useState(null);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+  const [hasSearchPermission, setHasSearchPermission] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     const checkSubscriptionAccess = async () => {
       try {
+        setCheckingSubscription(true);
         const sub = await getMySubscription();
         if (sub && sub.success && sub.data) {
-          if (sub.data.permissions && sub.data.permissions.candidate_search === false) {
-            setHasSearchPermission(false);
-          }
+          if (!isMounted) return;
+          setSubscription(sub.data);
+          const isCustom = Boolean(
+            sub.data.is_custom ||
+            sub.data.plan?.plan_type === 'custom' ||
+            sub.data.plan?.plan_type === 'Custom' ||
+            sub.data.plan?.slug?.startsWith('custom') ||
+            sub.data.plan_slug?.startsWith('custom') ||
+            sub.data.plan_name?.toLowerCase().includes('custom')
+          );
+          const allowed = isCustom && sub.data.permissions?.candidate_search !== false;
+          setHasSearchPermission(allowed);
+        } else {
+          if (isMounted) setHasSearchPermission(false);
         }
       } catch (e) {
-        // Fallback gracefully
+        if (isMounted) setHasSearchPermission(false);
+      } finally {
+        if (isMounted) setCheckingSubscription(false);
       }
     };
     checkSubscriptionAccess();
+    return () => { isMounted = false; };
   }, []);
 
   const getLoggedInRecruiterId = () => {
@@ -613,6 +633,205 @@ const CandidateSearch = () => {
     }));
   };
 
+  if (checkingSubscription) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] pb-28 text-slate-800 antialiased">
+        {/* Top Navigation Header Skeleton */}
+        <div className="bg-white border-b border-slate-200/80 relative z-10 shadow-2xs">
+          <div className="max-w-[1440px] mx-auto px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100/70 animate-pulse" />
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-40 h-5 bg-slate-200 rounded-md animate-pulse" />
+                  <div className="w-24 h-4 bg-blue-100 rounded-full animate-pulse" />
+                </div>
+                <div className="w-72 h-3.5 bg-slate-100 rounded-md animate-pulse" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-28 h-8 bg-slate-100 rounded-xl animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area Skeleton */}
+        <div className="max-w-[1440px] mx-auto px-6 pt-6">
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            {/* Left Main Search Card Skeleton */}
+            <div className="flex-1 w-full space-y-4">
+              <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden p-6 space-y-6">
+                {/* Tabs Skeleton */}
+                <div className="flex gap-3 border-b border-slate-100 pb-4">
+                  <div className="w-32 h-8 bg-blue-50 border border-blue-100 rounded-xl animate-pulse" />
+                  <div className="w-44 h-8 bg-slate-100 rounded-xl animate-pulse" />
+                  <div className="w-36 h-8 bg-slate-100 rounded-xl animate-pulse" />
+                </div>
+
+                {/* Search Inputs Skeleton */}
+                <div className="space-y-4">
+                  <div className="w-36 h-4 bg-slate-200 rounded animate-pulse" />
+                  <div className="w-full h-12 bg-slate-100 rounded-2xl border border-slate-200/80 animate-pulse" />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <div className="w-28 h-4 bg-slate-200 rounded animate-pulse" />
+                    <div className="w-full h-11 bg-slate-100 rounded-xl border border-slate-200/80 animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="w-28 h-4 bg-slate-200 rounded animate-pulse" />
+                    <div className="w-full h-11 bg-slate-100 rounded-xl border border-slate-200/80 animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                  <div className="w-full h-11 bg-slate-100 rounded-xl border border-slate-200/80 animate-pulse" />
+                  <div className="w-full h-11 bg-slate-100 rounded-xl border border-slate-200/80 animate-pulse" />
+                  <div className="w-full h-11 bg-slate-100 rounded-xl border border-slate-200/80 animate-pulse" />
+                </div>
+
+                {/* Bottom Action Bar Skeleton */}
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                  <div className="w-24 h-5 bg-slate-100 rounded animate-pulse" />
+                  <div className="w-40 h-11 bg-blue-600/60 rounded-xl animate-pulse" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar Skeleton */}
+            <div className="w-full lg:w-80 space-y-4 shrink-0">
+              <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 space-y-4">
+                <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+                  <div className="w-28 h-4 bg-slate-200 rounded animate-pulse" />
+                  <div className="w-14 h-3 bg-slate-100 rounded animate-pulse" />
+                </div>
+                <div className="space-y-2.5">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="p-3 bg-slate-50/80 rounded-xl border border-slate-100 flex justify-between items-center">
+                      <div className="space-y-1.5 flex-1">
+                        <div className="w-32 h-3.5 bg-slate-200 rounded animate-pulse" />
+                        <div className="w-20 h-2.5 bg-slate-100 rounded animate-pulse" />
+                      </div>
+                      <div className="w-5 h-5 bg-slate-200 rounded-full animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasSearchPermission) {
+    const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] font-sans pb-28 text-slate-800 antialiased">
+        {/* Top Navigation Header */}
+        <div className="bg-white border-b border-slate-200/80 relative z-10 shadow-2xs">
+          <div className="max-w-[1440px] mx-auto px-6 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#0A66C2] text-white flex items-center justify-center shadow-sm">
+                <Search size={20} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-[20px] mb-0 font-bold text-slate-900">Candidate Search</h1>
+                  <span className="bg-amber-50 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200">
+                    Custom Plan Exclusive
+                  </span>
+                </div>
+                <p className="text-[13px] text-slate-500 mb-0">Talent Discovery & Candidate Database</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto px-6 pt-10">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
+            {/* Lock/Crown Icon */}
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 mb-6 shadow-xs">
+              <Lock className="w-10 h-10" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              Candidate Database Search Restricted
+            </h2>
+            <p className="text-sm text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+              Your recruiter account is currently on the <strong className="text-slate-900 font-bold">{planTitle} Plan</strong>, which is configured exclusively for <strong className="text-[#0A66C2]">Job Posting</strong>. Candidate Search, Resume Database access, and candidate messaging require a <strong className="text-purple-700">Custom Plan</strong> configured by the Super Admin.
+            </p>
+
+            {/* Comparison Matrix */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-8">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
+                  <span>Your Active {planTitle} Plan</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Job Postings & Active Job Slots</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Applicant Management & Tracking</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Company Profile & Branding</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80">
+                <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-purple-700 mb-3">
+                  <Crown className="w-3.5 h-3.5" />
+                  <span>Custom Plan Unlocks</span>
+                </div>
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span>Unlimited Keyword & Filter Search</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span>Resume Views & Resume Downloads</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span>Excel Exports & Direct Messaging</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/billing')}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Upgrade to Custom Plan</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/my-jobs')}
+                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-sm transition-all cursor-pointer"
+              >
+                <span>Go to Job Postings</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-sans pb-28 text-slate-800 antialiased">
 
@@ -656,27 +875,6 @@ const CandidateSearch = () => {
       </div>
 
       <div className="max-w-[1440px] mx-auto px-6 pt-6">
-        {!hasSearchPermission && (
-          <div className="mb-6 p-3 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border-1 border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-amber-900 mb-0.5">Candidate Search Restricted</p>
-                <p className="text-xs text-amber-700 mb-0">
-                  Candidate Database Search is not included in your current subscription plan. Upgrade your plan to search and contact candidates.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push('/billing')}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-xl whitespace-nowrap shadow-sm transition-colors"
-            >
-              Upgrade Plan
-            </button>
-          </div>
-        )}
         <div className="flex flex-col lg:flex-row gap-6 items-start">
 
           {/* Left Column - Main Search Form */}

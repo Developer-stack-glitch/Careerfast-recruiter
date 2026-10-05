@@ -6,14 +6,19 @@ import { FaLinkedinIn, FaTwitter, FaInstagram, FaFacebookF, FaDribbble } from "r
 import { MdPublic } from "react-icons/md";
 import { BiLayer } from "react-icons/bi";
 import { HiOutlineMail } from 'react-icons/hi';
-import { getSavedCandidatesHR, removeSavedCandidateHR, consumeResumeDownloadAPI } from '../ApiService/action';
+import { getSavedCandidatesHR, removeSavedCandidateHR, consumeResumeDownloadAPI, getMySubscription } from '../ApiService/action';
 import CommonLoader from '../Common/CommonLoader';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { Lock, Crown, ArrowRight, Check } from 'lucide-react';
 
 export default function SavedCandidates() {
     const [candidates, setCandidates] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [subscription, setSubscription] = useState(null);
+    const [checkingSubscription, setCheckingSubscription] = useState(true);
+    const [hasAccess, setHasAccess] = useState(false);
+
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedApplicant, setSelectedApplicant] = useState(null);
@@ -27,19 +32,39 @@ export default function SavedCandidates() {
     const router = useRouter();
 
     useEffect(() => {
-        const fetchSaved = async () => {
+        const fetchAccessAndData = async () => {
             try {
-                const response = await getSavedCandidatesHR();
-                if (response?.data?.success) {
-                    setCandidates(response.data.data);
+                setCheckingSubscription(true);
+                const subRes = await getMySubscription();
+                let isCustom = false;
+                if (subRes?.success && subRes.data) {
+                    setSubscription(subRes.data);
+                    isCustom = Boolean(
+                        subRes.data.is_custom ||
+                        subRes.data.plan?.plan_type === 'custom' ||
+                        subRes.data.plan?.plan_type === 'Custom' ||
+                        subRes.data.plan?.slug?.startsWith('custom') ||
+                        subRes.data.plan_slug?.startsWith('custom') ||
+                        subRes.data.plan_name?.toLowerCase().includes('custom')
+                    );
+                }
+                setHasAccess(isCustom);
+
+                if (isCustom) {
+                    const response = await getSavedCandidatesHR();
+                    if (response?.data?.success) {
+                        setCandidates(response.data.data);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching saved candidates", error);
+                setHasAccess(false);
             } finally {
+                setCheckingSubscription(false);
                 setLoading(false);
             }
         };
-        fetchSaved();
+        fetchAccessAndData();
     }, []);
 
     // Handle click outside to close dropdown
@@ -117,6 +142,102 @@ export default function SavedCandidates() {
 
         return matchesSearch && matchesLocation && matchesExperience;
     });
+
+    if (checkingSubscription) {
+        return (
+            <div className="min-h-screen bg-[#F8FAFC] pb-24 pt-6 px-4 sm:px-6 lg:px-8 antialiased">
+                <div className="max-w-7xl mx-auto space-y-6">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs animate-pulse">
+                        <div className="h-6 w-48 bg-slate-200 rounded mb-2" />
+                        <div className="h-4 w-72 bg-slate-100 rounded" />
+                    </div>
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="h-20 bg-slate-100 rounded-xl animate-pulse" />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!hasAccess) {
+        const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+        return (
+            <div className="min-h-screen bg-[#F8FAFC] pb-24 pt-6 px-4 sm:px-6 lg:px-8 antialiased">
+                <div className="max-w-7xl mx-auto space-y-6">
+                    <div className="max-w-3xl mx-auto pt-8">
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 mb-6 shadow-xs">
+                                <Lock className="w-10 h-10" />
+                            </div>
+
+                            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                                Saved Candidate Database Restricted
+                            </h2>
+                            <p className="text-sm text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+                                Your recruiter account is currently on the <strong className="text-slate-900 font-bold">{planTitle} Plan</strong>, which is configured exclusively for <strong className="text-[#0A66C2]">Job Posting</strong>. Candidate discovery, shortlisting, and saving candidate profiles require a <strong className="text-purple-700">Custom Plan</strong> assigned by the Super Admin.
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-8">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
+                                        <span>Your Active {planTitle} Plan</span>
+                                    </div>
+                                    <ul className="space-y-2.5 text-xs text-slate-700">
+                                        <li className="flex items-center gap-2">
+                                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            <span>Primary Recruiter Job Posting</span>
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            <span>Direct Applicant Review</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80">
+                                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-purple-700 mb-3">
+                                        <Crown className="w-3.5 h-3.5" />
+                                        <span>Custom Plan Unlocks</span>
+                                    </div>
+                                    <ul className="space-y-2.5 text-xs text-slate-700">
+                                        <li className="flex items-center gap-2">
+                                            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                                            <span>Talent Database Search</span>
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                                            <span>Save & Organize Candidate Profiles</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/subscription')}
+                                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <Crown className="w-4 h-4" />
+                                    <span>Upgrade to Custom Plan</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/my-jobs')}
+                                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-sm transition-all cursor-pointer"
+                                >
+                                    <span>Go to Job Postings</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div

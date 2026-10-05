@@ -48,7 +48,7 @@ export const fetchCachedGet = async (url, params = null, ttlMs = 15 * 60 * 1000)
   if (typeof window !== "undefined" && window.sessionStorage) {
     try {
       sessionStorage.setItem(`cf_cache_${cacheKey}`, JSON.stringify(cacheEntry));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   return response;
@@ -90,12 +90,29 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.log("Interceptor caught error:", error?.response?.status);
-    // Only 401 Unauthorized indicates invalid or expired session.
-    // 403 Forbidden indicates business/quota/permission limits and should NOT wipe authentication!
+    const isSuspended =
+      error?.response?.data?.account_suspended === true ||
+      error?.response?.data?.message?.toLowerCase().includes("suspended") ||
+      error?.response?.data?.details?.toLowerCase().includes("suspended");
+
+    if (isSuspended) {
+      console.log("Triggering ShowSuspendedModal from interceptor for suspended account");
+      localStorage.removeItem("AccessToken");
+      localStorage.removeItem("loginDetails");
+      document.cookie = "AccessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "loginDetails=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      ShowSuspendedModal();
+      return Promise.reject(error);
+    }
+
+    // 401 Unauthorized indicates invalid or expired session.
     if (error.response && error.response.status === 401) {
       console.log("Triggering ShowModal from interceptor for 401 Unauthorized");
       ShowModal();
       localStorage.removeItem("AccessToken");
+      localStorage.removeItem("loginDetails");
+      document.cookie = "AccessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "loginDetails=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     }
     return Promise.reject(error);
   }
@@ -123,10 +140,48 @@ export const isTokenExpired = (token) => {
   }
 };
 
+// Modal for suspended accounts
+export const ShowSuspendedModal = () => {
+  if (typeof document === 'undefined' || document.getElementById('account-suspended-modal')) {
+    return;
+  }
+
+  const modalHtml = `
+    <div id="account-suspended-modal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 sm:p-7 text-center border border-red-100 animate-in zoom-in-95 duration-200">
+        <div class="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4 shadow-xs">
+          <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-extrabold bg-red-50 text-red-700 border border-red-200 mb-3 tracking-wide uppercase">
+          Account Suspended
+        </span>
+        <h3 class="text-xl font-extrabold text-slate-900 mb-2">Access Revoked</h3>
+        <p class="text-[13.5px] text-slate-600 mb-6 leading-relaxed">
+          Your recruiter account has been suspended by the administrator. You have been automatically logged out. Please contact support or the administrator for assistance.
+        </p>
+        <button id="suspended-login-btn" class="w-full py-3 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-medium rounded-xl shadow-md shadow-red-500/20 transition-all cursor-pointer">
+          Back to Login
+        </button>
+      </div>
+    </div>
+  `;
+
+  const div = document.createElement('div');
+  div.innerHTML = modalHtml;
+  document.body.appendChild(div);
+
+  document.getElementById('suspended-login-btn')?.addEventListener('click', () => {
+    div.remove();
+    window.location.href = '/login';
+  });
+};
+
 // modal
 export const ShowModal = () => {
   console.log("ShowModal called.");
-  
+
   if (document.getElementById('session-expired-modal')) {
     return;
   }
@@ -166,6 +221,16 @@ const handleSessionModal = () => {
     modalInstance = null;
   }
   isModalVisible = false;
+};
+
+// verifySession
+export const verifySession = async () => {
+  try {
+    const response = await api.get("/api/auth/verify-session");
+    return response;
+  } catch (error) {
+    throw error;
+  }
 };
 
 // getRoles

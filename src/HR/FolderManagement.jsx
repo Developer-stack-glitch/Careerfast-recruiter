@@ -38,6 +38,8 @@ import {
   FiLoader
 } from 'react-icons/fi';
 import { FaWhatsapp, FaLinkedin } from 'react-icons/fa';
+import { Crown, Lock, ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
   getCandidateFoldersAPI,
   createCandidateFolderAPI,
@@ -59,6 +61,7 @@ import { getImageUrl } from '../utils/getImageUrl';
 import { downloadResumeFile } from '../utils/downloadResume';
 
 export default function FolderManagement() {
+  const router = useRouter();
   // Tabs: 'personal' | 'with_job' | 'shared_with_you' | 'shared_by_you' | 'default' | 'archived'
   const [activeTab, setActiveTab] = useState('personal');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,6 +70,11 @@ export default function FolderManagement() {
   const [loading, setLoading] = useState(true);
   const [folders, setFolders] = useState([]);
   const [allFolders, setAllFolders] = useState([]);
+
+  // Subscription & Permission Access States
+  const [subscription, setSubscription] = useState(null);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+  const [hasFolderAccess, setHasFolderAccess] = useState(false);
   const [tabCounts, setTabCounts] = useState({
     personal: 0,
     with_job: 0,
@@ -230,23 +238,39 @@ export default function FolderManagement() {
     }
   };
 
+  // Fetch Subscription Data for Access & Unlocked Candidates
   useEffect(() => {
-    fetchFolders();
-  }, [activeTab]);
-
-  // Fetch Subscription Data for Unlocked Candidates
-  useEffect(() => {
+    let isMounted = true;
     const fetchSubscription = async () => {
       try {
+        setCheckingSubscription(true);
         const res = await getMySubscription();
-        if (res?.success && res.data && Array.isArray(res.data.viewed_candidate_ids)) {
-          setUnlockedCandidateIds(new Set(res.data.viewed_candidate_ids.map(Number)));
+        if (res?.success && res.data) {
+          if (!isMounted) return;
+          setSubscription(res.data);
+          const isCustom = Boolean(
+            res.data.is_custom ||
+            res.data.plan?.plan_type === 'custom' ||
+            res.data.plan?.plan_type === 'Custom' ||
+            res.data.plan?.slug?.startsWith('custom') ||
+            res.data.plan_slug?.startsWith('custom') ||
+            res.data.plan_name?.toLowerCase().includes('custom')
+          );
+          setHasFolderAccess(isCustom);
+          if (Array.isArray(res.data.viewed_candidate_ids)) {
+            setUnlockedCandidateIds(new Set(res.data.viewed_candidate_ids.map(Number)));
+          }
+        } else {
+          if (isMounted) setHasFolderAccess(false);
         }
       } catch (e) {
-        console.error("Failed to load subscription for views", e);
+        if (isMounted) setHasFolderAccess(false);
+      } finally {
+        if (isMounted) setCheckingSubscription(false);
       }
     };
     fetchSubscription();
+    return () => { isMounted = false; };
   }, []);
 
   // Search debounce
@@ -606,17 +630,17 @@ export default function FolderManagement() {
       try {
         const res = await consumeResumeViewAPI(candidateId);
         if (res && res.success && !res.already_unlocked) {
-           const leftCount = res.remaining !== undefined ? res.remaining : 0;
-           CommonToaster(`Contact number revealed! (${leftCount} views remaining)`, 'success');
-           setUnlockedCandidateIds(prev => new Set(prev).add(Number(candidateId)));
+          const leftCount = res.remaining !== undefined ? res.remaining : 0;
+          CommonToaster(`Contact number revealed! (${leftCount} views remaining)`, 'success');
+          setUnlockedCandidateIds(prev => new Set(prev).add(Number(candidateId)));
         }
       } catch (error) {
         console.error("Error consuming resume view:", error);
         const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
         if (limitReached) {
-           CommonToaster(error.response?.data?.details || "Resume view limit reached.", "error");
-           setLoadingViewNumber(prev => ({ ...prev, [candidateId]: false }));
-           return;
+          CommonToaster(error.response?.data?.details || "Resume view limit reached.", "error");
+          setLoadingViewNumber(prev => ({ ...prev, [candidateId]: false }));
+          return;
         }
       }
       setLoadingViewNumber(prev => ({ ...prev, [candidateId]: false }));
@@ -636,9 +660,9 @@ export default function FolderManagement() {
       console.error("Error consuming resume download:", error);
       const limitReached = error.response?.data?.limit_reached || error.response?.data?.details?.includes('limit');
       if (limitReached) {
-         CommonToaster(error.response?.data?.details || "Resume download limit reached.", "error");
+        CommonToaster(error.response?.data?.details || "Resume download limit reached.", "error");
       } else {
-         CommonToaster("Failed to process resume download.", "error");
+        CommonToaster("Failed to process resume download.", "error");
       }
     } finally {
       setLoadingDownload(prev => ({ ...prev, [candidateId]: false }));
@@ -986,6 +1010,170 @@ export default function FolderManagement() {
       CommonToaster('Failed to move candidate', 'error');
     }
   };
+
+  if (checkingSubscription) {
+    return (
+      <div className="min-h-screen bg-[#f8faff] pb-20 font-sans text-slate-800 antialiased">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 pt-8">
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-100/70 animate-pulse" />
+              <div>
+                <div className="w-48 h-6 bg-slate-200 rounded-lg animate-pulse mb-1" />
+                <div className="w-80 h-3.5 bg-slate-100 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-32 h-10 bg-slate-100 border border-slate-200 rounded-xl animate-pulse" />
+              <div className="w-28 h-10 bg-blue-600/60 rounded-xl animate-pulse" />
+            </div>
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="flex gap-4 border-b border-slate-200 pb-3 my-6">
+            <div className="w-36 h-8 bg-blue-50 border border-blue-100 rounded-xl animate-pulse" />
+            <div className="w-36 h-8 bg-slate-100 rounded-xl animate-pulse" />
+            <div className="w-36 h-8 bg-slate-100 rounded-xl animate-pulse" />
+          </div>
+
+          {/* Search & Actions Bar Skeleton */}
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex justify-between items-center mb-6">
+            <div className="w-64 h-10 bg-slate-50 border border-slate-100 rounded-xl animate-pulse" />
+            <div className="flex gap-2">
+              <div className="w-28 h-10 bg-slate-100 rounded-xl animate-pulse" />
+              <div className="w-16 h-10 bg-slate-100 rounded-xl animate-pulse" />
+            </div>
+          </div>
+
+          {/* Folder Cards/Table Skeleton */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-4 bg-slate-50/70 rounded-xl border border-slate-100 flex items-center justify-between animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-100/60" />
+                  <div className="space-y-1.5">
+                    <div className="w-40 h-4 bg-slate-200 rounded" />
+                    <div className="w-24 h-3 bg-slate-100 rounded" />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <div className="w-24 h-8 bg-slate-100 rounded-lg" />
+                  <div className="w-8 h-8 bg-slate-100 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasFolderAccess) {
+    const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+    return (
+      <div className="min-h-screen bg-[#f8faff] font-sans pb-20 text-slate-800 antialiased">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 pt-8">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-6 border-b border-slate-200/80">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#0A66C2] flex items-center justify-center shadow-xs">
+                <FiFolder className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-0">Folder Management</h1>
+                  <span className="bg-amber-50 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200">
+                    Custom Plan Exclusive
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mb-0">Organize candidate pipelines and track recruitment outreach</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-3xl mx-auto pt-10">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 mb-6 shadow-xs">
+                <Lock className="w-10 h-10" />
+              </div>
+
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                Candidate Folder Management Restricted
+              </h2>
+              <p className="text-sm text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+                Your recruiter account is currently on the <strong className="text-slate-900 font-bold">{planTitle} Plan</strong>, which is configured exclusively for <strong className="text-[#0A66C2]">Job Posting</strong>. Creating candidate talent folders, managing candidate pipelines, and tracking stage progression require a <strong className="text-purple-700">Custom Plan</strong> assigned by the Super Admin.
+              </p>
+
+              {/* Matrix */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-8">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
+                    <span>Your Active {planTitle} Plan</span>
+                  </div>
+                  <ul className="space-y-2.5 text-xs text-slate-700">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Job Postings & Active Job Slots</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Applicant Management & Tracking</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Company Profile & Branding</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80">
+                  <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-purple-700 mb-3">
+                    <Crown className="w-3.5 h-3.5" />
+                    <span>Custom Plan Unlocks</span>
+                  </div>
+                  <ul className="space-y-2.5 text-xs text-slate-700">
+                    <li className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Unlimited Custom Talent Folders</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Candidate Pipeline & Stage Tracking</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span>Resume Unlocking & Direct Messaging</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push('/billing')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Crown className="w-4 h-4" />
+                  <span>Upgrade to Custom Plan</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push('/my-jobs')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-sm transition-all cursor-pointer"
+                >
+                  <span>Go to Job Postings</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8faff] pb-20 font-sans text-slate-800">
@@ -2156,7 +2344,7 @@ export default function FolderManagement() {
                                 href={`https://wa.me/${getCandidatePhone(c).replace(/[^0-9]/g, '')}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                onClick={() => recordCandidateWhatsAppAPI({ count: 1 }).catch(() => {})}
+                                onClick={() => recordCandidateWhatsAppAPI({ count: 1 }).catch(() => { })}
                                 className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                                 title="WhatsApp Candidate"
                               >

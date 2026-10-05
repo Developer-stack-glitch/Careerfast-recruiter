@@ -9,6 +9,7 @@ import {
     deleteJobPost,
     getMySubscription
 } from '../ApiService/action';
+import { getJobDetailsUrl } from '../utils/slug';
 import {
     Briefcase,
     Users,
@@ -295,9 +296,9 @@ const MyJobs = () => {
     };
 
     // Copy Job URL
-    const handleCopyLink = (jobId) => {
+    const handleCopyLink = (job) => {
         if (typeof window === 'undefined') return;
-        const url = `https://careerfast.in/job-details/${jobId}`;
+        const url = getJobDetailsUrl(job);
         navigator.clipboard.writeText(url);
         toast.success('Job link copied to clipboard!');
         setOpenDropdownId(null);
@@ -990,7 +991,7 @@ const MyJobs = () => {
                                                                             <a
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
-                                                                                href={`https://careerfast.in/job-details/${job.id}?preview=true`}
+                                                                                href={getJobDetailsUrl(job)}
                                                                                 className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-slate-700 hover:text-slate-900 no-underline"
                                                                             >
                                                                                 <Eye size={14} className="text-slate-400" />
@@ -1006,7 +1007,7 @@ const MyJobs = () => {
                                                                                 <span>Copy Link</span>
                                                                             </div>
                                                                         ),
-                                                                        onClick: () => handleCopyLink(job.id),
+                                                                        onClick: () => handleCopyLink(job),
                                                                     },
                                                                     {
                                                                         type: 'divider',

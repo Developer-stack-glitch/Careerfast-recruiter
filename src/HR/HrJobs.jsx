@@ -10,8 +10,8 @@ import {
     BarChart2,
     PieChart as PieChartIcon,
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
 import Link from 'next/link';
+import { getJobDetailsUrl } from '../utils/slug';
 import {
     BarChart,
     Bar,
@@ -510,9 +510,9 @@ const HrJobs = () => {
 
                                         {/* Actions Col */}
                                         <div className="md:col-span-2 flex items-center justify-end gap-3 relative">
-                                            <a target='_blank' rel="noopener noreferrer" href={`https://careerfast.in/job-details/${job.id}?preview=true`}>
+                                            <a target='_blank' rel="noopener noreferrer" href={getJobDetailsUrl(job)}>
                                                 <button className="text-[#FB6202] border border-[#FB6202] hover:bg-[#FB6202] hover:text-white text-[13px] font-medium px-3 py-1.5 rounded-lg transition-colors">
-                                                    View Applications
+                                                    View Job Details
                                                 </button>
                                             </a>
                                         </div>

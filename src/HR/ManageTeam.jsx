@@ -5,14 +5,16 @@ import {
     Trash2, Edit3, CheckCircle2, XCircle, AlertCircle,
     ChevronRight, ArrowUpRight, Search, Filter, RefreshCw,
     Sliders, FileText, Eye, Download, PieChart, Sparkles,
-    Briefcase, Info, Key, Award, AlertTriangle
+    Briefcase, Info, Key, Award, AlertTriangle, Crown, ArrowRight, Loader2
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
     getRecruiterTeam,
     createSubRecruiter,
     updateSubRecruiterPermissions,
     toggleSubRecruiterStatus,
-    deleteSubRecruiter
+    deleteSubRecruiter,
+    getMySubscription
 } from '../ApiService/action';
 import toast from 'react-hot-toast';
 
@@ -77,6 +79,7 @@ const ROLE_PRESETS = [
 ];
 
 export default function ManageTeam() {
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [team, setTeam] = useState([]);
@@ -84,11 +87,14 @@ export default function ManageTeam() {
     const [roleFilter, setRoleFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
 
+    const [subscription, setSubscription] = useState(null);
+    const [hasTeamAccess, setHasTeamAccess] = useState(false);
+
     const [stats, setStats] = useState({
-        sub_recruiter_limit: 1,
+        sub_recruiter_limit: 0,
         total_members: 0,
         active_members: 0,
-        remaining_seats: 1,
+        remaining_seats: 0,
         company_name: 'Company',
         plan_name: 'Current Plan',
         pool: {
@@ -116,8 +122,8 @@ export default function ManageTeam() {
             ...ROLE_PRESETS.find(r => r.id === 'recruiter').permissions,
             quota_mode: 'split',
             allocated_job_posts: 0,
-            allocated_resume_views: 20,
-            allocated_resume_downloads: 10
+            allocated_resume_views: 0,
+            allocated_resume_downloads: 0
         }
     };
     const [formData, setFormData] = useState(initialFormState);
@@ -142,20 +148,38 @@ export default function ManageTeam() {
                 } catch (e) { }
             }
 
-            const res = await getRecruiterTeam();
-            if (res?.data?.success && res.data.data) {
-                setTeam(res.data.data.team || []);
-                if (res.data.data.stats) {
-                    setStats(res.data.data.stats);
+            const [subRes, teamRes] = await Promise.allSettled([
+                getMySubscription(),
+                getRecruiterTeam()
+            ]);
+
+            let isCustom = false;
+            if (subRes.status === 'fulfilled' && subRes.value?.success && subRes.value.data) {
+                setSubscription(subRes.value.data);
+                isCustom = Boolean(
+                    subRes.value.data.is_custom ||
+                    subRes.value.data.plan?.plan_type === 'custom' ||
+                    subRes.value.data.plan?.plan_type === 'Custom' ||
+                    subRes.value.data.plan?.slug?.startsWith('custom') ||
+                    subRes.value.data.plan_slug?.startsWith('custom') ||
+                    subRes.value.data.plan_name?.toLowerCase().includes('custom')
+                );
+            }
+
+            if (isCustom && teamRes.status === 'fulfilled' && teamRes.value?.data?.success && teamRes.value.data.data) {
+                setTeam(teamRes.value.data.data.team || []);
+                if (teamRes.value.data.data.stats) {
+                    setStats(teamRes.value.data.data.stats);
                 }
             }
+
+            setHasTeamAccess(isCustom);
         } catch (err) {
             console.error("Failed to load recruiter team:", err);
             if (err?.response?.status === 403 || err?.response?.data?.is_sub_recruiter) {
                 setIsSubRecruiterDenied(true);
-            } else {
-                toast.error(err?.response?.data?.message || "Failed to load sub-recruiter team members.");
             }
+            setHasTeamAccess(false);
         } finally {
             setLoading(false);
         }
@@ -441,6 +465,176 @@ export default function ManageTeam() {
                     >
                         Return to Workspace
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#F8FAFC] pb-24 pt-6 px-4 sm:px-6 lg:px-8 antialiased">
+                <div className="max-w-7xl mx-auto space-y-6">
+                    {/* Header Skeleton */}
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row justify-between items-center gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-blue-100/70 animate-pulse" />
+                            <div>
+                                <div className="w-56 h-6 bg-slate-200 rounded-lg animate-pulse mb-1" />
+                                <div className="w-80 h-3.5 bg-slate-100 rounded animate-pulse" />
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="w-10 h-10 bg-slate-100 rounded-xl animate-pulse" />
+                            <div className="w-36 h-10 bg-blue-600/60 rounded-xl animate-pulse" />
+                        </div>
+                    </div>
+
+                    {/* Stats Cards Skeleton */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[1, 2, 3, 4].map(i => (
+                            <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3 animate-pulse">
+                                <div className="flex justify-between items-center">
+                                    <div className="w-24 h-4 bg-slate-200 rounded" />
+                                    <div className="w-8 h-8 rounded-xl bg-slate-100" />
+                                </div>
+                                <div className="w-28 h-7 bg-slate-300 rounded-lg" />
+                                <div className="w-full h-3 bg-slate-100 rounded" />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Table Skeleton */}
+                    <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+                        <div className="flex justify-between items-center pb-4 border-b border-slate-100">
+                            <div className="w-64 h-10 bg-slate-50 rounded-xl border border-slate-100 animate-pulse" />
+                            <div className="flex gap-2">
+                                <div className="w-28 h-10 bg-slate-100 rounded-xl animate-pulse" />
+                                <div className="w-28 h-10 bg-slate-100 rounded-xl animate-pulse" />
+                            </div>
+                        </div>
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="p-4 bg-slate-50/60 rounded-xl border border-slate-100 flex items-center justify-between animate-pulse">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-200" />
+                                    <div className="space-y-1.5">
+                                        <div className="w-40 h-4 bg-slate-200 rounded" />
+                                        <div className="w-32 h-3 bg-slate-100 rounded" />
+                                    </div>
+                                </div>
+                                <div className="w-20 h-7 bg-slate-100 rounded-lg" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!hasTeamAccess) {
+        const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+        return (
+            <div className="min-h-screen bg-[#F8FAFC] pb-24 pt-6 px-4 sm:px-6 lg:px-8 antialiased">
+                <div className="max-w-7xl mx-auto space-y-6">
+                    {/* Header */}
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#0A66C2] flex items-center justify-center shadow-xs">
+                                <Users size={22} className="stroke-[2.2]" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mb-0">
+                                        Sub-Recruiter Seat & Team Management
+                                    </h1>
+                                    <span className="bg-amber-50 text-amber-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-200">
+                                        Custom Plan Exclusive
+                                    </span>
+                                </div>
+                                <p className="text-sm text-slate-500 mt-0.5 mb-0">
+                                    Allot team seats, split job postings, resume views, and downloads with granular permission control.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-3xl mx-auto pt-6">
+                        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 sm:p-10 text-center">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-amber-50 border border-amber-200 text-amber-600 mb-6 shadow-xs">
+                                <Lock className="w-10 h-10" />
+                            </div>
+
+                            <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                                Team & Seat Management Restricted
+                            </h2>
+                            <p className="text-sm text-slate-600 max-w-xl mx-auto mb-8 leading-relaxed">
+                                Your recruiter account is currently on the <strong className="text-slate-900 font-bold">{planTitle} Plan</strong>, which is configured exclusively for <strong className="text-[#0A66C2]">Job Posting</strong>. Adding sub-recruiter team seats, delegating hiring workflows, and splitting resume/job quotas require a <strong className="text-purple-700">Custom Plan</strong> assigned by the Super Admin.
+                            </p>
+
+                            {/* Comparison Matrix */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left mb-8">
+                                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-500 mb-3">
+                                        <span>Your Active {planTitle} Plan</span>
+                                    </div>
+                                    <ul className="space-y-2.5 text-xs text-slate-700">
+                                        <li className="flex items-center gap-2">
+                                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            <span>Primary Recruiter Job Posting</span>
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            <span>Applicant Management & Tracking</span>
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                                            <span>Company Profile & Branding</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80">
+                                    <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-purple-700 mb-3">
+                                        <Crown className="w-3.5 h-3.5" />
+                                        <span>Custom Plan Unlocks</span>
+                                    </div>
+                                    <ul className="space-y-2.5 text-xs text-slate-700">
+                                        <li className="flex items-center gap-2">
+                                            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                                            <span>Sub-Recruiter Seat Allocation</span>
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                                            <span>Job & Resume Quota Splitting</span>
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Lock className="w-4 h-4 text-purple-600 shrink-0" />
+                                            <span>Role Presets (Admin, Sourcer, Custom)</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* CTAs */}
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/subscription')}
+                                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    <Crown className="w-4 h-4" />
+                                    <span>Upgrade to Custom Plan</span>
+                                    <ArrowRight className="w-4 h-4" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => router.push('/my-jobs')}
+                                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-sm transition-all cursor-pointer"
+                                >
+                                    <span>Go to Job Postings</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );

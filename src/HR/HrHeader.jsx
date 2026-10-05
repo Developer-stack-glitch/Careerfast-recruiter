@@ -321,7 +321,7 @@ const HrHeader = () => {
                 {/* Left Side: Logo & Main Navigation */}
                 <div className="flex items-center gap-8 lg:gap-10">
                     {/* Brand Logo */}
-                    <Link href="/candidate-search" className="flex items-center gap-2 group select-none no-underline hover:no-underline" style={{ textDecoration: 'none' }}>
+                    <Link href="/overview" className="flex items-center gap-2 group select-none no-underline hover:no-underline" style={{ textDecoration: 'none' }}>
                         {logo ? (
                             <Image
                                 src={logo}
@@ -341,7 +341,19 @@ const HrHeader = () => {
                     {/* Horizontal Navigation Menu */}
                     <nav className="hidden md:flex items-center gap-1 sm:gap-2">
 
-                        {/* 1. Search */}
+                        {/* 1. Overview (Home) */}
+                        <Link
+                            href="/overview"
+                            style={{ textDecoration: 'none' }}
+                            className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg no-underline hover:no-underline ${isReportsActive
+                                ? 'text-slate-900 font-bold bg-slate-100/70'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                }`}
+                        >
+                            <span>Overview</span>
+                        </Link>
+
+                        {/* 2. Search */}
                         <Link
                             href="/candidate-search"
                             style={{ textDecoration: 'none' }}
@@ -353,7 +365,7 @@ const HrHeader = () => {
                             <span>Search</span>
                         </Link>
 
-                        {/* 2. Job Dropdown */}
+                        {/* 3. Job Dropdown */}
                         <div className="relative" ref={jobDropdownRef}>
                             <button
                                 type="button"
@@ -427,7 +439,7 @@ const HrHeader = () => {
                             )}
                         </div>
 
-                        {/* 3. Folders */}
+                        {/* 4. Folders */}
                         <Link
                             href="/manage-folder"
                             style={{ textDecoration: 'none' }}
@@ -437,18 +449,6 @@ const HrHeader = () => {
                                 }`}
                         >
                             <span>Folders</span>
-                        </Link>
-
-                        {/* 4. Reports */}
-                        <Link
-                            href="/overview"
-                            style={{ textDecoration: 'none' }}
-                            className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg no-underline hover:no-underline ${isReportsActive
-                                ? 'text-slate-900 font-bold bg-slate-100/70'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
-                        >
-                            <span>Reports</span>
                         </Link>
 
                         {/* 5. Team Seats - Only visible to Primary Recruiter */}

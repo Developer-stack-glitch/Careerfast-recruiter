@@ -360,12 +360,19 @@ const CandidateSearchResults = () => {
   const [downloadedCandidateIds, setDownloadedCandidateIds] = useState(new Set());
   const [quotaLimitModal, setQuotaLimitModal] = useState(null);
 
+  const isOnlyJobPost = /only job post/i.test(subscription?.plan_name || '') ||
+    /only job post/i.test(subscription?.plan?.name || '') ||
+    (Number(subscription?.limits?.resume_view_limit || 0) === 0 && Number(subscription?.limits?.resume_download_limit || 0) === 0 && Number(subscription?.limits?.email_limit || 0) === 0 && Number(subscription?.limits?.whatsapp_limit || 0) === 0 && Number(subscription?.limits?.excel_download_limit || 0) === 0);
+
   const isCustomPlan = Boolean(
-    subscription?.is_custom ||
-    subscription?.plan?.plan_type === 'Custom' ||
-    subscription?.plan?.slug?.startsWith('custom') ||
-    subscription?.plan_slug?.startsWith('custom') ||
-    subscription?.plan_name?.toLowerCase().includes('custom')
+    (subscription?.is_custom ||
+      subscription?.plan?.plan_type?.toLowerCase() === 'custom' ||
+      subscription?.plan_type?.toLowerCase() === 'custom' ||
+      subscription?.plan?.slug?.toLowerCase().startsWith('custom') ||
+      subscription?.plan_slug?.toLowerCase().startsWith('custom') ||
+      subscription?.plan_name?.toLowerCase().includes('custom') ||
+      subscription?.plan?.name?.toLowerCase().includes('custom')) &&
+    !isOnlyJobPost
   );
 
   const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';

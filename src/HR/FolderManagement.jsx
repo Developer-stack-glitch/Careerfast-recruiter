@@ -38,7 +38,7 @@ import {
   FiLoader
 } from 'react-icons/fi';
 import { FaWhatsapp, FaLinkedin } from 'react-icons/fa';
-import { Crown, Lock, ArrowRight, Check, Loader2, AlertCircle } from 'lucide-react';
+import { Crown, Lock, ArrowRight, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   getCandidateFoldersAPI,
@@ -248,13 +248,18 @@ export default function FolderManagement() {
         if (res?.success && res.data) {
           if (!isMounted) return;
           setSubscription(res.data);
+          const isOnlyJobPost = /only job post/i.test(res.data.plan_name || '') ||
+            /only job post/i.test(res.data.plan?.name || '') ||
+            (Number(res.data.limits?.resume_view_limit || 0) === 0 && Number(res.data.limits?.resume_download_limit || 0) === 0 && Number(res.data.limits?.email_limit || 0) === 0 && Number(res.data.limits?.whatsapp_limit || 0) === 0 && Number(res.data.limits?.excel_download_limit || 0) === 0);
+
           const isCustom = Boolean(
-            res.data.is_custom ||
-            res.data.plan?.plan_type === 'custom' ||
-            res.data.plan?.plan_type === 'Custom' ||
-            res.data.plan?.slug?.startsWith('custom') ||
-            res.data.plan_slug?.startsWith('custom') ||
-            res.data.plan_name?.toLowerCase().includes('custom')
+            (res.data.is_custom ||
+              res.data.plan?.plan_type === 'custom' ||
+              res.data.plan?.plan_type === 'Custom' ||
+              res.data.plan?.slug?.startsWith('custom') ||
+              res.data.plan_slug?.startsWith('custom') ||
+              res.data.plan_name?.toLowerCase().includes('custom')) &&
+            !isOnlyJobPost
           );
           setHasFolderAccess(isCustom);
           if (Array.isArray(res.data.viewed_candidate_ids)) {

@@ -39,13 +39,18 @@ export default function SavedCandidates() {
                 let isCustom = false;
                 if (subRes?.success && subRes.data) {
                     setSubscription(subRes.data);
+                    const isOnlyJobPost = /only job post/i.test(subRes.data.plan_name || '') ||
+                        /only job post/i.test(subRes.data.plan?.name || '') ||
+                        (Number(subRes.data.limits?.resume_view_limit || 0) === 0 && Number(subRes.data.limits?.resume_download_limit || 0) === 0 && Number(subRes.data.limits?.email_limit || 0) === 0 && Number(subRes.data.limits?.whatsapp_limit || 0) === 0 && Number(subRes.data.limits?.excel_download_limit || 0) === 0);
+
                     isCustom = Boolean(
-                        subRes.data.is_custom ||
-                        subRes.data.plan?.plan_type === 'custom' ||
-                        subRes.data.plan?.plan_type === 'Custom' ||
-                        subRes.data.plan?.slug?.startsWith('custom') ||
-                        subRes.data.plan_slug?.startsWith('custom') ||
-                        subRes.data.plan_name?.toLowerCase().includes('custom')
+                        (subRes.data.is_custom ||
+                            subRes.data.plan?.plan_type === 'custom' ||
+                            subRes.data.plan?.plan_type === 'Custom' ||
+                            subRes.data.plan?.slug?.startsWith('custom') ||
+                            subRes.data.plan_slug?.startsWith('custom') ||
+                            subRes.data.plan_name?.toLowerCase().includes('custom')) &&
+                        !isOnlyJobPost
                     );
                 }
                 setHasAccess(isCustom);
@@ -217,7 +222,7 @@ export default function SavedCandidates() {
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => router.push('/subscription')}
+                                    onClick={() => router.push('/billing')}
                                     className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-medium text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     <Crown className="w-4 h-4" />

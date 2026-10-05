@@ -107,15 +107,21 @@ const CandidateSearch = () => {
         if (sub && sub.success && sub.data) {
           if (!isMounted) return;
           setSubscription(sub.data);
-          const isCustom = Boolean(
-            sub.data.is_custom ||
-            sub.data.plan?.plan_type === 'custom' ||
-            sub.data.plan?.plan_type === 'Custom' ||
-            sub.data.plan?.slug?.startsWith('custom') ||
-            sub.data.plan_slug?.startsWith('custom') ||
-            sub.data.plan_name?.toLowerCase().includes('custom')
+          const isOnlyJobPost = /only job post/i.test(sub.data.plan_name || '') ||
+            /only job post/i.test(sub.data.plan?.name || '') ||
+            (Number(sub.data.limits?.resume_view_limit || 0) === 0 && Number(sub.data.limits?.resume_download_limit || 0) === 0 && Number(sub.data.limits?.email_limit || 0) === 0 && Number(sub.data.limits?.whatsapp_limit || 0) === 0 && Number(sub.data.limits?.excel_download_limit || 0) === 0);
+
+          const isFullCustom = Boolean(
+            (sub.data.is_custom ||
+              sub.data.plan?.plan_type?.toLowerCase() === 'custom' ||
+              sub.data.plan_type?.toLowerCase() === 'custom' ||
+              sub.data.plan?.slug?.toLowerCase().startsWith('custom') ||
+              sub.data.plan_slug?.toLowerCase().startsWith('custom') ||
+              sub.data.plan_name?.toLowerCase().includes('custom') ||
+              sub.data.plan?.name?.toLowerCase().includes('custom')) &&
+            !isOnlyJobPost
           );
-          const allowed = isCustom && sub.data.permissions?.candidate_search !== false;
+          const allowed = isFullCustom;
           setHasSearchPermission(allowed);
         } else {
           if (isMounted) setHasSearchPermission(false);

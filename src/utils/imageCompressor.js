@@ -46,15 +46,24 @@ export const compressImage = (file, targetSizeKb = 200) => {
         canvas.height = height;
 
         const ctx = canvas.getContext("2d");
+        const isTransparent = file.type === "image/png" || file.type === "image/webp" || file.type === "image/svg+xml";
+        const mimeType = isTransparent ? "image/webp" : "image/jpeg";
+
+        if (mimeType === "image/jpeg") {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+        }
+
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Step 1: Adjust quality (starting from 0.9 down to 0.1)
-        let quality = 0.9;
-        let dataUrl = canvas.toDataURL("image/jpeg", quality);
+        // Step 1: Adjust quality (starting from 0.92 down to 0.2)
+        let quality = 0.92;
+        let dataUrl = canvas.toDataURL(mimeType, quality);
 
-        while (dataUrl.length * (3 / 4) > targetSizeKb * 1024 && quality > 0.1) {
+        // If WebP is not supported or falls back, check size
+        while (dataUrl.length * (3 / 4) > targetSizeKb * 1024 && quality > 0.2) {
           quality -= 0.1;
-          dataUrl = canvas.toDataURL("image/jpeg", quality);
+          dataUrl = canvas.toDataURL(mimeType, quality);
         }
 
         // Step 2: If size is still too large, dynamically scale down dimensions
@@ -65,8 +74,12 @@ export const compressImage = (file, targetSizeKb = 200) => {
             tempCanvas.width = Math.round(width * scale);
             tempCanvas.height = Math.round(height * scale);
             const tempCtx = tempCanvas.getContext("2d");
+            if (mimeType === "image/jpeg") {
+              tempCtx.fillStyle = "#ffffff";
+              tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            }
             tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
-            dataUrl = tempCanvas.toDataURL("image/jpeg", 0.3); // low quality + scaled down
+            dataUrl = tempCanvas.toDataURL(mimeType, 0.7);
             scale -= 0.2;
           }
         }
@@ -80,3 +93,4 @@ export const compressImage = (file, targetSizeKb = 200) => {
     reader.readAsDataURL(file);
   });
 };
+

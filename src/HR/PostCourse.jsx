@@ -322,63 +322,95 @@ export default function PostCourse() {
         }
     };
 
-    const handleEdit = (course) => {
-        const cContent = course.content ? JSON.parse(JSON.stringify(course.content)) : JSON.parse(JSON.stringify(INITIAL_FORM_STATE.content));
+    const handleEdit = async (course) => {
+        setLoading(true);
+        try {
+            let fullCourse = course;
+            try {
+                const res = await fetch(`${API_URL}/api/courses/${course.slug || course.id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        fullCourse = data;
+                    }
+                }
+            } catch (fetchErr) {
+                console.warn("Could not fetch full single course, falling back to cached item", fetchErr);
+            }
 
-        // Normalize tools
-        if (typeof cContent.tools === 'string') {
-            cContent.tools = cContent.tools.split(",").map(s => ({ name: s.trim(), logo: "" })).filter(t => t.name);
-        } else if (Array.isArray(cContent.tools)) {
-            cContent.tools = cContent.tools.map(t => typeof t === 'string' ? { name: t, logo: "" } : (t || { name: "", logo: "" }));
-        } else {
-            cContent.tools = [];
+            const cContent = fullCourse.content
+                ? (typeof fullCourse.content === 'string' ? JSON.parse(fullCourse.content) : JSON.parse(JSON.stringify(fullCourse.content)))
+                : JSON.parse(JSON.stringify(INITIAL_FORM_STATE.content));
+
+            // Normalize tools
+            if (typeof cContent.tools === 'string') {
+                cContent.tools = cContent.tools.split(",").map(s => ({ name: s.trim(), logo: "" })).filter(t => t.name);
+            } else if (Array.isArray(cContent.tools)) {
+                cContent.tools = cContent.tools.map(t => typeof t === 'string' ? { name: t, logo: "" } : (t || { name: "", logo: "" }));
+            } else {
+                cContent.tools = [];
+            }
+
+            // Normalize skills headings
+            cContent.skillsHeading = cContent.skillsHeading || "";
+            cContent.skillsDescription = cContent.skillsDescription || "";
+            if (typeof cContent.skills === 'string') {
+                cContent.skills = cContent.skills.split(",").map(s => s.trim()).filter(Boolean);
+            } else if (!Array.isArray(cContent.skills)) {
+                cContent.skills = [];
+            }
+
+            // Normalize careerSection & roles
+            if (!cContent.careerSection) {
+                cContent.careerSection = { title: "", description: "", roles: [] };
+            }
+            if (Array.isArray(cContent.careerSection.roles)) {
+                cContent.careerSection.roles = cContent.careerSection.roles.map(r => ({
+                    ...r,
+                    companies: Array.isArray(r.companies)
+                        ? r.companies.map(comp => typeof comp === 'string' ? { name: comp, logo: "" } : (comp || { name: "", logo: "" }))
+                        : []
+                }));
+            } else {
+                cContent.careerSection.roles = [];
+            }
+
+            // Normalize batches
+            if (!Array.isArray(cContent.batches)) {
+                cContent.batches = [];
+            }
+
+            // Normalize curriculum
+            if (!Array.isArray(cContent.curriculum)) {
+                cContent.curriculum = [];
+            }
+
+            // Normalize projects
+            if (!Array.isArray(cContent.projects)) {
+                cContent.projects = [];
+            }
+
+            // Normalize FAQs
+            const rawFaqs = (cContent.faqs && cContent.faqs.length > 0) ? cContent.faqs : (cContent.certificationQs || []);
+            cContent.faqs = Array.isArray(rawFaqs) ? rawFaqs.map(f => ({
+                q: f?.q || f?.question || "",
+                a: f?.a || f?.answer || ""
+            })) : [];
+
+            setCourseData({
+                ...fullCourse,
+                imageBase64: fullCourse.image || "",
+                content: cContent
+            });
+            setCurrentCourseId(fullCourse.id);
+            setCurrentStep(0);
+            setFormMode("edit");
+        } catch (err) {
+            console.error("Error setting up edit form:", err);
+            toast.error("Failed to restore course details for editing");
+        } finally {
+            setLoading(false);
         }
-
-        // Normalize careerSection & roles
-        if (!cContent.careerSection) {
-            cContent.careerSection = { title: "", description: "", roles: [] };
-        }
-        if (Array.isArray(cContent.careerSection.roles)) {
-            cContent.careerSection.roles = cContent.careerSection.roles.map(r => ({
-                ...r,
-                companies: Array.isArray(r.companies)
-                    ? r.companies.map(comp => typeof comp === 'string' ? { name: comp, logo: "" } : (comp || { name: "", logo: "" }))
-                    : []
-            }));
-        } else {
-            cContent.careerSection.roles = [];
-        }
-
-        // Normalize batches
-        if (!Array.isArray(cContent.batches)) {
-            cContent.batches = [];
-        }
-
-        // Normalize curriculum
-        if (!Array.isArray(cContent.curriculum)) {
-            cContent.curriculum = [];
-        }
-
-        // Normalize projects
-        if (!Array.isArray(cContent.projects)) {
-            cContent.projects = [];
-        }
-
-        // Normalize FAQs
-        const rawFaqs = (cContent.faqs && cContent.faqs.length > 0) ? cContent.faqs : (cContent.certificationQs || []);
-        cContent.faqs = Array.isArray(rawFaqs) ? rawFaqs.map(f => ({
-            q: f?.q || f?.question || "",
-            a: f?.a || f?.answer || ""
-        })) : [];
-
-        setCourseData({
-            ...course,
-            imageBase64: course.image || "",
-            content: cContent
-        });
-        setCurrentCourseId(course.id);
-        setCurrentStep(0);
-        setFormMode("edit");
     };
 
     const handleDelete = (id) => {
@@ -664,10 +696,10 @@ export default function PostCourse() {
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>
-                            <label className="block text-[12px] font-semibold text-gray-500 mb-1">Hiring Partners</label>
+                            <label className="block text-[12px] font-semibold text-gray-500 mb-1">Hiring Corp</label>
                             <input
                                 type="text"
-                                placeholder="e.g. 100+ Companies"
+                                placeholder="e.g. 100+"
                                 value={courseData.content?.hero?.stats?.hiringPartners || ""}
                                 onChange={(e) => setCourseData(prev => ({
                                     ...prev,
@@ -686,7 +718,7 @@ export default function PostCourse() {
                             <label className="block text-[12px] font-semibold text-gray-500 mb-1">Live Projects</label>
                             <input
                                 type="text"
-                                placeholder="e.g. 5+ Capstones"
+                                placeholder="e.g. 5+ Projects"
                                 value={courseData.content?.hero?.stats?.liveProjects || ""}
                                 onChange={(e) => setCourseData(prev => ({
                                     ...prev,
@@ -1040,7 +1072,7 @@ export default function PostCourse() {
 
                 <div className="space-y-3 pt-2">
                     {(Array.isArray(courseData.content?.tools) ? courseData.content.tools : []).map((t, i) => (
-                        <div key={i} id={`tool-item-${i}`} className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50/50">
+                        <div key={i} id={`tool-item-${i}`} className="flex flex-wrap sm:flex-nowrap items-center gap-3 p-3.5 rounded-xl border border-gray-200 bg-gray-50/60 transition-all hover:bg-gray-50">
                             <input
                                 type="text"
                                 placeholder="Tool Name (e.g. AWS, Docker, Kubernetes, Figma)"
@@ -1054,11 +1086,30 @@ export default function PostCourse() {
                                     }
                                     setCourseData(prev => ({ ...prev, content: { ...prev.content, tools: newTools } }));
                                 }}
-                                className="flex-1 px-3.5 py-2 rounded-lg border border-gray-300 focus:border-[#0A66C2] outline-none text-[13.5px] bg-white"
+                                className="flex-1 min-w-[180px] px-3.5 py-2 rounded-lg border border-gray-300 focus:border-[#0A66C2] outline-none text-[13.5px] bg-white font-medium"
                             />
-                            <div className="flex items-center gap-2">
-                                <label className="px-3.5 py-2 bg-white border border-gray-300 hover:border-[#0A66C2] text-gray-700 rounded-lg text-xs font-semibold cursor-pointer transition">
-                                    Upload Logo
+                            <div className="flex items-center gap-2.5 shrink-0">
+                                {t.logo ? (
+                                    <div className="relative group flex items-center justify-center w-16 h-10 px-2 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs">
+                                        <img src={t.logo} alt={t.name || "tool logo"} className="max-w-full max-h-full object-contain" />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const newTools = [...(Array.isArray(courseData.content?.tools) ? courseData.content.tools : [])];
+                                                const currName = typeof newTools[i] === 'string' ? newTools[i] : (newTools[i]?.name || "");
+                                                newTools[i] = { name: currName, logo: "" };
+                                                setCourseData(prev => ({ ...prev, content: { ...prev.content, tools: newTools } }));
+                                            }}
+                                            className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
+                                            title="Remove logo"
+                                        >
+                                            <X size={11} />
+                                        </button>
+                                    </div>
+                                ) : null}
+                                <label className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-gray-300 hover:border-[#0A66C2] hover:text-[#0A66C2] text-gray-700 rounded-lg text-xs font-semibold cursor-pointer transition shadow-2xs">
+                                    <UploadCloud size={14} className="text-[#0A66C2]" />
+                                    {t.logo ? "Change Logo" : "Upload Logo"}
                                     <input
                                         type="file"
                                         accept="image/*"
@@ -1067,7 +1118,7 @@ export default function PostCourse() {
                                             const file = e.target.files[0];
                                             if (file) {
                                                 try {
-                                                    const compressed = await compressImage(file, 80);
+                                                    const compressed = await compressImage(file, 150);
                                                     const newTools = [...(Array.isArray(courseData.content?.tools) ? courseData.content.tools : [])];
                                                     const currName = typeof newTools[i] === 'string' ? newTools[i] : (newTools[i]?.name || "");
                                                     newTools[i] = { name: currName, logo: compressed };
@@ -1079,16 +1130,13 @@ export default function PostCourse() {
                                         }}
                                     />
                                 </label>
-                                {t.logo && (
-                                    <img src={t.logo} alt="tool logo" className="w-8 h-8 rounded object-contain border border-gray-200 p-0.5 bg-white" />
-                                )}
                                 <button
                                     type="button"
                                     onClick={() => {
                                         const newTools = (Array.isArray(courseData.content?.tools) ? courseData.content.tools : []).filter((_, idx) => idx !== i);
                                         setCourseData(prev => ({ ...prev, content: { ...prev.content, tools: newTools } }));
                                     }}
-                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                                     title="Remove tool"
                                 >
                                     <Trash2 size={16} />
@@ -1377,9 +1425,29 @@ export default function PostCourse() {
                                                     }}
                                                     className="flex-1 px-3 py-1.5 text-[13px] rounded border border-gray-300 outline-none"
                                                 />
-                                                <div className="flex items-center gap-2">
-                                                    <label className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-semibold cursor-pointer transition">
-                                                        Upload Logo
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {compLogo ? (
+                                                        <div className="relative group flex items-center justify-center w-14 h-9 px-1.5 py-0.5 bg-white rounded border border-gray-200 shadow-2xs">
+                                                            <img src={compLogo} alt="logo" className="max-w-full max-h-full object-contain" />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newRoles = [...(courseData.content?.careerSection?.roles || [])];
+                                                                    const currCompanies = [...(Array.isArray(newRoles[i].companies) ? newRoles[i].companies : [])];
+                                                                    currCompanies[compIdx] = { name: compName, logo: "" };
+                                                                    newRoles[i] = { ...newRoles[i], companies: currCompanies };
+                                                                    setCourseData(prev => ({ ...prev, content: { ...prev.content, careerSection: { ...(prev.content?.careerSection || {}), roles: newRoles } } }));
+                                                                }}
+                                                                className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
+                                                                title="Remove logo"
+                                                            >
+                                                                <X size={10} />
+                                                            </button>
+                                                        </div>
+                                                    ) : null}
+                                                    <label className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-semibold cursor-pointer transition flex items-center gap-1">
+                                                        <UploadCloud size={13} className="text-[#0A66C2]" />
+                                                        {compLogo ? "Change" : "Upload Logo"}
                                                         <input
                                                             type="file"
                                                             accept="image/*"
@@ -1388,7 +1456,7 @@ export default function PostCourse() {
                                                                 const file = e.target.files[0];
                                                                 if (file) {
                                                                     try {
-                                                                        const compressed = await compressImage(file, 100);
+                                                                        const compressed = await compressImage(file, 150);
                                                                         const newRoles = [...(courseData.content?.careerSection?.roles || [])];
                                                                         const currCompanies = [...(Array.isArray(newRoles[i].companies) ? newRoles[i].companies : [])];
                                                                         currCompanies[compIdx] = { name: compName, logo: compressed };
@@ -1401,9 +1469,6 @@ export default function PostCourse() {
                                                             }}
                                                         />
                                                     </label>
-                                                    {compLogo && (
-                                                        <img src={compLogo} alt="logo" className="w-8 h-8 rounded object-contain border border-gray-200 p-0.5" />
-                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -1412,9 +1477,10 @@ export default function PostCourse() {
                                                             newRoles[i] = { ...newRoles[i], companies: currCompanies };
                                                             setCourseData(prev => ({ ...prev, content: { ...prev.content, careerSection: { ...(prev.content?.careerSection || {}), roles: newRoles } } }));
                                                         }}
-                                                        className="p-1 text-gray-400 hover:text-red-500 rounded"
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 rounded transition"
+                                                        title="Delete company"
                                                     >
-                                                        <X size={15} />
+                                                        <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             </div>

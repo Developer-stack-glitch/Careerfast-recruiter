@@ -11,11 +11,13 @@ import {
     FileText,
     Users,
     Settings,
-    LogOut
+    LogOut,
+    BarChart3
 } from 'lucide-react';
 
 const sidebarNav = [
     { name: 'Overview', href: '/overview', icon: Layers },
+    { name: 'Reports', href: '/reports', icon: BarChart3 },
     { name: 'Employers Profile', href: '/profile', icon: User },
     { name: 'Post a Job', href: '/post-job', icon: PlusCircle },
     { name: 'Post Internship', href: '/post-internship', icon: PlusCircle },

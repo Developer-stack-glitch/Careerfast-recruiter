@@ -22,7 +22,7 @@ const SEO = ({
 }) => {
   const siteName = 'CareerFast';
   const fullTitle = title ? `${title} | ${siteName}` : siteName;
-  const currentUrl = ogUrl || window.location.href;
+  const currentUrl = ogUrl || (typeof window !== 'undefined' ? window.location.href : 'https://careerfast.in');
 
   // Utility to strip HTML tags for meta content
   const stripHtml = (html) => {

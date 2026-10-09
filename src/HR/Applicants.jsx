@@ -6,7 +6,8 @@ import {
   Filter, Download, Users as UsersIcon, Send,
   ArrowLeft, Plus,
   Share2, Check, HelpCircle, RefreshCw,
-  Folder, FolderPlus, AlertTriangle, Loader2
+  Folder, FolderPlus, AlertTriangle, Loader2, ExternalLink,
+  Sparkles, GraduationCap, CheckCircle2, Copy, Heart, Phone, MapPin, Briefcase, Clock
 } from 'lucide-react';
 import {
   FiFolder,
@@ -39,6 +40,7 @@ import {
   recordCandidateWhatsAppAPI
 } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
+import NeatSelect from '../Common/NeatSelect';
 import { getImageUrl } from '../utils/getImageUrl';
 import { downloadResumeFile } from '../utils/downloadResume';
 
@@ -209,9 +211,21 @@ export default function Applicants({ jobId }) {
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modals
-  const [resumeModalApplicant, setResumeModalApplicant] = useState(null);
+  const [profileModalApplicant, setProfileModalApplicant] = useState(null);
+  const [resumePdfModal, setResumePdfModal] = useState(null);
+  const [copiedField, setCopiedField] = useState(null);
   const [contactModalApplicant, setContactModalApplicant] = useState(null);
   const [contactMessage, setContactMessage] = useState('');
+
+  const handleCopyText = (text, fieldName) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    CommonToaster(`${fieldName} copied to clipboard!`, 'success');
+    setTimeout(() => {
+      setCopiedField(null);
+    }, 2000);
+  };
 
   // Save to Folder Modal states
   const [folderModalOpen, setFolderModalOpen] = useState(false);
@@ -447,6 +461,8 @@ export default function Applicants({ jobId }) {
   // ─────────────────────────────────────────────────────────────────────────────
   // Dynamic Available Options Extracted from Real Applicants
   // ─────────────────────────────────────────────────────────────────────────────
+  const isExternalJob = Boolean(jobData?.apply_link);
+
   const jobRequiredSkills = useMemo(() => {
     if (!jobData?.skills) return [];
     return parseSkills(jobData.skills).map(s => s.toLowerCase());
@@ -992,9 +1008,9 @@ export default function Applicants({ jobId }) {
       try {
         const res = await consumeResumeViewAPI(id);
         if (res && res.success && !res.already_unlocked) {
-           const leftCount = res.remaining !== undefined ? res.remaining : 0;
-           CommonToaster(`Contact number revealed! (${leftCount} views remaining)`, 'success');
-           setUnlockedCandidateIds(prev => new Set(prev).add(Number(id)));
+          const leftCount = res.remaining !== undefined ? res.remaining : 0;
+          CommonToaster(`Contact number revealed! (${leftCount} views remaining)`, 'success');
+          setUnlockedCandidateIds(prev => new Set(prev).add(Number(id)));
         }
       } catch (error) {
         console.error("Error consuming resume view:", error);
@@ -1165,7 +1181,7 @@ export default function Applicants({ jobId }) {
 
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-[20px] md:text-[22px] font-bold text-slate-900 tracking-tight leading-tight mb-0">
+                  <h1 className="text-[20px] md:text-[22px] font-semibold text-slate-900 tracking-tight leading-tight mb-0">
                     {jobData?.job_title || 'Job Applications'}
                   </h1>
                   <span className="text-[14px] font-bold text-[#0A66C2] bg-blue-50 border border-blue-200/70 px-2.5 py-0.5 rounded-full">
@@ -1220,39 +1236,60 @@ export default function Applicants({ jobId }) {
           </div>
 
           {/* ──────────────────────────────────────────────────────────────────────────
-              FOUNDIT STAGE TABS BAR
+              STAGE TABS BAR / EXTERNAL JOB BADGE
           ────────────────────────────────────────────────────────────────────────── */}
-          <div className="flex items-center gap-2 mt-4 border-b border-slate-100 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'all', label: 'All Applicants', count: stageCounts.all },
-              { id: 'applied', label: 'Applied', count: stageCounts.applied },
-              { id: 'shortlisted', label: 'Shortlisted', count: stageCounts.shortlisted },
-              { id: 'hired', label: 'Hired / Selected', count: stageCounts.hired },
-              { id: 'rejected', label: 'Rejected', count: stageCounts.rejected },
-            ].map(tab => {
-              const isActive = activeTab === tab.id;
-              return (
+          {isExternalJob ? (
+            <div className="flex items-center justify-between gap-3 mt-4 border-b border-slate-100 pb-3 flex-wrap">
+              <div className="flex items-center gap-2">
                 <button
-                  key={tab.id}
                   type="button"
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setSubFilter('all');
-                  }}
-                  className={`flex items-center gap-2 pb-3 px-3 text-[14px] font-semibold transition-all border-b-2 whitespace-nowrap cursor-pointer ${isActive
-                    ? 'text-[#0A66C2] border-[#0A66C2] font-bold'
-                    : 'text-slate-500 border-transparent hover:text-slate-800 hover:border-slate-300'
-                    }`}
+                  className="flex items-center gap-2 pb-1 px-3 text-[14px] font-bold text-[#0A66C2] border-b-2 border-[#0A66C2] whitespace-nowrap"
                 >
-                  <span>{tab.label}</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-blue-100 text-[#0A66C2]' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                    {tab.count}
+                  <span>All Applicants</span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-blue-100 text-[#0A66C2]">
+                    {applicants.length}
                   </span>
                 </button>
-              );
-            })}
-          </div>
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold">
+                <ExternalLink size={13} className="text-[#0A66C2]" />
+                <span>External Application Job • Candidates apply directly on employer site</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mt-4 border-b border-slate-100 overflow-x-auto no-scrollbar">
+              {[
+                { id: 'all', label: 'All Applicants', count: stageCounts.all },
+                { id: 'applied', label: 'Applied', count: stageCounts.applied },
+                { id: 'shortlisted', label: 'Shortlisted', count: stageCounts.shortlisted },
+                { id: 'hired', label: 'Hired / Selected', count: stageCounts.hired },
+                { id: 'rejected', label: 'Rejected', count: stageCounts.rejected },
+              ].map(tab => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setSubFilter('all');
+                    }}
+                    className={`flex items-center gap-2 pb-3 px-3 text-[14px] font-semibold transition-all border-b-2 whitespace-nowrap cursor-pointer ${isActive
+                      ? 'text-[#0A66C2] border-[#0A66C2] font-bold'
+                      : 'text-slate-500 border-transparent hover:text-slate-800 hover:border-slate-300'
+                      }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${isActive ? 'bg-blue-100 text-[#0A66C2]' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* ──────────────────────────────────────────────────────────────────────────
               SUB-PILLS UNDER ACTIVE TAB (Matching, Fresher, Saved, etc.)
@@ -1703,46 +1740,48 @@ export default function Applicants({ jobId }) {
               {/* Bulk Action Buttons (Visible when candidates are selected) */}
               {selectedIds.length > 0 && (
                 <div className="flex items-center gap-2 pl-3 border-l border-slate-200 flex-wrap">
-                  {/* Stage Dropdown */}
-                  <div className="relative group">
-                    <button
-                      type="button"
-                      className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer"
-                    >
-                      <span>Move Stage</span>
-                      <ChevronDown size={13} />
-                    </button>
-                    <div className="absolute left-0 mt-1 w-36 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 hidden group-hover:block z-40">
+                  {/* Stage Dropdown (Only for direct platform applications) */}
+                  {!isExternalJob && (
+                    <div className="relative group">
                       <button
                         type="button"
-                        onClick={() => handleBulkStageChange('applied')}
-                        className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-blue-50 text-blue-700 font-medium"
+                        className="flex items-center gap-1.5 text-[12px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl cursor-pointer"
                       >
-                        Applied
+                        <span>Move Stage</span>
+                        <ChevronDown size={13} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleBulkStageChange('shortlisted')}
-                        className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-amber-50 text-amber-700 font-medium"
-                      >
-                        Shortlisted
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleBulkStageChange('hired')}
-                        className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-emerald-50 text-emerald-700 font-medium"
-                      >
-                        Hired / Selected
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleBulkStageChange('rejected')}
-                        className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-rose-50 text-rose-700 font-medium"
-                      >
-                        Rejected
-                      </button>
+                      <div className="absolute left-0 mt-1 w-36 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 hidden group-hover:block z-40">
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStageChange('applied')}
+                          className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-blue-50 text-blue-700 font-medium"
+                        >
+                          Applied
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStageChange('shortlisted')}
+                          className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-amber-50 text-amber-700 font-medium"
+                        >
+                          Shortlisted
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStageChange('hired')}
+                          className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-emerald-50 text-emerald-700 font-medium"
+                        >
+                          Hired / Selected
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBulkStageChange('rejected')}
+                          className="w-full text-left px-2.5 py-1 text-[12px] rounded-lg hover:bg-rose-50 text-rose-700 font-medium"
+                        >
+                          Rejected
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <button
                     type="button"
@@ -1778,30 +1817,34 @@ export default function Applicants({ jobId }) {
             <div className="flex items-center gap-3 text-[12px] text-slate-500 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-slate-600">Sort by:</span>
-                <select
+                <NeatSelect
                   value={sortBy}
-                  onChange={e => setSortBy(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[12px] font-bold text-slate-800 focus:outline-none focus:border-[#0A66C2] cursor-pointer"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="relevance">Best Match</option>
-                  <option value="experience">Experience</option>
-                  <option value="name">Name (A-Z)</option>
-                </select>
+                  onChange={(val) => setSortBy(val)}
+                  size="sm"
+                  options={[
+                    { value: 'newest', label: 'Newest First' },
+                    { value: 'oldest', label: 'Oldest First' },
+                    { value: 'relevance', label: 'Best Match' },
+                    { value: 'experience', label: 'Experience' },
+                    { value: 'name', label: 'Name (A-Z)' },
+                  ]}
+                  buttonClassName="bg-slate-50 border-slate-200"
+                />
               </div>
 
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-slate-600">Show:</span>
-                <select
+                <NeatSelect
                   value={pageSize}
-                  onChange={e => setPageSize(Number(e.target.value))}
-                  className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-[12px] font-bold text-slate-800 focus:outline-none focus:border-[#0A66C2] cursor-pointer"
-                >
-                  <option value={10}>10 / page</option>
-                  <option value={20}>20 / page</option>
-                  <option value={50}>50 / page</option>
-                </select>
+                  onChange={(val) => setPageSize(Number(val))}
+                  size="sm"
+                  options={[
+                    { value: 10, label: '10 / page' },
+                    { value: 20, label: '20 / page' },
+                    { value: 50, label: '50 / page' },
+                  ]}
+                  buttonClassName="bg-slate-50 border-slate-200"
+                />
               </div>
 
               {/* Quick Pagination */}
@@ -1893,26 +1936,28 @@ export default function Applicants({ jobId }) {
                         />
 
                         {/* Avatar & Name */}
-                        <div className="flex items-center gap-2.5">
+                        <div
+                          className="flex items-center gap-2.5 cursor-pointer group/candname"
+                          onClick={() => setProfileModalApplicant(app)}
+                        >
                           {app.avatar ? (
                             <img
                               src={getImageUrl(app.avatar, initials)}
                               alt={app.name}
-                              className="h-9 w-9 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs"
+                              className="h-9 w-9 shrink-0 rounded-xl object-cover border border-slate-200 shadow-2xs group-hover/candname:ring-2 group-hover/candname:ring-[#0A66C2]/40 transition-all"
                               onError={(e) => {
                                 e.target.onerror = null;
                                 e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.name)}&background=eff6ff&color=0A66C2&bold=true`;
                               }}
                             />
                           ) : (
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 font-bold text-[#0A66C2] text-sm shadow-2xs">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 font-bold text-[#0A66C2] text-sm shadow-2xs group-hover/candname:ring-2 group-hover/candname:ring-[#0A66C2]/40 transition-all">
                               {app.name ? app.name.charAt(0).toUpperCase() : 'C'}
                             </div>
                           )}
 
                           <span
-                            onClick={() => setResumeModalApplicant(app)}
-                            className="text-[15.5px] font-semibold text-slate-900 hover:text-[#0A66C2] transition-colors cursor-pointer"
+                            className="text-[15.5px] font-semibold text-slate-900 group-hover/candname:text-[#0A66C2] transition-colors"
                           >
                             {highlightKeywords(app.name, highlightWords)}
                           </span>
@@ -2025,89 +2070,96 @@ export default function Applicants({ jobId }) {
                           )}
                         </div>
 
-                        {/* "Stage: [Stage Name] v" Popover */}
-                        <div className="relative" data-popover-wrapper="stage">
-                          <button
-                            type="button"
-                            data-popover-trigger="stage"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveStagePopoverId(activeStagePopoverId === app.id ? null : app.id);
-                              setActiveSavedPopoverId(null);
-                              setActiveMoveDropdownId(null);
-                            }}
-                            style={{
-                              color: currentStageMeta.color,
-                              backgroundColor: currentStageMeta.bg,
-                              borderColor: currentStageMeta.border
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:opacity-90"
-                          >
-                            <span>Stage: {currentStageMeta.label}</span>
-                            <FiChevronDown
-                              className={`h-3 w-3 transition-transform duration-150 ${activeStagePopoverId === app.id ? 'rotate-180' : ''}`}
-                            />
-                          </button>
-
-                          {activeStagePopoverId === app.id && (
-                            <div
-                              data-popover-content="stage"
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-64 rounded-2xl bg-white p-3.5 shadow-2xl border border-slate-200 z-50 text-left animate-in fade-in zoom-in-95 duration-150"
+                        {/* Stage Display: If external employer site application, show clean badge without shortlist/reject actions. Otherwise show Stage Popover */}
+                        {isExternalJob ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-[#0A66C2] border border-blue-200/80 shadow-2xs select-none">
+                            <ExternalLink size={12} className="text-[#0A66C2]" />
+                            <span>Applied on Employer Site</span>
+                          </div>
+                        ) : (
+                          <div className="relative" data-popover-wrapper="stage">
+                            <button
+                              type="button"
+                              data-popover-trigger="stage"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveStagePopoverId(activeStagePopoverId === app.id ? null : app.id);
+                                setActiveSavedPopoverId(null);
+                                setActiveMoveDropdownId(null);
+                              }}
+                              style={{
+                                color: currentStageMeta.color,
+                                backgroundColor: currentStageMeta.bg,
+                                borderColor: currentStageMeta.border
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:opacity-90"
                             >
-                              <div className="border-b border-slate-100 pb-2.5 mb-2.5">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-bold text-slate-900">
-                                    Stage : <span style={{ color: currentStageMeta.color }}>{currentStageMeta.label}</span>
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setActiveStagePopoverId(null)}
-                                    className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
-                                  >
-                                    <FiX className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-1 mb-0">
-                                  Applied on:{' '}
-                                  <span className="font-semibold text-slate-700">
-                                    {formatShortDate(app.applied_date)}
-                                  </span>
-                                </p>
-                              </div>
+                              <span>Stage: {currentStageMeta.label}</span>
+                              <FiChevronDown
+                                className={`h-3 w-3 transition-transform duration-150 ${activeStagePopoverId === app.id ? 'rotate-180' : ''}`}
+                              />
+                            </button>
 
-                              <div className="space-y-1">
-                                {STAGE_OPTIONS.map((st) => {
-                                  const isCurrent = (app.status || 'applied').toLowerCase() === st.key;
-                                  return (
+                            {activeStagePopoverId === app.id && (
+                              <div
+                                data-popover-content="stage"
+                                onClick={(e) => e.stopPropagation()}
+                                className="absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-64 rounded-2xl bg-white p-3.5 shadow-2xl border border-slate-200 z-50 text-left animate-in fade-in zoom-in-95 duration-150"
+                              >
+                                <div className="border-b border-slate-100 pb-2.5 mb-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-slate-900">
+                                      Stage : <span style={{ color: currentStageMeta.color }}>{currentStageMeta.label}</span>
+                                    </span>
                                     <button
-                                      key={st.key}
                                       type="button"
-                                      disabled={updatingStatusId === (app.applied_jobs_id || app.id)}
-                                      onClick={() => {
-                                        handleStageChange(app, st.key);
-                                        setActiveStagePopoverId(null);
-                                      }}
-                                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${isCurrent
-                                        ? 'bg-slate-100 text-slate-900 shadow-2xs'
-                                        : 'hover:bg-slate-50 text-slate-700'
-                                        }`}
+                                      onClick={() => setActiveStagePopoverId(null)}
+                                      className="text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
                                     >
-                                      <div className="flex items-center gap-2">
-                                        <span
-                                          className="h-2.5 w-2.5 rounded-full"
-                                          style={{ backgroundColor: st.color }}
-                                        />
-                                        <span style={{ color: st.color }}>{st.label}</span>
-                                      </div>
-                                      {isCurrent && <FiCheck className="h-3.5 w-3.5 text-slate-700 stroke-[3]" />}
+                                      <FiX className="h-3.5 w-3.5" />
                                     </button>
-                                  );
-                                })}
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 mt-1 mb-0">
+                                    Applied on:{' '}
+                                    <span className="font-semibold text-slate-700">
+                                      {formatShortDate(app.applied_date)}
+                                    </span>
+                                  </p>
+                                </div>
+
+                                <div className="space-y-1">
+                                  {STAGE_OPTIONS.map((st) => {
+                                    const isCurrent = (app.status || 'applied').toLowerCase() === st.key;
+                                    return (
+                                      <button
+                                        key={st.key}
+                                        type="button"
+                                        disabled={updatingStatusId === (app.applied_jobs_id || app.id)}
+                                        onClick={() => {
+                                          handleStageChange(app, st.key);
+                                          setActiveStagePopoverId(null);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${isCurrent
+                                          ? 'bg-slate-100 text-slate-900 shadow-2xs'
+                                          : 'hover:bg-slate-50 text-slate-700'
+                                          }`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span
+                                            className="h-2.5 w-2.5 rounded-full"
+                                            style={{ backgroundColor: st.color }}
+                                          />
+                                          <span style={{ color: st.color }}>{st.label}</span>
+                                        </div>
+                                        {isCurrent && <FiCheck className="h-3.5 w-3.5 text-slate-700 stroke-[3]" />}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Right: LinkedIn & Resume */}
@@ -2126,7 +2178,7 @@ export default function Applicants({ jobId }) {
                         {app.resume ? (
                           <button
                             type="button"
-                            onClick={() => setResumeModalApplicant(app)}
+                            onClick={() => setResumePdfModal(app)}
                             className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:text-[#0A66C2] hover:border-[#0A66C2] transition-colors shadow-2xs no-underline cursor-pointer"
                           >
                             <FiDownload className="h-3.5 w-3.5" />
@@ -2432,7 +2484,7 @@ export default function Applicants({ jobId }) {
                             href={`https://wa.me/${app.rawPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello ${app.name}, this is regarding your application for ${app.role} on Careerfast.`)}`}
                             target="_blank"
                             rel="noreferrer"
-                            onClick={() => recordCandidateWhatsAppAPI({ count: 1 }).catch(() => {})}
+                            onClick={() => recordCandidateWhatsAppAPI({ count: 1 }).catch(() => { })}
                             className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                             title="Chat on WhatsApp"
                           >
@@ -2543,9 +2595,420 @@ export default function Applicants({ jobId }) {
       </div>
 
       {/* ──────────────────────────────────────────────────────────────────────────
-          MODAL: RESUME PREVIEW & DOWNLOAD
+          MODAL: CANDIDATE PROFILE DETAILS (FULL VIEW MATCHING CANDIDATE SEARCH)
       ────────────────────────────────────────────────────────────────────────── */}
-      {resumeModalApplicant && (
+      {profileModalApplicant && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Hero Gradient Header */}
+            <div className="bg-gradient-to-r from-[#003870] via-[#0A66C2] to-[#0055A5] p-6 text-white relative shrink-0">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  {/* Avatar with fallback initials */}
+                  <div className="relative shrink-0">
+                    {profileModalApplicant.avatar ? (
+                      <img
+                        src={getImageUrl(profileModalApplicant.avatar, `${profileModalApplicant.first_name?.[0] || 'C'}${profileModalApplicant.last_name?.[0] || ''}`)}
+                        alt={profileModalApplicant.name}
+                        className="w-20 h-20 rounded-2xl object-cover ring-4 ring-white/20 shadow-xl bg-white"
+                        style={{ width: '80px', height: '80px', minWidth: '80px', minHeight: '80px', objectFit: 'cover' }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextSibling) {
+                            e.currentTarget.nextSibling.style.display = 'flex';
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      style={{ display: profileModalApplicant.avatar ? 'none' : 'flex', width: '80px', height: '80px' }}
+                      className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#0A66C2] to-blue-400 ring-4 ring-white/20 shadow-xl text-white items-center justify-center font-bold text-2xl tracking-wider select-none"
+                    >
+                      {`${profileModalApplicant.first_name?.[0] || 'C'}${profileModalApplicant.last_name?.[0] || ''}`.toUpperCase()}
+                    </div>
+                    <span className="w-4 h-4 rounded-full bg-emerald-400 border-2 border-slate-900 absolute -bottom-1 -right-1 shadow-sm" title="Active Candidate" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight mb-0">
+                        {profileModalApplicant.name}
+                      </h2>
+                      <span className="inline-flex items-center gap-1 bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
+                        <CheckCircle2 size={12} className="text-emerald-400" /> Verified
+                      </span>
+                    </div>
+
+                    <p className="text-[13.5px] text-blue-100 font-medium mt-1 mb-2">
+                      {profileModalApplicant.job_title || profileModalApplicant.designation || (profileModalApplicant.isFresher ? 'Fresher' : profileModalApplicant.role)}
+                      {profileModalApplicant.company_name && (
+                        <span className="text-blue-200/90 font-normal"> at <strong className="text-white font-semibold">{profileModalApplicant.company_name}</strong></span>
+                      )}
+                    </p>
+
+                    {/* Metadata Chips */}
+                    <div className="flex flex-wrap items-center gap-2 text-[12px]">
+                      <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-white/90">
+                        <MapPin size={12} className="text-sky-300" />
+                        {profileModalApplicant.location || 'India'}
+                      </span>
+
+                      <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-white/90">
+                        <Briefcase size={12} className="text-amber-300" />
+                        {profileModalApplicant.experienceDisplay || 'Fresher'}
+                      </span>
+
+                      {profileModalApplicant.notice_period && (
+                        <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-white/90 border border-white/10">
+                          <Clock size={12} className="text-emerald-300" />
+                          {profileModalApplicant.notice_period}
+                        </span>
+                      )}
+
+                      {(profileModalApplicant.salary || profileModalApplicant.expected_salary) && (
+                        <span className="inline-flex items-center gap-1 bg-white/10 backdrop-blur-md px-2.5 py-0.5 rounded-lg text-white/90 border border-white/10 font-medium">
+                          <span className="text-amber-300 font-bold">₹</span>
+                          {profileModalApplicant.salary || profileModalApplicant.expected_salary}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Right Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenFolderModalForCandidate(profileModalApplicant)}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                    title="Save to Folder"
+                  >
+                    <Bookmark size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProfileModalApplicant(null)}
+                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 overflow-y-auto bg-slate-50/50 flex-1">
+              {/* Section 1: Contact & Verification Details */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-[14px] font-semibold text-slate-900 tracking-tight flex items-center gap-2 mb-0">
+                    <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+                    Contact & Verification Details
+                  </h4>
+                  <span className="text-[11.5px] text-slate-400 font-medium">Quick copy & direct contact</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Email */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-blue-300 transition-all flex items-center justify-between group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0A66C2] flex items-center justify-center shrink-0">
+                        <Mail size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[12px] font-semibold text-slate-400 block">Email Address</span>
+                        <a
+                          href={`mailto:${profileModalApplicant.email}`}
+                          className="text-[13px] font-semibold text-slate-800 hover:text-[#0A66C2] truncate block no-underline"
+                          title={profileModalApplicant.email}
+                        >
+                          {profileModalApplicant.email || 'Not specified'}
+                        </a>
+                      </div>
+                    </div>
+                    {profileModalApplicant.email && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(profileModalApplicant.email, 'Email')}
+                        className="text-slate-400 hover:text-[#0A66C2] p-1.5 rounded-lg hover:bg-blue-50 cursor-pointer transition-colors shrink-0"
+                        title="Copy Email"
+                      >
+                        {copiedField === 'Email' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs hover:border-emerald-300 transition-all flex items-center justify-between group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Phone size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[12px] font-semibold text-slate-400 block">Phone Number</span>
+                        <a
+                          href={`tel:${profileModalApplicant.phone}`}
+                          className="text-[13px] font-semibold text-slate-800 hover:text-emerald-600 truncate block no-underline"
+                        >
+                          {profileModalApplicant.phone || 'Available upon request'}
+                        </a>
+                      </div>
+                    </div>
+                    {profileModalApplicant.phone && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopyText(profileModalApplicant.phone, 'Phone')}
+                        className="text-slate-400 hover:text-emerald-600 p-1.5 rounded-lg hover:bg-emerald-50 cursor-pointer transition-colors shrink-0"
+                        title="Copy Phone"
+                      >
+                        {copiedField === 'Phone' ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Current Location */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                      <MapPin size={18} />
+                    </div>
+                    <div>
+                      <span className="text-[12px] font-semibold text-slate-400 block">Current Location</span>
+                      <span className="text-[13px] font-semibold text-slate-800">
+                        {profileModalApplicant.location || 'Not specified'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Total Experience */}
+                  <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                      <Briefcase size={18} />
+                    </div>
+                    <div>
+                      <span className="text-[12px] font-semibold text-slate-400 block">Total Experience</span>
+                      <span className="text-[13px] font-semibold text-slate-800">
+                        {profileModalApplicant.experienceDisplay || (profileModalApplicant.total_years ? `${profileModalApplicant.total_years} Years ${profileModalApplicant.total_months || 0} Months` : 'Fresher')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Professional Summary */}
+              {profileModalApplicant.about && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+                    <h4 className="text-[14px] font-semibold text-slate-900 tracking-tight flex items-center gap-1.5 mb-0">
+                      <Sparkles size={15} className="text-amber-500" />
+                      Professional Summary
+                    </h4>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs border-l-4 border-l-[#0A66C2]">
+                    <p className="text-[13.5px] text-slate-700 leading-relaxed mb-0 font-normal">
+                      {highlightKeywords(profileModalApplicant.about, [filters.searchWithin, ...filters.skills, ...jobRequiredSkills].filter(Boolean))}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Section 3: Core Skills & Competencies */}
+              {Array.isArray(profileModalApplicant.skills) && profileModalApplicant.skills.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+                      <h4 className="text-[14px] font-semibold text-slate-900 tracking-tight mb-0">
+                        Core Skills & Competencies
+                      </h4>
+                    </div>
+                    <span className="text-[11.5px] font-semibold text-[#0A66C2] bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                      {profileModalApplicant.skills.length} Skills
+                    </span>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs">
+                    <div className="flex flex-wrap gap-2">
+                      {profileModalApplicant.skills.map((s, i) => {
+                        const isMatch = jobRequiredSkills.includes(s.toLowerCase()) || filters.skills.some(f => f.toLowerCase() === s.toLowerCase());
+                        return (
+                          <span
+                            key={i}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-semibold transition-all shadow-2xs ${isMatch
+                              ? 'bg-amber-50 text-amber-900 border border-amber-300 ring-1 ring-amber-300/40'
+                              : 'bg-slate-50 text-slate-700 border border-slate-200/90 hover:border-blue-300 hover:bg-blue-50/50 hover:text-[#0A66C2]'
+                              }`}
+                          >
+                            {isMatch && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />}
+                            {s}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Section 4: Academic Qualifications */}
+              {(profileModalApplicant.course || profileModalApplicant.education || profileModalApplicant.college) && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+                    <h4 className="text-[14px] font-semibold text-slate-900 tracking-tight flex items-center gap-1.5 mb-0">
+                      <GraduationCap size={16} className="text-[#0A66C2]" />
+                      Academic Qualifications
+                    </h4>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <span className="font-bold text-slate-900 text-[14.5px] block">
+                        {profileModalApplicant.course || profileModalApplicant.education || 'Degree / Diploma'}
+                      </span>
+                      {profileModalApplicant.college && (
+                        <p className="text-slate-600 text-[13px] mb-0 font-medium">
+                          {profileModalApplicant.college}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Section 5: Screening Questions & Answers */}
+              {Array.isArray(profileModalApplicant.candidateAnswers) && profileModalApplicant.candidateAnswers.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2.5">
+                    <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+                    <h4 className="text-[14px] font-semibold text-slate-900 tracking-tight flex items-center gap-1.5 mb-0">
+                      <HelpCircle size={16} className="text-[#0A66C2]" />
+                      Candidate Questionnaire Answers
+                    </h4>
+                  </div>
+                  <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-2xs space-y-3">
+                    {profileModalApplicant.candidateAnswers.map((qa, i) => (
+                      <div key={i} className="space-y-1 pb-2 border-b border-slate-100 last:border-0 last:pb-0">
+                        <p className="text-[13px] font-bold text-slate-900 mb-0">
+                          Q{i + 1}: {qa.question}
+                        </p>
+                        <p className="text-[13px] text-slate-700 bg-slate-50 p-2.5 rounded-xl mb-0 border border-slate-100">
+                          {qa.answer || 'No response provided'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Section 6: Resume File Document */}
+              <div>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
+                  <h4 className="text-[14px] font-semibold text-slate-900 tracking-tight flex items-center gap-1.5 mb-0">
+                    <FileText size={16} className="text-[#0A66C2]" />
+                    Resume File Document
+                  </h4>
+                </div>
+
+                {profileModalApplicant.resume ? (
+                  <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/50 border border-blue-200/90 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-[#0A66C2] text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <FileText size={22} />
+                      </div>
+                      <div>
+                        <span className="text-[13.5px] font-bold text-slate-900 block">
+                          {`${profileModalApplicant.name}_Resume.pdf`}
+                        </span>
+                        <span className="text-[11.5px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
+                          <CheckCircle2 size={12} /> Verified Resume Document
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setResumePdfModal(profileModalApplicant)}
+                        className="px-3.5 py-2 bg-white text-[#0A66C2] hover:bg-blue-50 border border-blue-200 text-[12.5px] font-bold rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                      >
+                        <ExternalLink size={14} /> View PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadResume(profileModalApplicant.resume, profileModalApplicant.name, profileModalApplicant.id)}
+                        className="px-4 py-2 bg-[#0A66C2] hover:bg-[#004182] text-white text-[12.5px] font-semibold rounded-xl flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={loadingDownload[profileModalApplicant.id]}
+                      >
+                        {loadingDownload[profileModalApplicant.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                        <span>{loadingDownload[profileModalApplicant.id] ? 'Loading...' : 'Download PDF'}</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white p-4 rounded-2xl border border-slate-200/80 text-slate-500 text-[12.5px] flex items-center gap-2.5 shadow-2xs">
+                    <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                    <span>Candidate profile data verified directly from application details above.</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sticky Modern Footer */}
+            <div className="px-6 py-4 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              {/* Quick Communication Options */}
+              <div className="flex items-center gap-2">
+                {profileModalApplicant.rawPhone && (
+                  <>
+                    <a
+                      href={`https://wa.me/${profileModalApplicant.rawPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${profileModalApplicant.name}, we reviewed your application for the ${profileModalApplicant.role} position.`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-2 font-semibold text-[12.5px] rounded-xl flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60 shadow-2xs no-underline cursor-pointer transition-colors"
+                    >
+                      <FaWhatsapp size={15} />
+                      <span>WhatsApp</span>
+                    </a>
+                    <a
+                      href={`sms:${profileModalApplicant.rawPhone}`}
+                      className="px-3.5 py-2 font-semibold text-[12.5px] rounded-xl flex items-center gap-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200/60 shadow-2xs no-underline cursor-pointer transition-colors"
+                    >
+                      <FiMessageSquare size={14} />
+                      <span>SMS</span>
+                    </a>
+                  </>
+                )}
+              </div>
+
+              {/* Right: Close + Contact */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProfileModalApplicant(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-[13px] font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContactModalApplicant(profileModalApplicant);
+                    setContactMessage(`Hi ${profileModalApplicant.name},\n\nWe reviewed your application for the ${profileModalApplicant.role} position at ${jobData?.company_name || 'our company'}. We would love to discuss the next steps with you.`);
+                    setProfileModalApplicant(null);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white text-[13px] font-semibold shadow-sm cursor-pointer"
+                >
+                  <Mail size={14} />
+                  <span>Contact Candidate</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──────────────────────────────────────────────────────────────────────────
+          MODAL: DEDICATED FULL RESUME PDF VIEWER
+      ────────────────────────────────────────────────────────────────────────── */}
+      {resumePdfModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
@@ -2556,29 +3019,29 @@ export default function Applicants({ jobId }) {
                 </div>
                 <div>
                   <h3 className="text-[17px] font-bold text-slate-900 mb-0">
-                    {resumeModalApplicant.name}&apos;s Resume
+                    {resumePdfModal.name}&apos;s Resume
                   </h3>
                   <p className="text-[12px] text-slate-400 mb-0">
-                    Applied for {resumeModalApplicant.role} • {resumeModalApplicant.location}
+                    Applied for {resumePdfModal.role} • {resumePdfModal.location}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {resumeModalApplicant.resume && (
+                {resumePdfModal.resume && (
                   <button
                     type="button"
-                    onClick={() => handleDownloadResume(resumeModalApplicant.resume, resumeModalApplicant.name, resumeModalApplicant.id)}
+                    onClick={() => handleDownloadResume(resumePdfModal.resume, resumePdfModal.name, resumePdfModal.id)}
                     className="flex items-center gap-1.5 text-[13px] font-semibold !text-white hover:!text-white bg-[#0A66C2] hover:bg-[#004182] px-3.5 py-1.5 rounded-xl transition-all shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={loadingDownload[resumeModalApplicant.id]}
+                    disabled={loadingDownload[resumePdfModal.id]}
                   >
-                    {loadingDownload[resumeModalApplicant.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                    <span className="!text-white">{loadingDownload[resumeModalApplicant.id] ? 'Loading...' : 'Download PDF'}</span>
+                    {loadingDownload[resumePdfModal.id] ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    <span className="!text-white">{loadingDownload[resumePdfModal.id] ? 'Loading...' : 'Download PDF'}</span>
                   </button>
                 )}
                 <button
                   type="button"
-                  onClick={() => setResumeModalApplicant(null)}
+                  onClick={() => setResumePdfModal(null)}
                   className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X size={20} />
@@ -2588,10 +3051,10 @@ export default function Applicants({ jobId }) {
 
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-              {resumeModalApplicant.resume ? (
+              {resumePdfModal.resume ? (
                 <div className="h-[600px] w-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-inner">
                   <iframe
-                    src={`${resumeModalApplicant.resume}#toolbar=1`}
+                    src={`${resumePdfModal.resume}#toolbar=1`}
                     title="Candidate Resume"
                     className="w-full h-full border-0"
                   />
@@ -2601,16 +3064,8 @@ export default function Applicants({ jobId }) {
                   <FileText size={40} className="text-slate-300 mx-auto mb-3" />
                   <h4 className="text-[16px] font-bold text-slate-800">No Resume File Uploaded</h4>
                   <p className="text-[13px] text-slate-500 mt-1 max-w-sm mx-auto">
-                    This candidate did not attach a PDF resume. Review their candidate profile details and skills below.
+                    This candidate did not attach a PDF resume.
                   </p>
-                  <div className="mt-6 text-left max-w-2xl mx-auto bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-[13px]">
-                    <p><strong>Name:</strong> {resumeModalApplicant.name}</p>
-                    <p><strong>Email:</strong> {resumeModalApplicant.email}</p>
-                    <p><strong>Phone:</strong> {resumeModalApplicant.phone}</p>
-                    <p><strong>Experience:</strong> {resumeModalApplicant.experienceDisplay}</p>
-                    <p><strong>Skills:</strong> {resumeModalApplicant.skills.join(', ')}</p>
-                    <p><strong>About:</strong> {resumeModalApplicant.about || 'N/A'}</p>
-                  </div>
                 </div>
               )}
             </div>

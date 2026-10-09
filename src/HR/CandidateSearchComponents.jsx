@@ -187,7 +187,8 @@ export const CheckboxDropdown = ({
     if (isOpen && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 300 && rect.top > 250) {
+      const spaceAbove = rect.top;
+      if (spaceBelow < 220 && spaceAbove > 340) {
         setOpenUpwards(true);
       } else {
         setOpenUpwards(false);
@@ -196,7 +197,7 @@ export const CheckboxDropdown = ({
   }, [isOpen]);
 
   return (
-    <div className="relative w-full" ref={wrapperRef}>
+    <div className={`relative w-full ${isOpen ? 'z-[100]' : 'z-10'}`} ref={wrapperRef}>
       <div 
         className={`flex items-center gap-2 w-full px-3.5 py-2.5 border bg-white transition-colors cursor-text min-h-[46px] ${
           isOpen
@@ -223,7 +224,7 @@ export const CheckboxDropdown = ({
 
       {isOpen && (
         <div 
-          className={`absolute z-50 w-full left-0 bg-white border border-[#0A66C2] shadow-2xl max-h-60 overflow-y-auto flex flex-col ${
+          className={`absolute z-[100] w-full left-0 bg-white border border-[#0A66C2] shadow-2xl max-h-60 overflow-y-auto flex flex-col ${
             openUpwards
               ? 'bottom-full mb-0 border-b-0 rounded-t-lg'
               : 'top-full mt-0 border-t-0 rounded-b-lg'
@@ -517,7 +518,8 @@ export const TwoPaneIndustryDropdown = ({
     if (isOpen && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 380 && rect.top > 300) {
+      const spaceAbove = rect.top;
+      if (spaceBelow < 220 && spaceAbove > 340) {
         setOpenUpwards(true);
       } else {
         setOpenUpwards(false);
@@ -537,7 +539,7 @@ export const TwoPaneIndustryDropdown = ({
   );
 
   return (
-    <div className="relative w-full" ref={wrapperRef}>
+    <div className={`relative w-full ${isOpen ? 'z-[100]' : 'z-10'}`} ref={wrapperRef}>
       <div 
         className={`w-full px-3.5 py-2.5 border bg-white transition-colors cursor-pointer flex justify-between items-center min-h-[46px] ${
           isOpen
@@ -573,7 +575,7 @@ export const TwoPaneIndustryDropdown = ({
 
       {isOpen && (
         <div 
-          className={`absolute z-50 w-full left-0 bg-white border border-[#0A66C2] shadow-2xl overflow-hidden flex flex-col ${
+          className={`absolute z-[100] w-full left-0 bg-white border border-[#0A66C2] shadow-2xl overflow-hidden flex flex-col ${
             openUpwards
               ? 'bottom-full mb-0 border-b-0 rounded-t-lg'
               : 'top-full mt-0 border-t-0 rounded-b-lg'
@@ -777,7 +779,53 @@ export const TwoPaneIndustryDropdown = ({
   );
 };
 
-// 4. Company Search Dropdown with Registered Companies & Internet Lookup API
+// Curated list of top-tier well-known companies, MNCs, tech leaders & unicorns
+const POPULAR_TOP_COMPANIES = [
+  { name: 'Google', domain: 'google.com', logo: 'https://logo.clearbit.com/google.com', isTop: true },
+  { name: 'Microsoft', domain: 'microsoft.com', logo: 'https://logo.clearbit.com/microsoft.com', isTop: true },
+  { name: 'Amazon', domain: 'amazon.com', logo: 'https://logo.clearbit.com/amazon.com', isTop: true },
+  { name: 'Tata Consultancy Services (TCS)', domain: 'tcs.com', logo: 'https://logo.clearbit.com/tcs.com', isTop: true },
+  { name: 'Infosys', domain: 'infosys.com', logo: 'https://logo.clearbit.com/infosys.com', isTop: true },
+  { name: 'Wipro', domain: 'wipro.com', logo: 'https://logo.clearbit.com/wipro.com', isTop: true },
+  { name: 'Accenture', domain: 'accenture.com', logo: 'https://logo.clearbit.com/accenture.com', isTop: true },
+  { name: 'Cognizant', domain: 'cognizant.com', logo: 'https://logo.clearbit.com/cognizant.com', isTop: true },
+  { name: 'HCLTech', domain: 'hcltech.com', logo: 'https://logo.clearbit.com/hcltech.com', isTop: true },
+  { name: 'Tech Mahindra', domain: 'techmahindra.com', logo: 'https://logo.clearbit.com/techmahindra.com', isTop: true },
+  { name: 'IBM', domain: 'ibm.com', logo: 'https://logo.clearbit.com/ibm.com', isTop: true },
+  { name: 'Deloitte', domain: 'deloitte.com', logo: 'https://logo.clearbit.com/deloitte.com', isTop: true },
+  { name: 'Capgemini', domain: 'capgemini.com', logo: 'https://logo.clearbit.com/capgemini.com', isTop: true },
+  { name: 'Oracle', domain: 'oracle.com', logo: 'https://logo.clearbit.com/oracle.com', isTop: true },
+  { name: 'Cisco', domain: 'cisco.com', logo: 'https://logo.clearbit.com/cisco.com', isTop: true },
+  { name: 'Flipkart', domain: 'flipkart.com', logo: 'https://logo.clearbit.com/flipkart.com', isTop: true },
+  { name: 'Swiggy', domain: 'swiggy.com', logo: 'https://logo.clearbit.com/swiggy.com', isTop: true },
+  { name: 'Zomato', domain: 'zomato.com', logo: 'https://logo.clearbit.com/zomato.com', isTop: true },
+  { name: 'Paytm', domain: 'paytm.com', logo: 'https://logo.clearbit.com/paytm.com', isTop: true },
+  { name: 'PhonePe', domain: 'phonepe.com', logo: 'https://logo.clearbit.com/phonepe.com', isTop: true },
+  { name: 'Razorpay', domain: 'razorpay.com', logo: 'https://logo.clearbit.com/razorpay.com', isTop: true },
+  { name: 'Zoho', domain: 'zoho.com', logo: 'https://logo.clearbit.com/zoho.com', isTop: true },
+  { name: 'Freshworks', domain: 'freshworks.com', logo: 'https://logo.clearbit.com/freshworks.com', isTop: true },
+  { name: 'Reliance Industries', domain: 'ril.com', logo: 'https://logo.clearbit.com/ril.com', isTop: true },
+  { name: 'HDFC Bank', domain: 'hdfcbank.com', logo: 'https://logo.clearbit.com/hdfcbank.com', isTop: true },
+  { name: 'ICICI Bank', domain: 'icicibank.com', logo: 'https://logo.clearbit.com/icicibank.com', isTop: true },
+  { name: 'Larsen & Toubro (L&T)', domain: 'larsentoubro.com', logo: 'https://logo.clearbit.com/larsentoubro.com', isTop: true },
+  { name: 'Adobe', domain: 'adobe.com', logo: 'https://logo.clearbit.com/adobe.com', isTop: true },
+  { name: 'Salesforce', domain: 'salesforce.com', logo: 'https://logo.clearbit.com/salesforce.com', isTop: true },
+  { name: 'Apple', domain: 'apple.com', logo: 'https://logo.clearbit.com/apple.com', isTop: true },
+  { name: 'Meta', domain: 'meta.com', logo: 'https://logo.clearbit.com/meta.com', isTop: true }
+];
+
+// Helper to filter out junk / raw corrupted company names
+const isCleanCompanyName = (name) => {
+  if (!name || typeof name !== 'string') return false;
+  const trimmed = name.trim();
+  if (trimmed.length < 2) return false;
+  // Exclude strings starting with symbols like /, \, *, #, @, or single numbers
+  if (/^[/\*\\#@_\-+=.,]/.test(trimmed)) return false;
+  if (/^\d+$/.test(trimmed)) return false;
+  return true;
+};
+
+// 4. Company Search Dropdown with Top MNCs, Clean Registered Companies & Internet Lookup API
 export const CompanySearchDropdown = ({
   selectedOptions = [],
   onChange,
@@ -832,14 +880,26 @@ export const CompanySearchDropdown = ({
   }, [inputValue]);
 
   // Combined options:
-  // 1. If searching, show local matches + internet API results (deduplicated)
-  // 2. If empty, show first 40 registered companies
+  // 1. Curated Top & Popular MNCs
+  // 2. Clearbit / API live search results
+  // 3. Clean registered employers
   const displayItems = useMemo(() => {
     const query = inputValue.trim().toLowerCase();
     const seenNames = new Set();
     const items = [];
 
-    // Add API results if present
+    // 1. Top MNCs matching query or full top list when empty
+    POPULAR_TOP_COMPANIES.forEach(comp => {
+      if (!query || comp.name.toLowerCase().includes(query) || (comp.domain && comp.domain.toLowerCase().includes(query))) {
+        const lower = comp.name.toLowerCase();
+        if (!seenNames.has(lower)) {
+          seenNames.add(lower);
+          items.push(comp);
+        }
+      }
+    });
+
+    // 2. Add API results if present
     if (apiResults && apiResults.length > 0) {
       apiResults.forEach(item => {
         const lower = item.name.toLowerCase();
@@ -850,12 +910,13 @@ export const CompanySearchDropdown = ({
       });
     }
 
-    // Filter registered companies locally
-    const filteredRegistered = registeredCompanies.filter(c => 
+    // 3. Filter clean registered companies
+    const cleanRegistered = (registeredCompanies || []).filter(isCleanCompanyName);
+    const filteredRegistered = cleanRegistered.filter(c => 
       !query || c.toLowerCase().includes(query)
     );
 
-    filteredRegistered.slice(0, 30).forEach(name => {
+    filteredRegistered.slice(0, 40).forEach(name => {
       const lower = name.toLowerCase();
       if (!seenNames.has(lower)) {
         seenNames.add(lower);
@@ -888,7 +949,8 @@ export const CompanySearchDropdown = ({
     if (isOpen && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 350 && rect.top > 280) {
+      const spaceAbove = rect.top;
+      if (spaceBelow < 220 && spaceAbove > 340) {
         setOpenUpwards(true);
       } else {
         setOpenUpwards(false);
@@ -897,7 +959,7 @@ export const CompanySearchDropdown = ({
   }, [isOpen]);
 
   return (
-    <div className="relative w-full" ref={wrapperRef}>
+    <div className={`relative w-full ${isOpen ? 'z-[100]' : 'z-10'}`} ref={wrapperRef}>
       <div 
         className={`flex items-center gap-2 w-full px-3.5 py-2.5 border bg-white transition-colors cursor-text min-h-[46px] ${
           isOpen
@@ -933,17 +995,17 @@ export const CompanySearchDropdown = ({
 
       {isOpen && (
         <div 
-          className={`absolute z-50 w-full left-0 bg-white border border-[#0A66C2] shadow-2xl max-h-72 overflow-y-auto flex flex-col ${
+          className={`absolute z-[100] w-full left-0 bg-white border border-[#0A66C2] shadow-2xl max-h-72 overflow-y-auto flex flex-col rounded-b-xl ${
             openUpwards
-              ? 'bottom-full mb-0 border-b-0 rounded-t-lg'
-              : 'top-full mt-0 border-t-0 rounded-b-lg'
+              ? 'bottom-full mb-0 border-b-0 rounded-t-xl rounded-b-none'
+              : 'top-full mt-0 border-t-0 rounded-b-xl'
           }`}
         >
           {/* Header */}
           <div className="px-3.5 py-2 text-[12px] font-semibold text-slate-500 bg-slate-50 border-b border-slate-100 flex justify-between items-center sticky top-0 z-10">
             <span className="flex items-center gap-1.5">
               <Building size={13} className="text-[#0A66C2]" />
-              <span>Registered & Global Companies</span>
+              <span>Top MNCs & Registered Companies</span>
             </span>
             {selectedOptions.length > 0 && (
               <button 
@@ -1002,7 +1064,11 @@ export const CompanySearchDropdown = ({
                     </div>
 
                     {/* Source Badge */}
-                    {item.isRegistered ? (
+                    {item.isTop ? (
+                      <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1">
+                        <Star size={9} className="fill-amber-500 text-amber-500" /> Top MNC
+                      </span>
+                    ) : item.isRegistered ? (
                       <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">
                         Registered
                       </span>

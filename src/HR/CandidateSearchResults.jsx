@@ -18,6 +18,7 @@ import {
 
 import { CommonToaster } from '../Common/CommonToaster';
 import CommonLoader from '../Common/CommonLoader';
+import NeatSelect from '../Common/NeatSelect';
 import { getImageUrl } from '../utils/getImageUrl';
 import { downloadResumeFile, viewResumeFile } from '../utils/downloadResume';
 import CandidateFilterSidebar from './CandidateFilterSidebar';
@@ -735,7 +736,7 @@ const CandidateSearchResults = () => {
     setExpandedAboutMap(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Extract active search keywords for dynamic highlighting
+  // Extract all active search and filter keywords for dynamic highlighting
   const activeKeywords = useMemo(() => {
     const terms = new Set();
 
@@ -747,20 +748,23 @@ const CandidateSearchResults = () => {
       }
       if (typeof input !== 'string') return;
 
-      const commaParts = input.split(/[,]+/);
+      const commaParts = input.split(/[,/|]+/);
       commaParts.forEach(part => {
         const trimmed = part.trim();
-        if (!trimmed) return;
+        if (!trimmed || trimmed === 'Any' || trimmed === 'All' || trimmed === 'Any UG' || trimmed === 'Any PG' || trimmed === 'Specific UG' || trimmed === 'Specific PG' || trimmed === 'No UG' || trimmed === 'No PG') return;
 
-        // If it's a multi-word phrase (e.g. "Full Stack Developer"), add the whole phrase
-        if (trimmed.includes(' ')) {
-          terms.add(trimmed);
+        // Clean up count brackets like "Bengaluru (60,000+)" -> "Bengaluru"
+        const cleanPhrase = trimmed.replace(/\s*\(\d+.*?\)/g, '').trim();
+
+        // If it's a multi-word phrase (e.g. "Full Stack Developer", "Bengaluru / Bangalore", "Techno India"), add the whole phrase
+        if (cleanPhrase.includes(' ')) {
+          terms.add(cleanPhrase);
         }
 
-        // Also add each individual word (e.g. "React", "Node.js", "Sales")
-        const words = trimmed.split(/\s+/);
+        // Also add each individual word (e.g. "Bengaluru", "Chennai", "React", "Node.js", "Sales", "MCA", "B.Tech")
+        const words = cleanPhrase.split(/\s+/);
         words.forEach(w => {
-          const clean = w.trim();
+          const clean = w.replace(/^[()\[\]{}:;,\.-]+|[()\[\]{}:;,\.-]+$/g, '').trim();
           if (clean.length >= 2 || /^[a-zA-Z]$/.test(clean)) {
             terms.add(clean);
           }
@@ -770,12 +774,56 @@ const CandidateSearchResults = () => {
 
     addTerms(filters.keywords);
     addTerms(filters.keywordWithinResults);
-    if (Array.isArray(filters.skills)) {
-      filters.skills.forEach(s => addTerms(s));
-    }
+    addTerms(filters.location);
+    addTerms(filters.preferredLocations);
+    addTerms(filters.skills);
+    addTerms(filters.company);
+    addTerms(filters.designation);
+    addTerms(filters.industry);
+    addTerms(filters.education);
+    addTerms(filters.courses);
+    addTerms(filters.ugQualification);
+    addTerms(filters.pgQualification);
+    addTerms(filters.doctorateQualification);
+    addTerms(filters.institutes);
+    addTerms(filters.gender);
+    addTerms(filters.languages);
+    addTerms(filters.jobType);
+    addTerms(filters.noticePeriod);
+    addTerms(filters.smartInsights);
+    addTerms(filters.differentlyAbled);
+    addTerms(filters.companyHeadcount);
+    addTerms(filters.visaStatus);
+    addTerms(filters.showOnly);
+    addTerms(filters.companyFunding);
 
     return Array.from(terms);
-  }, [filters.keywords, filters.keywordWithinResults, filters.skills]);
+  }, [
+    filters.keywords,
+    filters.keywordWithinResults,
+    filters.location,
+    filters.preferredLocations,
+    filters.skills,
+    filters.company,
+    filters.designation,
+    filters.industry,
+    filters.education,
+    filters.courses,
+    filters.ugQualification,
+    filters.pgQualification,
+    filters.doctorateQualification,
+    filters.institutes,
+    filters.gender,
+    filters.languages,
+    filters.jobType,
+    filters.noticePeriod,
+    filters.smartInsights,
+    filters.differentlyAbled,
+    filters.companyHeadcount,
+    filters.visaStatus,
+    filters.showOnly,
+    filters.companyFunding
+  ]);
 
   // Quick renderer for highlighting keywords in candidate card texts
   const renderHighlightedText = useCallback((text) => {
@@ -860,7 +908,6 @@ const CandidateSearchResults = () => {
   const fetchCandidates = useCallback(async () => {
     try {
       setLoading(true);
-      const searchTerms = [filters.keywords, filters.keywordWithinResults].filter(Boolean).join(' ').trim();
 
       // Convert timePeriod to days count or timeframe
       let activeUpdatedParam = '';
@@ -871,7 +918,8 @@ const CandidateSearchResults = () => {
       }
 
       const payload = {
-        search: searchTerms,
+        search: (filters.keywords || '').trim(),
+        keywordWithinResults: (filters.keywordWithinResults || '').trim(),
         keywordMatch: filters.keywordMatch || 'any',
         location: Array.isArray(filters.location) ? filters.location.join(',') : (filters.location || ''),
         skills: Array.isArray(filters.skills) ? filters.skills.join(',') : (filters.skills || ''),
@@ -2360,73 +2408,65 @@ const CandidateSearchResults = () => {
             </div>
 
             {/* Candidate Status Dropdown */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={filters.candidateStatus || 'Active / Updated'}
-                onChange={e => handleSetFilter('candidateStatus', e.target.value)}
-                className="appearance-none bg-white border border-slate-200 hover:border-slate-300 pl-3.5 pr-8 py-2 rounded-xl text-[13px] font-medium text-slate-700 cursor-pointer focus:outline-none focus:border-[#0A66C2] shadow-2xs transition-all"
-              >
-                <option value="Active / Updated">Active / Updated</option>
-                <option value="All candidates">All candidates</option>
-                <option value="Active only">Active only</option>
-                <option value="Inactive only">Inactive only</option>
-                <option value="Recently updated">Recently updated</option>
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-slate-500" />
-            </div>
+            <NeatSelect
+              value={filters.candidateStatus || 'Active / Updated'}
+              onChange={(val) => handleSetFilter('candidateStatus', val)}
+              options={[
+                { value: 'Active / Updated', label: 'Active / Updated' },
+                { value: 'All candidates', label: 'All candidates' },
+                { value: 'Active only', label: 'Active only' },
+                { value: 'Inactive only', label: 'Inactive only' },
+                { value: 'Recently updated', label: 'Recently updated' },
+              ]}
+              buttonClassName="py-2"
+            />
 
             {/* Time Period Dropdown */}
-            <div className="relative inline-flex items-center">
-              <Calendar size={14} className="pointer-events-none absolute left-3 text-slate-500" />
-              <select
-                value={filters.timePeriod || 'In last 12 months'}
-                onChange={e => handleSetFilter('timePeriod', e.target.value)}
-                className="appearance-none bg-white border border-slate-200 hover:border-slate-300 pl-8 pr-8 py-2 rounded-xl text-[13px] font-medium text-slate-700 cursor-pointer focus:outline-none focus:border-[#0A66C2] shadow-2xs transition-all"
-              >
-                <option value="In last 7 days">In last 7 days</option>
-                <option value="In last 1 month">In last 1 month</option>
-                <option value="In last 3 months">In last 3 months</option>
-                <option value="In last 6 months">In last 6 months</option>
-                <option value="In last 12 months">In last 12 months</option>
-                <option value="In last 1 year">In last 1 year</option>
-                <option value="All time">All time</option>
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-slate-500" />
-            </div>
+            <NeatSelect
+              value={filters.timePeriod || 'In last 12 months'}
+              onChange={(val) => handleSetFilter('timePeriod', val)}
+              prefix={<Calendar size={14} />}
+              options={[
+                { value: 'In last 7 days', label: 'In last 7 days' },
+                { value: 'In last 1 month', label: 'In last 1 month' },
+                { value: 'In last 3 months', label: 'In last 3 months' },
+                { value: 'In last 6 months', label: 'In last 6 months' },
+                { value: 'In last 12 months', label: 'In last 12 months' },
+                { value: 'In last 1 year', label: 'In last 1 year' },
+                { value: 'All time', label: 'All time' },
+              ]}
+              buttonClassName="py-2"
+            />
 
             {/* Sort By Dropdown */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={filters.sortBy || 'Relevance'}
-                onChange={e => handleSetFilter('sortBy', e.target.value)}
-                className="appearance-none bg-white border border-slate-200 hover:border-slate-300 pl-3.5 pr-8 py-2 rounded-xl text-[13px] font-medium text-slate-700 cursor-pointer focus:outline-none focus:border-[#0A66C2] shadow-2xs transition-all"
-              >
-                <option value="Relevance">Sort by: Relevance</option>
-                <option value="Newest">Sort by: Newest</option>
-                <option value="Oldest">Sort by: Oldest</option>
-                <option value="Experience (High to Low)">Sort by: Exp (High to Low)</option>
-                <option value="Experience (Low to High)">Sort by: Exp (Low to High)</option>
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-slate-500" />
-            </div>
+            <NeatSelect
+              value={filters.sortBy || 'Relevance'}
+              onChange={(val) => handleSetFilter('sortBy', val)}
+              options={[
+                { value: 'Relevance', label: 'Sort by: Relevance' },
+                { value: 'Newest', label: 'Sort by: Newest' },
+                { value: 'Oldest', label: 'Sort by: Oldest' },
+                { value: 'Experience (High to Low)', label: 'Sort by: Exp (High to Low)' },
+                { value: 'Experience (Low to High)', label: 'Sort by: Exp (Low to High)' },
+              ]}
+              buttonClassName="py-2"
+            />
 
             {/* Per Page Dropdown */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={filters.limit || 40}
-                onChange={e => {
-                  handleSetFilter('limit', parseInt(e.target.value, 10));
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                className="appearance-none bg-white border border-slate-200 hover:border-slate-300 pl-3.5 pr-8 py-2 rounded-xl text-[13px] font-medium text-slate-700 cursor-pointer focus:outline-none focus:border-[#0A66C2] shadow-2xs transition-all"
-              >
-                <option value={10}>10 per page</option>
-                <option value={20}>20 per page</option>
-                <option value={40}>40 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 text-slate-500" />
-            </div>
+            <NeatSelect
+              value={filters.limit || 40}
+              onChange={(val) => {
+                handleSetFilter('limit', parseInt(val, 10));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              options={[
+                { value: 10, label: '10 per page' },
+                { value: 20, label: '20 per page' },
+                { value: 40, label: '40 per page' },
+                { value: 100, label: '100 per page' },
+              ]}
+              buttonClassName="py-2"
+            />
 
             {/* List / Grid View Mode Toggles */}
             <div className="flex items-center bg-white border border-slate-200 rounded-xl p-0.5 shadow-2xs shrink-0">
@@ -3015,7 +3055,7 @@ const CandidateSearchResults = () => {
                       {/* Location & Experience */}
                       <div className="flex flex-wrap items-center gap-3 text-[12px] text-slate-500 font-normal mt-2.5">
                         <span className="flex items-center gap-1 text-slate-600 font-medium">
-                          <MapPin size={12} className="text-[#0A66C2]" /> {locDisplay}
+                          <MapPin size={12} className="text-[#0A66C2]" /> {renderHighlightedText(locDisplay)}
                         </span>
                         <span className="flex items-center gap-1 text-slate-500">
                           <Briefcase size={12} className="text-slate-400" /> {expDisplay}
@@ -3045,11 +3085,11 @@ const CandidateSearchResults = () => {
                         <div className="flex items-center justify-between gap-2 pt-0.5 text-[11px]">
                           <div className="flex items-baseline gap-1">
                             <span className="text-slate-400 font-medium text-[11px]">Notice:</span>
-                            <span className={`font-semibold ${hasNoticePeriod ? 'text-slate-800' : 'text-slate-400'}`}>{noticePeriodDisplay}</span>
+                            <span className={`font-semibold ${hasNoticePeriod ? 'text-slate-800' : 'text-slate-400'}`}>{renderHighlightedText(noticePeriodDisplay)}</span>
                           </div>
                           <div className="flex items-baseline gap-1">
                             <span className="text-slate-400 font-medium text-[11px]">Exp. salary:</span>
-                            <span className={`font-semibold ${hasExpectedSalary ? 'text-slate-800' : 'text-slate-400'}`}>{expectedSalaryDisplay}</span>
+                            <span className={`font-semibold ${hasExpectedSalary ? 'text-slate-800' : 'text-slate-400'}`}>{renderHighlightedText(expectedSalaryDisplay)}</span>
                           </div>
                         </div>
                       </div>
@@ -3240,7 +3280,7 @@ const CandidateSearchResults = () => {
                           {/* Location and Experience */}
                           <div className="flex flex-wrap items-center gap-4 text-[12.5px] text-slate-500 mb-2 font-normal">
                             <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-                              <MapPin size={13.5} className="text-[#0A66C2]" /> {locDisplay}
+                              <MapPin size={13.5} className="text-[#0A66C2]" /> {renderHighlightedText(locDisplay)}
                             </span>
                             <span className="flex items-center gap-1.5 text-slate-500">
                               <Briefcase size={13.5} className="text-slate-400" /> {expDisplay}
@@ -3278,14 +3318,14 @@ const CandidateSearchResults = () => {
                               <div className="flex items-baseline gap-2">
                                 <span className="w-28 shrink-0 text-slate-400 font-medium text-[12px]">Notice period:</span>
                                 <span className={`font-semibold ${hasNoticePeriod ? 'text-slate-800' : 'text-slate-400'}`}>
-                                  {noticePeriodDisplay}
+                                  {renderHighlightedText(noticePeriodDisplay)}
                                 </span>
                               </div>
 
                               <div className="flex items-baseline gap-2">
                                 <span className="text-slate-400 font-medium text-[12px]">Expected salary:</span>
                                 <span className={`font-semibold ${hasExpectedSalary ? 'text-slate-800' : 'text-slate-400'}`}>
-                                  {expectedSalaryDisplay}
+                                  {renderHighlightedText(expectedSalaryDisplay)}
                                 </span>
                               </div>
                             </div>
@@ -3657,7 +3697,7 @@ const CandidateSearchResults = () => {
                   <div className="flex flex-wrap items-center gap-2 text-[12px]">
                     <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.8 rounded-lg text-white/90">
                       <MapPin size={12} className="text-sky-300" />
-                      {resumeModalCandidate.location || resumeModalCandidate.current_location || 'India'}
+                      {renderHighlightedText(resumeModalCandidate.location || resumeModalCandidate.current_location || 'India')}
                     </span>
 
                     <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.8 rounded-lg text-white/90">
@@ -3670,7 +3710,7 @@ const CandidateSearchResults = () => {
                     {resumeModalCandidate.notice_period && (
                       <span className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md px-2.5 py-0.8 rounded-lg text-white/90 border border-white/10">
                         <Clock size={12} className="text-emerald-300" />
-                        {resumeModalCandidate.notice_period}
+                        {renderHighlightedText(resumeModalCandidate.notice_period)}
                       </span>
                     )}
 
@@ -3763,7 +3803,7 @@ const CandidateSearchResults = () => {
                     <div>
                       <span className="text-[14px] font-semibold text-slate-500">Current Location</span><br />
                       <span className="text-[13px] font-semibold text-slate-800">
-                        {resumeModalCandidate.location || resumeModalCandidate.current_location || 'Not specified'}
+                        {renderHighlightedText(resumeModalCandidate.location || resumeModalCandidate.current_location || 'Not specified')}
                       </span>
                     </div>
                   </div>
@@ -4370,29 +4410,35 @@ const CandidateSearchResults = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[11px] text-slate-400 font-medium block mb-1">Minimum</span>
-                  <select
+                  <NeatSelect
+                    className="w-full"
                     value={modifyForm.experienceMin}
-                    onChange={e => setModifyForm(prev => ({ ...prev, experienceMin: e.target.value }))}
-                    className="w-full text-[13px] bg-slate-50 border border-slate-200 rounded-xl p-2 focus:bg-white focus:border-[#0A66C2] focus:outline-none"
-                  >
-                    <option value="">0 Years (Any / Fresher)</option>
-                    {[1, 2, 3, 4, 5, 6, 8, 10, 12, 15].map(y => (
-                      <option key={y} value={y}>{y} Years</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setModifyForm(prev => ({ ...prev, experienceMin: val }))}
+                    placeholder="0 Years (Any / Fresher)"
+                    options={[
+                      { value: '', label: '0 Years (Any / Fresher)' },
+                      ...[1, 2, 3, 4, 5, 6, 8, 10, 12, 15].map(y => ({
+                        value: String(y),
+                        label: `${y} Years`
+                      }))
+                    ]}
+                  />
                 </div>
                 <div>
                   <span className="text-[11px] text-slate-400 font-medium block mb-1">Maximum</span>
-                  <select
+                  <NeatSelect
+                    className="w-full"
                     value={modifyForm.experienceMax}
-                    onChange={e => setModifyForm(prev => ({ ...prev, experienceMax: e.target.value }))}
-                    className="w-full text-[13px] bg-slate-50 border border-slate-200 rounded-xl p-2 focus:bg-white focus:border-[#0A66C2] focus:outline-none"
-                  >
-                    <option value="">Any Experience</option>
-                    {[1, 2, 3, 5, 7, 10, 15, 20, 25].map(y => (
-                      <option key={y} value={y}>{y} Years</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setModifyForm(prev => ({ ...prev, experienceMax: val }))}
+                    placeholder="Any Experience"
+                    options={[
+                      { value: '', label: 'Any Experience' },
+                      ...[1, 2, 3, 5, 7, 10, 15, 20, 25].map(y => ({
+                        value: String(y),
+                        label: `${y} Years`
+                      }))
+                    ]}
+                  />
                 </div>
               </div>
             </div>

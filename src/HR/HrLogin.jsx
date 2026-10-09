@@ -46,9 +46,36 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
             }
           }
 
+          if (!parsedDetails) {
+            try {
+              const base64Url = incomingToken.split('.')[1];
+              if (base64Url) {
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                  return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const jwtPayload = JSON.parse(jsonPayload);
+                parsedDetails = {
+                  id: jwtPayload.id,
+                  email: jwtPayload.email,
+                  role_id: jwtPayload.role_id || 3,
+                  role_name: 'recruiter',
+                  first_name: jwtPayload.first_name || 'Recruiter',
+                  is_email_verified: 1,
+                  impersonated_by_admin: true
+                };
+              }
+            } catch (e) {}
+          }
+
           if (parsedDetails) {
-            localStorage.setItem('loginDetails', JSON.stringify(parsedDetails));
-            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(parsedDetails))}; path=/; max-age=86400`;
+            const safeObj = { ...parsedDetails };
+            if (safeObj.profile_image && (safeObj.profile_image.startsWith('data:') || safeObj.profile_image.length > 500)) {
+              delete safeObj.profile_image;
+            }
+            safeObj.is_email_verified = 1;
+            localStorage.setItem('loginDetails', JSON.stringify(safeObj));
+            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(safeObj))}; path=/; max-age=86400`;
           }
 
           const greetingName = parsedDetails?.first_name ? `, ${parsedDetails.first_name}` : '';
@@ -57,7 +84,7 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
           const target = urlParams.get('target') || '/overview';
           setTimeout(() => {
             window.location.href = target;
-          }, 600);
+          }, 350);
           return;
         }
       }

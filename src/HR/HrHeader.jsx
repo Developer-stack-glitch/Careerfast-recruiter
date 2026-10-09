@@ -301,6 +301,7 @@ const HrHeader = () => {
         ? `${recruiterDetails.first_name} ${recruiterDetails.last_name || ''}`.trim()
         : 'SANDIYA MS';
 
+    const isOverviewActive = pathname === '/overview' || pathname === '/recruit' || pathname === '/';
     const isSearchActive = pathname?.startsWith('/candidate-search');
     const isJobActive = pathname?.startsWith('/post-job') ||
         pathname?.startsWith('/my-jobs') ||
@@ -309,29 +310,30 @@ const HrHeader = () => {
     const isFoldersActive = pathname?.startsWith('/manage-folder') ||
         pathname?.startsWith('/folders') ||
         pathname?.startsWith('/saved-candidates');
-    const isReportsActive = pathname?.startsWith('/overview');
+    const isTeamActive = pathname === '/team' || pathname?.startsWith('/team');
+    const isReportsActive = pathname === '/reports' || pathname?.startsWith('/reports');
 
     return (
         <>
             {/* Top subtle brand gradient line */}
             <div className="h-[3px] w-full bg-gradient-to-r from-[#0A66C2] via-blue-500 to-amber-500 sticky top-0 z-50" />
 
-            <header className="h-[64px] bg-white border-b border-slate-200/80 px-6 sm:px-8 flex items-center justify-between sticky top-[3px] z-50 shadow-xs [&_a]:no-underline [&_a:hover]:no-underline font-outfit font-sans" style={{ fontFamily: "var(--font-outfit), 'Outfit', sans-serif" }}>
+            <header className="h-[64px] bg-white border-b border-slate-200/80 px-3 sm:px-5 lg:px-7 flex items-center justify-between sticky top-[3px] z-50 shadow-xs [&_a]:no-underline [&_a:hover]:no-underline font-outfit font-sans w-full max-w-full" style={{ fontFamily: "var(--font-outfit), 'Outfit', sans-serif" }}>
 
                 {/* Left Side: Logo & Main Navigation */}
-                <div className="flex items-center gap-8 lg:gap-10">
+                <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 shrink-0">
                     {/* Brand Logo */}
-                    <Link href="/overview" className="flex items-center gap-2 group select-none no-underline hover:no-underline" style={{ textDecoration: 'none' }}>
+                    <Link href="/overview" className="flex items-center gap-2 group select-none shrink-0 no-underline hover:no-underline" style={{ textDecoration: 'none' }}>
                         {logo ? (
                             <Image
                                 src={logo}
                                 alt="CareerFast Logo"
                                 priority
-                                className="h-10 w-auto object-contain transition-transform group-hover:scale-[1.02]"
+                                className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-[1.02]"
                             />
                         ) : (
                             <div className="flex items-center gap-2">
-                                <span className="text-[20px] font-black tracking-tight text-slate-900">
+                                <span className="text-[18px] sm:text-[20px] font-black tracking-tight text-slate-900">
                                     CAREER<span className="text-[#FB6202]">FAST</span>
                                 </span>
                             </div>
@@ -339,14 +341,14 @@ const HrHeader = () => {
                     </Link>
 
                     {/* Horizontal Navigation Menu */}
-                    <nav className="hidden md:flex items-center gap-1 sm:gap-2">
+                    <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
 
                         {/* 1. Overview (Home) */}
                         <Link
                             href="/overview"
                             style={{ textDecoration: 'none' }}
-                            className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg no-underline hover:no-underline ${isReportsActive
-                                ? 'text-slate-900 font-bold bg-slate-100/70'
+                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg no-underline hover:no-underline ${isOverviewActive
+                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                         >
@@ -357,8 +359,8 @@ const HrHeader = () => {
                         <Link
                             href="/candidate-search"
                             style={{ textDecoration: 'none' }}
-                            className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isSearchActive
-                                ? 'text-slate-900 font-bold bg-slate-100/70'
+                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isSearchActive
+                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                         >
@@ -370,15 +372,15 @@ const HrHeader = () => {
                             <button
                                 type="button"
                                 onClick={() => setJobDropdownOpen(prev => !prev)}
-                                className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg flex items-center gap-1 cursor-pointer ${isJobActive || jobDropdownOpen
-                                    ? 'text-slate-900 font-bold bg-slate-100/70'
+                                className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1 cursor-pointer ${isJobActive || jobDropdownOpen
+                                    ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                     }`}
                             >
                                 <span>Job</span>
                                 <ChevronDown
-                                    size={15}
-                                    className={`transition-transform duration-200 text-slate-500 ${jobDropdownOpen ? 'rotate-180 text-slate-900' : ''
+                                    size={14}
+                                    className={`transition-transform duration-200 text-slate-400 ${jobDropdownOpen ? 'rotate-180 text-[#0A66C2]' : ''
                                         }`}
                                 />
                             </button>
@@ -443,8 +445,8 @@ const HrHeader = () => {
                         <Link
                             href="/manage-folder"
                             style={{ textDecoration: 'none' }}
-                            className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isFoldersActive
-                                ? 'text-slate-900 font-bold bg-slate-100/70'
+                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isFoldersActive
+                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
                                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                 }`}
                         >
@@ -456,82 +458,95 @@ const HrHeader = () => {
                             <Link
                                 href="/team"
                                 style={{ textDecoration: 'none' }}
-                                className={`px-3 py-2 text-[14px] font-semibold transition-colors duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${pathname === '/team'
-                                    ? 'text-slate-900 font-bold bg-slate-100/70'
+                                className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isTeamActive
+                                    ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
                                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                                     }`}
                             >
                                 <span>Team Seats</span>
                             </Link>
                         )}
+
+                        {/* 6. Reports */}
+                        <Link
+                            href="/reports"
+                            style={{ textDecoration: 'none' }}
+                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isReportsActive
+                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                }`}
+                        >
+                            <span>Reports</span>
+                        </Link>
                     </nav>
                 </div>
 
                 {/* Middle: Professional Search Bar Trigger */}
-                <div className="hidden md:flex items-center flex-1 max-w-xs lg:max-w-sm xl:max-w-md mx-3 lg:mx-6">
+                <div className="hidden lg:flex items-center flex-1 max-w-[200px] xl:max-w-[300px] min-w-0 mx-2 xl:mx-4 shrink">
                     <button
                         type="button"
                         onClick={() => setQuickSearchOpen(true)}
-                        className="w-full flex items-center justify-between gap-3 px-3.5 py-1.5 bg-slate-50 hover:bg-slate-100/90 text-slate-500 hover:text-slate-700 border border-slate-200/90 hover:border-slate-300 rounded-full transition-all duration-150 cursor-pointer group shadow-2xs"
+                        className="w-full flex items-center justify-between gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/90 text-slate-500 hover:text-slate-700 border border-slate-200/90 hover:border-slate-300 rounded-full transition-all duration-150 cursor-pointer group shadow-2xs"
                     >
-                        <div className="flex items-center gap-2.5 truncate">
-                            <Search size={15} className="text-slate-400 group-hover:text-[#0A66C2] transition-colors shrink-0" />
-                            <span className="text-[13px] font-normal text-slate-500 truncate">
-                                {quickKeywords ? quickKeywords : "Search candidates by skill, title, location..."}
+                        <div className="flex items-center gap-2 truncate">
+                            <Search size={14} className="text-slate-400 group-hover:text-[#0A66C2] transition-colors shrink-0" />
+                            <span className="text-[12px] xl:text-[12.5px] font-normal text-slate-500 truncate">
+                                {quickKeywords ? quickKeywords : "Search candidates..."}
                             </span>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                            <span className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">
+                        <div className="flex items-center gap-1 shrink-0">
+                            <span className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[9.5px] font-semibold text-slate-400 bg-white border border-slate-200 rounded-md shadow-2xs">
                                 Ctrl K
                             </span>
-                            <div className="w-6 h-6 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
-                                <Search size={11} className="stroke-[2.5]" />
+                            <div className="w-5 h-5 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                                <Search size={10} className="stroke-[2.5]" />
                             </div>
                         </div>
                     </button>
                 </div>
 
                 {/* Right Side: Platform Guide, Bell, Profile Chip */}
-                <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                    {/* Mobile Quick Search Button */}
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                    {/* Mobile / Tablet Quick Search Button */}
                     <button
                         type="button"
                         onClick={() => setQuickSearchOpen(true)}
-                        className="md:hidden text-slate-600 hover:text-slate-900 transition-colors p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
+                        className="lg:hidden text-slate-600 hover:text-slate-900 transition-colors p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer"
                         title="Search Candidates"
                     >
-                        <Search size={19} />
+                        <Search size={18} />
                     </button>
 
                     {/* Platform Guide Pill Button */}
                     <button
                         type="button"
                         onClick={() => setGuideModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-blue-200 bg-blue-50/50 hover:bg-blue-100/70 text-[#0A66C2] font-semibold text-[13px] transition-all cursor-pointer shadow-2xs group"
+                        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border border-blue-200/80 bg-blue-50/60 hover:bg-blue-100/80 text-[#0A66C2] font-semibold text-[12px] sm:text-[12.5px] transition-all cursor-pointer shadow-2xs group shrink-0"
                     >
-                        <Lightbulb size={15} className="text-[#0A66C2] group-hover:scale-110 transition-transform" />
-                        <span className="whitespace-nowrap">Platform Guide</span>
+                        <Lightbulb size={14} className="text-[#0A66C2] group-hover:scale-110 transition-transform" />
+                        <span className="whitespace-nowrap hidden sm:inline">Platform Guide</span>
+                        <span className="whitespace-nowrap sm:hidden">Guide</span>
                     </button>
 
                     {/* Notification Bell */}
                     <button
                         type="button"
-                        className="text-slate-600 hover:text-slate-900 transition-colors relative p-1 rounded-lg hover:bg-slate-100 cursor-pointer"
+                        className="text-slate-600 hover:text-slate-900 transition-colors relative p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer shrink-0"
                         title="Notifications"
                     >
-                        <Bell size={19} />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-[#FB6202] rounded-full ring-2 ring-white"></span>
+                        <Bell size={18} />
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#FB6202] rounded-full ring-2 ring-white"></span>
                     </button>
 
                     {/* Recruiter Profile Widget */}
-                    <div className="relative" ref={profileDropdownRef}>
+                    <div className="relative shrink-0" ref={profileDropdownRef}>
                         <button
                             type="button"
                             onClick={() => setProfileDropdownOpen(prev => !prev)}
-                            className="flex items-center gap-2.5 p-1 pl-1.5 pr-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer text-left group"
+                            className="flex items-center gap-2 p-1 pl-1.5 pr-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer text-left group"
                         >
                             {/* Avatar */}
-                            <div className="w-9 h-9 rounded-full overflow-hidden border border-amber-300 flex items-center justify-center flex-shrink-0 shadow-2xs bg-white">
+                            <div className="w-8 h-8 sm:w-8.5 sm:h-8.5 rounded-full overflow-hidden border border-amber-300 flex items-center justify-center flex-shrink-0 shadow-2xs bg-white">
                                 {(recruiterDetails?.profile_image || companyInfo?.company_logo) ? (
                                     <img
                                         src={recruiterDetails?.profile_image || companyInfo?.company_logo}
@@ -539,7 +554,7 @@ const HrHeader = () => {
                                         className="w-full h-full object-contain p-0.5"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-amber-800 font-bold text-[14px]">
+                                    <div className="w-full h-full flex items-center justify-center text-amber-800 font-bold text-[13px]">
                                         {displayName.charAt(0).toUpperCase()}
                                     </div>
                                 )}
@@ -548,22 +563,22 @@ const HrHeader = () => {
                             {/* Text Info */}
                             <div className="hidden sm:flex flex-col text-left leading-none">
                                 <div className="flex items-center gap-1 mb-0.5">
-                                    <span className="text-[11px] text-slate-400 font-normal">
+                                    <span className="text-[10.5px] text-slate-400 font-normal">
                                         Hello,
                                     </span>
                                     {userAccess.isSubRecruiter && (companyInfo?.company_name || recruiterDetails?.company_name) && (
-                                        <span className="text-[9.5px] font-semibold text-[#0A66C2] bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60 truncate max-w-[85px]" title={companyInfo?.company_name || recruiterDetails?.company_name}>
+                                        <span className="text-[9px] font-semibold text-[#0A66C2] bg-blue-50 px-1 py-0.2 rounded border border-blue-200/60 truncate max-w-[80px]" title={companyInfo?.company_name || recruiterDetails?.company_name}>
                                             {companyInfo?.company_name || recruiterDetails?.company_name}
                                         </span>
                                     )}
                                 </div>
-                                <span className="text-[13px] font-bold text-slate-800 tracking-tight truncate max-w-[130px] group-hover:text-[#0A66C2] transition-colors">
+                                <span className="text-[12px] sm:text-[12.5px] font-semibold text-slate-800 tracking-tight truncate max-w-[100px] lg:max-w-[125px] group-hover:text-[#0A66C2] transition-colors">
                                     {displayName}
                                 </span>
                             </div>
 
                             <ChevronDown
-                                size={14}
+                                size={13}
                                 className={`text-slate-400 hidden sm:block transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180 text-slate-700' : ''
                                     }`}
                             />
@@ -575,7 +590,7 @@ const HrHeader = () => {
 
                                 {/* Header in Dropdown */}
                                 <div className="px-4 py-3 border-b border-slate-100">
-                                    <p className="text-[13.5px] font-bold text-slate-900 truncate mb-0.5">
+                                    <p className="text-[13.5px] font-semibold text-slate-900 truncate mb-0.5">
                                         {displayName}
                                     </p>
                                     <p className="text-[12px] text-slate-500 truncate mb-0">

@@ -119,7 +119,7 @@ const MyJobs = () => {
             if (res?.success && res?.data) {
                 setSubscription(res.data);
             }
-        }).catch(() => {});
+        }).catch(() => { });
     }, []);
 
     const isSubRecruiter = Boolean(subscription?.is_sub_recruiter || recruiterDetails?.is_sub_recruiter);
@@ -372,7 +372,7 @@ const MyJobs = () => {
             {/* Top Glow Accent */}
             <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-blue-50/60 to-transparent pointer-events-none" />
 
-            <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-4 pt-8 relative z-10">
+            <div className="max-w-9xl mx-auto px-2 sm:px-8 lg:px-28 pt-8 relative z-10">
 
                 {/* 1. Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-7">

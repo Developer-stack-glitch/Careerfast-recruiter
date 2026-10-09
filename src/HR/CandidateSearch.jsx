@@ -10,6 +10,7 @@ import {
 import { KeywordsAutocomplete, CheckboxDropdown, TwoPaneIndustryDropdown, CompanySearchDropdown, DegreeMultiSelect } from './CandidateSearchComponents';
 import { getCandidateFilterOptionsAPI, saveHrSearch, deleteHrSearch, clearHrSearches, getMySubscription } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
+import NeatSelect from '../Common/NeatSelect';
 
 const CandidateSearch = () => {
   const router = useRouter();
@@ -887,7 +888,7 @@ const CandidateSearch = () => {
           <div className="flex-1 w-full space-y-4">
 
             {/* Main Search Parameters Card */}
-            <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-visible relative">
 
               {/* Tabs Container */}
               <div className="px-6 pt-4 pb-0 border-b border-slate-100 bg-slate-50/40 rounded-t-2xl">
@@ -966,15 +967,17 @@ const CandidateSearch = () => {
                           </label>
                           <div className="flex items-center gap-1.5">
                             <span className="text-slate-500">In:</span>
-                            <select
+                            <NeatSelect
                               value={searchParams.searchIn}
-                              onChange={e => setSearchParams(p => ({ ...p, searchIn: e.target.value }))}
-                              className="border border-slate-200 rounded-lg px-2.5 py-1 text-[13px] font-medium text-slate-700 focus:outline-none focus:border-[#0A66C2] bg-white shadow-2xs cursor-pointer"
-                            >
-                              <option value="Profile">Entire Profile</option>
-                              <option value="Resume">Resume Text</option>
-                              <option value="Both">Both Profile & Resume</option>
-                            </select>
+                              onChange={(val) => setSearchParams(p => ({ ...p, searchIn: val }))}
+                              size="sm"
+                              options={[
+                                { value: 'Profile', label: 'Entire Profile' },
+                                { value: 'Resume', label: 'Resume Text' },
+                                { value: 'Both', label: 'Both Profile & Resume' },
+                              ]}
+                              minWidth="140px"
+                            />
                           </div>
                         </div>
                       </div>
@@ -1100,26 +1103,28 @@ const CandidateSearch = () => {
                         <div>
                           <span className="text-[12px] font-semibold text-slate-500 mb-1.5 block">Minimum Experience</span>
                           <div className="flex gap-2">
-                            <select
-                              className="flex-1 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-[14px] text-slate-800 focus:outline-none focus:border-[#0A66C2] focus:ring-2 focus:ring-blue-500/15 bg-white cursor-pointer shadow-2xs"
+                            <NeatSelect
+                              className="flex-1"
                               value={searchParams.expMin}
-                              onChange={e => setSearchParams(p => ({ ...p, expMin: e.target.value }))}
-                            >
-                              <option value="Years">Any Min Experience</option>
-                              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15].map(n => (
-                                <option key={n} value={n}>{n} {n === 1 ? 'Year' : 'Years'}</option>
-                              ))}
-                            </select>
+                              onChange={(val) => setSearchParams(p => ({ ...p, expMin: val }))}
+                              options={[
+                                { value: 'Years', label: 'Any Min Experience' },
+                                ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15].map(n => ({
+                                  value: n,
+                                  label: `${n} ${n === 1 ? 'Year' : 'Years'}`
+                                }))
+                              ]}
+                            />
                             {searchParams.showMonths && (
-                              <select
-                                className="w-24 border border-slate-200 rounded-xl px-2 py-2 text-[13px] text-slate-700 focus:outline-none focus:border-[#0A66C2] bg-white"
+                              <NeatSelect
+                                className="w-28"
                                 value={searchParams.expMonthsMin}
-                                onChange={e => setSearchParams(p => ({ ...p, expMonthsMin: e.target.value }))}
-                              >
-                                {[...Array(12)].map((_, i) => (
-                                  <option key={i} value={i}>{i} Mos</option>
-                                ))}
-                              </select>
+                                onChange={(val) => setSearchParams(p => ({ ...p, expMonthsMin: val }))}
+                                options={[...Array(12)].map((_, i) => ({
+                                  value: i,
+                                  label: `${i} Mos`
+                                }))}
+                              />
                             )}
                           </div>
                         </div>
@@ -1127,26 +1132,28 @@ const CandidateSearch = () => {
                         <div>
                           <span className="text-[12px] font-semibold text-slate-500 mb-1.5 block">Maximum Experience</span>
                           <div className="flex gap-2">
-                            <select
-                              className="flex-1 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-[14px] text-slate-800 focus:outline-none focus:border-[#0A66C2] focus:ring-2 focus:ring-blue-500/15 bg-white cursor-pointer shadow-2xs"
+                            <NeatSelect
+                              className="flex-1"
                               value={searchParams.expMax}
-                              onChange={e => setSearchParams(p => ({ ...p, expMax: e.target.value }))}
-                            >
-                              <option value="Years">Any Max Experience</option>
-                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25].map(n => (
-                                <option key={n} value={n}>{n} Years</option>
-                              ))}
-                            </select>
+                              onChange={(val) => setSearchParams(p => ({ ...p, expMax: val }))}
+                              options={[
+                                { value: 'Years', label: 'Any Max Experience' },
+                                ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25].map(n => ({
+                                  value: n,
+                                  label: `${n} Years`
+                                }))
+                              ]}
+                            />
                             {searchParams.showMonths && (
-                              <select
-                                className="w-24 border border-slate-200 rounded-xl px-2 py-2 text-[13px] text-slate-700 focus:outline-none focus:border-[#0A66C2] bg-white"
+                              <NeatSelect
+                                className="w-28"
                                 value={searchParams.expMonthsMax}
-                                onChange={e => setSearchParams(p => ({ ...p, expMonthsMax: e.target.value }))}
-                              >
-                                {[...Array(12)].map((_, i) => (
-                                  <option key={i} value={i}>{i} Mos</option>
-                                ))}
-                              </select>
+                                onChange={(val) => setSearchParams(p => ({ ...p, expMonthsMax: val }))}
+                                options={[...Array(12)].map((_, i) => ({
+                                  value: i,
+                                  label: `${i} Mos`
+                                }))}
+                              />
                             )}
                           </div>
                         </div>
@@ -1287,27 +1294,29 @@ const CandidateSearch = () => {
                         <div>
                           <span className="text-[12px] font-semibold text-slate-500 mb-1.5 block">Minimum Salary</span>
                           <div className="flex gap-2">
-                            <select
+                            <NeatSelect
+                              className="flex-1"
                               value={searchParams.salaryMin}
-                              onChange={e => setSearchParams(p => ({ ...p, salaryMin: e.target.value }))}
-                              className="flex-1 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-[14px] text-slate-800 focus:outline-none focus:border-[#0A66C2] focus:ring-2 focus:ring-blue-500/15 bg-white cursor-pointer shadow-2xs"
-                            >
-                              <option value="Lacs">Any Min Salary</option>
-                              <option value="Any">0 (Fresher)</option>
-                              {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50].map(s => (
-                                <option key={s} value={s}>{s} Lakhs / year</option>
-                              ))}
-                            </select>
+                              onChange={(val) => setSearchParams(p => ({ ...p, salaryMin: val }))}
+                              options={[
+                                { value: 'Lacs', label: 'Any Min Salary' },
+                                { value: 'Any', label: '0 (Fresher)' },
+                                ...[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50].map(s => ({
+                                  value: s,
+                                  label: `${s} Lakhs / year`
+                                }))
+                              ]}
+                            />
                             {searchParams.showThousands && (
-                              <select
+                              <NeatSelect
+                                className="w-28"
                                 value={searchParams.salaryThousandsMin}
-                                onChange={e => setSearchParams(p => ({ ...p, salaryThousandsMin: e.target.value }))}
-                                className="w-24 border border-slate-200 rounded-xl px-2 py-2 text-[13px] text-slate-700 focus:outline-none focus:border-[#0A66C2] bg-white"
-                              >
-                                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(t => (
-                                  <option key={t} value={t}>{t} K</option>
-                                ))}
-                              </select>
+                                onChange={(val) => setSearchParams(p => ({ ...p, salaryThousandsMin: val }))}
+                                options={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(t => ({
+                                  value: t,
+                                  label: `${t} K`
+                                }))}
+                              />
                             )}
                           </div>
                         </div>
@@ -1315,27 +1324,29 @@ const CandidateSearch = () => {
                         <div>
                           <span className="text-[12px] font-semibold text-slate-500 mb-1.5 block">Maximum Salary</span>
                           <div className="flex gap-2">
-                            <select
+                            <NeatSelect
+                              className="flex-1"
                               value={searchParams.salaryMax}
-                              onChange={e => setSearchParams(p => ({ ...p, salaryMax: e.target.value }))}
-                              className="flex-1 border border-slate-200 hover:border-slate-300 rounded-xl px-3.5 py-2.5 text-[14px] text-slate-800 focus:outline-none focus:border-[#0A66C2] focus:ring-2 focus:ring-blue-500/15 bg-white cursor-pointer shadow-2xs"
-                            >
-                              <option value="Lacs">Any Max Salary</option>
-                              <option value="Any">No Upper Limit</option>
-                              {[2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100].map(s => (
-                                <option key={s} value={s}>{s} Lakhs / year</option>
-                              ))}
-                            </select>
+                              onChange={(val) => setSearchParams(p => ({ ...p, salaryMax: val }))}
+                              options={[
+                                { value: 'Lacs', label: 'Any Max Salary' },
+                                { value: 'Any', label: 'No Upper Limit' },
+                                ...[2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50, 75, 100].map(s => ({
+                                  value: s,
+                                  label: `${s} Lakhs / year`
+                                }))
+                              ]}
+                            />
                             {searchParams.showThousands && (
-                              <select
+                              <NeatSelect
+                                className="w-28"
                                 value={searchParams.salaryThousandsMax}
-                                onChange={e => setSearchParams(p => ({ ...p, salaryThousandsMax: e.target.value }))}
-                                className="w-24 border border-slate-200 rounded-xl px-2 py-2 text-[13px] text-slate-700 focus:outline-none focus:border-[#0A66C2] bg-white"
-                              >
-                                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(t => (
-                                  <option key={t} value={t}>{t} K</option>
-                                ))}
-                              </select>
+                                onChange={(val) => setSearchParams(p => ({ ...p, salaryThousandsMax: val }))}
+                                options={[0, 10, 20, 30, 40, 50, 60, 70, 80, 90].map(t => ({
+                                  value: t,
+                                  label: `${t} K`
+                                }))}
+                              />
                             )}
                           </div>
                         </div>
@@ -1517,7 +1528,7 @@ const CandidateSearch = () => {
               <div className="space-y-3.5">
 
                 {/* ACCORDION 1: Education Details */}
-                <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden transition-all">
+                <div className={`bg-white rounded-2xl shadow-xs border border-slate-200/80 transition-all ${accordions.education ? 'overflow-visible z-20' : 'overflow-hidden'}`}>
                   <div
                     onClick={() => toggleAccordion('education')}
                     className="p-3 sm:p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50/60 transition-colors select-none"
@@ -1539,7 +1550,7 @@ const CandidateSearch = () => {
                   </div>
 
                   {accordions.education && (
-                    <div className="p-6 pt-3 border-t border-slate-100 space-y-6 bg-white">
+                    <div className="p-6 pt-3 border-t border-slate-100 space-y-6 bg-white rounded-b-2xl">
                       <div>
                         <label className="block text-[13px] font-semibold text-slate-700 mb-2">Undergraduate Qualification (UG)</label>
                         <div className="flex flex-wrap gap-2 mb-3">
@@ -1615,7 +1626,7 @@ const CandidateSearch = () => {
                 </div>
 
                 {/* ACCORDION 2: Employment Details */}
-                <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden transition-all">
+                <div className={`bg-white rounded-2xl shadow-xs border border-slate-200/80 transition-all ${accordions.employment ? 'overflow-visible z-20' : 'overflow-hidden'}`}>
                   <div
                     onClick={() => toggleAccordion('employment')}
                     className="p-3 sm:p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50/60 transition-colors select-none"
@@ -1637,7 +1648,7 @@ const CandidateSearch = () => {
                   </div>
 
                   {accordions.employment && (
-                    <div className="p-6 pt-3 border-t border-slate-100 space-y-6 bg-white">
+                    <div className="p-6 pt-3 border-t border-slate-100 space-y-6 bg-white rounded-b-2xl">
                       {/* Industry */}
                       <div className="relative">
                         <label className="block text-[14px] font-medium text-slate-700 mb-1.5">Industry</label>
@@ -1649,15 +1660,16 @@ const CandidateSearch = () => {
                         />
                         <div className="flex items-center gap-1.5 mt-2 text-[13px] text-slate-600">
                           <span>Include:</span>
-                          <select
+                          <NeatSelect
                             value={searchParams.industryMatch}
-                            onChange={e => setSearchParams(p => ({ ...p, industryMatch: e.target.value }))}
-                            className="text-[13px] text-slate-700 bg-transparent font-medium cursor-pointer focus:outline-none hover:text-[#0A66C2]"
-                          >
-                            <option value="Current or past industry">Current or past industry</option>
-                            <option value="Current industry">Current industry only</option>
-                            <option value="Past industry">Past industry only</option>
-                          </select>
+                            onChange={(val) => setSearchParams(p => ({ ...p, industryMatch: val }))}
+                            size="inline"
+                            options={[
+                              { value: 'Current or past industry', label: 'Current or past industry' },
+                              { value: 'Current industry', label: 'Current industry only' },
+                              { value: 'Past industry', label: 'Past industry only' },
+                            ]}
+                          />
                         </div>
                       </div>
 
@@ -1672,15 +1684,16 @@ const CandidateSearch = () => {
                         />
                         <div className="flex items-center gap-1.5 mt-2 text-[13px] text-slate-600">
                           <span>Include:</span>
-                          <select
+                          <NeatSelect
                             value={searchParams.companyMatch}
-                            onChange={e => setSearchParams(p => ({ ...p, companyMatch: e.target.value }))}
-                            className="text-[13px] text-slate-700 bg-transparent font-medium cursor-pointer focus:outline-none hover:text-[#0A66C2]"
-                          >
-                            <option value="Current employees">Current employees</option>
-                            <option value="Past employees">Past employees</option>
-                            <option value="All employees">All employees</option>
-                          </select>
+                            onChange={(val) => setSearchParams(p => ({ ...p, companyMatch: val }))}
+                            size="inline"
+                            options={[
+                              { value: 'Current employees', label: 'Current employees' },
+                              { value: 'Past employees', label: 'Past employees' },
+                              { value: 'All employees', label: 'All employees' },
+                            ]}
+                          />
                         </div>
 
                         {/* Add Company to Exclude */}
@@ -1718,7 +1731,7 @@ const CandidateSearch = () => {
                       </div>
 
                       {/* Designation */}
-                      <div className="relative z-10">
+                      <div className="relative">
                         <label className="block text-[14px] font-medium text-slate-700 mb-1.5">Designation</label>
                         <input
                           type="text"
@@ -1729,15 +1742,16 @@ const CandidateSearch = () => {
                         />
                         <div className="flex items-center gap-1.5 mt-2 text-[13px] text-slate-600">
                           <span>Match in:</span>
-                          <select
+                          <NeatSelect
                             value={searchParams.designationMatch}
-                            onChange={e => setSearchParams(p => ({ ...p, designationMatch: e.target.value }))}
-                            className="text-[13px] text-slate-700 bg-transparent font-medium cursor-pointer focus:outline-none hover:text-[#0A66C2]"
-                          >
-                            <option value="Current designation">Current designation</option>
-                            <option value="Past designation">Past designation</option>
-                            <option value="Any designation">Any designation</option>
-                          </select>
+                            onChange={(val) => setSearchParams(p => ({ ...p, designationMatch: val }))}
+                            size="inline"
+                            options={[
+                              { value: 'Current designation', label: 'Current designation' },
+                              { value: 'Past designation', label: 'Past designation' },
+                              { value: 'Any designation', label: 'Any designation' },
+                            ]}
+                          />
                         </div>
                       </div>
                     </div>
@@ -1745,7 +1759,7 @@ const CandidateSearch = () => {
                 </div>
 
                 {/* ACCORDION 3: Smart Insights */}
-                <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden transition-all">
+                <div className={`bg-white rounded-2xl shadow-xs border border-slate-200/80 transition-all ${accordions.insights ? 'overflow-visible z-20' : 'overflow-hidden'}`}>
                   <div
                     onClick={() => toggleAccordion('insights')}
                     className="p-3 sm:p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50/60 transition-colors select-none"
@@ -1767,7 +1781,7 @@ const CandidateSearch = () => {
                   </div>
 
                   {accordions.insights && (
-                    <div className="p-6 pt-3 border-t border-slate-100 space-y-5 bg-white">
+                    <div className="p-6 pt-3 border-t border-slate-100 space-y-5 bg-white rounded-b-2xl">
                       <div>
                         <label className="block text-[13px] font-semibold text-slate-700 mb-2">Academic & Pedigree Signals</label>
                         <div className="flex flex-wrap gap-2">
@@ -1792,7 +1806,7 @@ const CandidateSearch = () => {
                 </div>
 
                 {/* ACCORDION 4: Additional Details */}
-                <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 overflow-hidden transition-all">
+                <div className={`bg-white rounded-2xl shadow-xs border border-slate-200/80 transition-all ${accordions.additional ? 'overflow-visible z-20' : 'overflow-hidden'}`}>
                   <div
                     onClick={() => toggleAccordion('additional')}
                     className="p-3 sm:p-5 flex justify-between items-center cursor-pointer hover:bg-slate-50/60 transition-colors select-none"
@@ -1809,7 +1823,7 @@ const CandidateSearch = () => {
                   </div>
 
                   {accordions.additional && (
-                    <div className="p-6 pt-3 border-t border-slate-100 space-y-5 bg-white">
+                    <div className="p-6 pt-3 border-t border-slate-100 space-y-5 bg-white rounded-b-2xl">
                       <div>
                         <label className="block text-[13px] font-semibold text-slate-700 mb-2">Candidate Gender</label>
                         <div className="flex gap-2">
@@ -1885,18 +1899,20 @@ const CandidateSearch = () => {
               <div className="flex items-center gap-4 text-[13px] font-medium text-slate-600">
                 <div className="flex items-center gap-2">
                   <span className="text-slate-500">Updated:</span>
-                  <select
+                  <NeatSelect
                     value={searchParams.activeUpdated}
-                    onChange={e => setSearchParams(p => ({ ...p, activeUpdated: e.target.value }))}
-                    className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[13px] font-medium text-slate-700 focus:outline-none cursor-pointer"
-                  >
-                    <option value="All time">All time</option>
-                    <option value="7">In last 7 days</option>
-                    <option value="15">In last 15 days</option>
-                    <option value="30">In last 30 days</option>
-                    <option value="90">In last 3 months</option>
-                    <option value="180">In last 6 months</option>
-                  </select>
+                    onChange={(val) => setSearchParams(p => ({ ...p, activeUpdated: val }))}
+                    size="sm"
+                    options={[
+                      { value: 'All time', label: 'All time' },
+                      { value: '7', label: 'In last 7 days' },
+                      { value: '15', label: 'In last 15 days' },
+                      { value: '30', label: 'In last 30 days' },
+                      { value: '90', label: 'In last 3 months' },
+                      { value: '180', label: 'In last 6 months' },
+                    ]}
+                    buttonClassName="bg-slate-50 border-slate-200"
+                  />
                 </div>
 
                 {activeFilterCount > 0 && (

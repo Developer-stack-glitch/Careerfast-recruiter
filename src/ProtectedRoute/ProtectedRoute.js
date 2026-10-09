@@ -21,18 +21,45 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
                         localStorage.setItem("AccessToken", incomingToken);
                         document.cookie = `AccessToken=${incomingToken}; path=/; max-age=86400`;
 
+                        let parsed = null;
                         if (incomingData) {
                             try {
-                                const parsed = JSON.parse(decodeURIComponent(incomingData));
-                                localStorage.setItem("loginDetails", JSON.stringify(parsed));
-                                document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=86400`;
+                                parsed = JSON.parse(decodeURIComponent(incomingData));
                             } catch (e) {
                                 try {
-                                    const parsed = JSON.parse(incomingData);
-                                    localStorage.setItem("loginDetails", JSON.stringify(parsed));
-                                    document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=86400`;
+                                    parsed = JSON.parse(incomingData);
                                 } catch (e2) {}
                             }
+                        }
+
+                        if (!parsed) {
+                            try {
+                                const base64Url = incomingToken.split('.')[1];
+                                if (base64Url) {
+                                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                                    const jwtPayload = JSON.parse(jsonPayload);
+                                    parsed = {
+                                        id: jwtPayload.id,
+                                        email: jwtPayload.email,
+                                        role_id: jwtPayload.role_id || 3,
+                                        role_name: 'recruiter',
+                                        first_name: jwtPayload.first_name || 'Recruiter',
+                                        is_email_verified: 1,
+                                        impersonated_by_admin: true
+                                    };
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (parsed) {
+                            const safeParsed = { ...parsed };
+                            if (safeParsed.profile_image && (safeParsed.profile_image.startsWith('data:') || safeParsed.profile_image.length > 500)) {
+                                delete safeParsed.profile_image;
+                            }
+                            safeParsed.is_email_verified = 1;
+                            localStorage.setItem("loginDetails", JSON.stringify(safeParsed));
+                            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(safeParsed))}; path=/; max-age=86400`;
                         }
 
                         // Clean up URL query parameters without reloading

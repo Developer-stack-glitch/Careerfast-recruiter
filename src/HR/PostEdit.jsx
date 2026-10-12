@@ -1,5 +1,7 @@
 'use client';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+dayjs.extend(customParseFormat);
 import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -355,9 +357,10 @@ export default function PostEdit() {
   const fetchJobDetails = async (jobId) => {
     try {
       setPageLoading(true);
-      const response = await getJobPosts({ id: jobId });
-      const jobs = response?.data?.data?.data || [];
-      const job = jobs.find(j => j.id.toString() === jobId);
+      const response = await getJobPosts({ id: jobId, approval_status: 'all' });
+      const rawData = response?.data?.data;
+      const jobs = Array.isArray(rawData) ? rawData : (rawData?.data || []);
+      const job = jobs.find(j => j && j.id && j.id.toString() === jobId.toString());
 
       if (job) {
         if (job.apply_link) {
@@ -374,41 +377,53 @@ export default function PostEdit() {
         setRole(job.role || "");
         setIndustry(job.industry || "");
         setEmploymentType(job.employment_type || "Full Time, Permanent");
-        setWillingToRelocate(job.willing_to_relocate ? true : false);
+        setWillingToRelocate(Boolean(job.willing_to_relocate));
         setHybridPolicy(job.hybrid_policy || "");
-        setWorkMode(job.workplace_type === "In Office" ? "In office" : (job.workplace_type === "Hybrid" ? "Hybrid" : "Work from home"));
-        setEducationalDegree(job.educational_qualification || []);
-        setCandidateIndustry(job.candidate_industry || []);
-        setSpecificCity(job.work_location || []);
+        setWorkMode(job.workplace_type === "In Office" || job.workplace_type === "In office" ? "In office" : (job.workplace_type === "Hybrid" ? "Hybrid" : "Remote"));
+        setEducationalDegree(Array.isArray(job.educational_qualification) ? job.educational_qualification : (job.educational_qualification ? [job.educational_qualification] : []));
+        setCandidateIndustry(Array.isArray(job.candidate_industry) ? job.candidate_industry : (job.candidate_industry ? [job.candidate_industry] : []));
+        setSpecificCity(Array.isArray(job.work_location) ? job.work_location : (job.work_location ? [job.work_location] : []));
+
+        if (job.job_nature) {
+          setJobNatureId(job.job_nature === "Internship" ? 2 : (job.job_nature === "Scholarship" ? 3 : 1));
+        }
 
         if (job.job_category) {
           const cats = Array.isArray(job.job_category) ? job.job_category : [job.job_category];
-          if (cats.length > 0) setDepartment(cats[0]);
+          if (cats.length > 0 && cats[0]) setDepartment(cats[0].trim());
         }
 
-        setSkillsRequired(job.skills || []);
+        setSkillsRequired(Array.isArray(job.skills) ? job.skills : (job.skills ? [job.skills] : []));
 
         if (job.experience_type === "Fresher") {
           setFreshersAllowed(true);
+          setMinExp(0);
+          setMaxExp(0);
         } else {
           setFreshersAllowed(false);
           const expReq = Array.isArray(job.experience_required) ? job.experience_required[0] : job.experience_required;
-          if (expReq && expReq.includes("-")) {
+          if (expReq && typeof expReq === 'string' && expReq.includes("-")) {
             const parts = expReq.split("-");
             if (parts.length === 2) {
-              setMinExp(parseInt(parts[0]));
-              setMaxExp(parseInt(parts[1].replace(" Years", "")));
+              const minVal = parseInt(parts[0], 10);
+              const maxVal = parseInt(parts[1].replace(/[^0-9]/g, ""), 10);
+              if (!isNaN(minVal)) setMinExp(minVal);
+              if (!isNaN(maxVal)) setMaxExp(maxVal);
             }
+          } else if (expReq && !isNaN(parseInt(expReq, 10))) {
+            const val = parseInt(expReq, 10);
+            setMinExp(val);
+            setMaxExp(val);
           } else {
             setExperienceRequired(expReq || "");
           }
         }
 
         setSalaryType(job.salary_type || "Total CTC");
-        setHideSalary(job.hide_salary || false);
+        setHideSalary(Boolean(job.hide_salary));
         setCurrency(job.currency || "INR");
-        setSalaryMin(job.min_salary || null);
-        setSalaryMax(job.max_salary || null);
+        setSalaryMin(job.min_salary !== null && job.min_salary !== undefined && job.min_salary !== "" ? Number(job.min_salary) : null);
+        setSalaryMax(job.max_salary !== null && job.max_salary !== undefined && job.max_salary !== "" ? Number(job.max_salary) : null);
         setFixedFormat(job.fixed_format || "Annually");
         setVariableAmount(job.variable_amount || "");
         setVariableFormat(job.variable_format || "Annually");
@@ -420,15 +435,15 @@ export default function PostEdit() {
         setSalaryDuration(job.salary_duration || "Annual");
 
         if (job.diversity_hiring && job.diversity_hiring.length > 0) {
-          const div = Array.isArray(job.diversity_hiring) ? job.diversity_hiring[0] : job.diversity_hiring;
-          if (div === "Male") setGenderPreference("Male");
-          else if (div === "Female") setGenderPreference("Female");
+          const div = Array.isArray(job.diversity_hiring) ? job.diversity_hiring : [job.diversity_hiring];
+          if (div.length === 1 && div[0] === "Male") setGenderPreference("Male");
+          else if (div.length === 1 && div[0] === "Female") setGenderPreference("Female");
           else setGenderPreference("Any");
         }
 
-        setSelectedBenefits(job.benefits || []);
+        setSelectedBenefits(Array.isArray(job.benefits) ? job.benefits : (job.benefits ? [job.benefits] : []));
         if (job.languages) {
-          setLanguages(Array.isArray(job.languages) ? job.languages : job.languages.split(',').map(l => l.trim()));
+          setLanguages(Array.isArray(job.languages) ? job.languages : (typeof job.languages === 'string' ? job.languages.split(',').map(l => l.trim()).filter(Boolean) : []));
         }
         setJobOpenings(job.openings || 1);
         setWorkingDaysName(job.working_days || "");
@@ -436,8 +451,14 @@ export default function PostEdit() {
           setValue(job.job_description);
         }
         setSeoDescription(job.seo_description || "");
-        if (job.questions) {
-          setPostQuestions(job.questions);
+        if (job.questions && Array.isArray(job.questions)) {
+          setPostQuestions(job.questions.map(q => ({
+            id: q.id,
+            question: q.question || "",
+            isrequired: q.isrequired === 1 || q.isrequired === true ? 1 : 0,
+            type: q.type || "Short answer",
+            options: q.options || []
+          })));
         }
 
         // Restore walk-in fields
@@ -445,7 +466,19 @@ export default function PostEdit() {
         if (job.walk_in_start_date) setWalkInStartDate(dayjs(job.walk_in_start_date));
         if (job.walk_in_end_date) setWalkInEndDate(dayjs(job.walk_in_end_date));
         if (job.walk_in_start_time && job.walk_in_end_time) {
-          setWalkInTiming([dayjs(job.walk_in_start_time, 'HH:mm'), dayjs(job.walk_in_end_time, 'HH:mm')]);
+          const parseTime = (t) => {
+            if (!t) return null;
+            const parts = t.toString().split(':');
+            if (parts.length >= 2) {
+              return dayjs().hour(parseInt(parts[0], 10)).minute(parseInt(parts[1], 10)).second(0);
+            }
+            return null;
+          };
+          const sTime = parseTime(job.walk_in_start_time);
+          const eTime = parseTime(job.walk_in_end_time);
+          if (sTime && eTime) {
+            setWalkInTiming([sTime, eTime]);
+          }
         }
         setRecruiterName(job.recruiter_name || "");
         setMobileNumber(job.mobile_number || "");
@@ -455,10 +488,13 @@ export default function PostEdit() {
           const members = typeof job.team_members === 'string' ? JSON.parse(job.team_members) : job.team_members;
           if (Array.isArray(members) && members.length > 0) setTeamMembers(members);
         }
+
+        // Unlock all steps for seamless navigation in edit mode
+        setCompletedSteps([0, 1, 2, 3, 4]);
       }
     } catch (error) {
       console.error("Error fetching job:", error);
-      // toast.error("Failed to load job details");
+      toast.error("Failed to load job details");
     } finally {
       setPageLoading(false);
     }
@@ -692,16 +728,20 @@ export default function PostEdit() {
       let minExpErr = "";
       let maxExpErr = "";
       if (!freshersAllowed) {
-        if (minExp === null) minExpErr = "Please select minimum experience";
-        if (maxExp === null) maxExpErr = "Please select maximum experience";
-        if (minExp !== null && maxExp !== null && minExp > maxExp) maxExpErr = "Max must be greater than Min";
+        if (minExp === null || minExp === undefined) minExpErr = "Please select minimum experience";
+        if (maxExp === null || maxExp === undefined) maxExpErr = "Please select maximum experience";
+        if (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined && Number(minExp) > Number(maxExp)) {
+          maxExpErr = "Max must be greater than Min";
+        }
       }
 
       let salMinErr = "";
       let salMaxErr = "";
       if (!hideSalary) {
-        if (salaryMin !== null && salaryMin !== "" && salaryMin < 5000) salMinErr = "Minimum monthly salary must be greater than ₹5,000";
-        if (salaryMin !== null && salaryMin !== "" && salaryMax !== null && salaryMax !== "" && salaryMin > salaryMax) salMaxErr = "Max salary must be greater than Min";
+        if (salaryMin !== null && salaryMin !== "" && Number(salaryMin) < 5000) salMinErr = "Minimum monthly salary must be greater than ₹5,000";
+        if (salaryMin !== null && salaryMin !== "" && salaryMax !== null && salaryMax !== "" && Number(salaryMin) > Number(salaryMax)) {
+          salMaxErr = "Max salary must be greater than Min";
+        }
       }
 
       setJobTitleError(jobTitleValidate);
@@ -774,22 +814,65 @@ export default function PostEdit() {
     });
   };
 
-  const handlePublishPost = async () => {
-    // Validation logic for final step
+  const handleSaveJob = async () => {
+    // 1. Validation
+    const jobTitleValidate = nameValidator(jobTitle);
+    if (jobTitleValidate) {
+      setJobTitleError(jobTitleValidate);
+      setCurrentStep(0);
+      toast.error(jobTitleValidate);
+      return;
+    }
+
+    if (!freshersAllowed) {
+      if (minExp === null || minExp === undefined) {
+        setMinExpError("Please select minimum experience");
+        setCurrentStep(0);
+        toast.error("Please select minimum experience");
+        return;
+      }
+      if (maxExp === null || maxExp === undefined) {
+        setMaxExpError("Please select maximum experience");
+        setCurrentStep(0);
+        toast.error("Please select maximum experience");
+        return;
+      }
+      if (Number(minExp) > Number(maxExp)) {
+        setMaxExpError("Max must be greater than Min");
+        setCurrentStep(0);
+        toast.error("Max experience must be greater than Min");
+        return;
+      }
+    }
+
+    if (!hideSalary && salaryMin !== null && salaryMin !== "" && salaryMax !== null && salaryMax !== "") {
+      if (Number(salaryMin) > Number(salaryMax)) {
+        setSalaryMaxError("Max salary must be greater than Min");
+        setCurrentStep(0);
+        toast.error("Max salary must be greater than Min");
+        return;
+      }
+    }
+
     const getUserDetails = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("loginDetails") || "{}") : {};
-    const now = new Date();
-    const fetchDateTime = now.toLocaleDateString("en-CA") + " " + now.toLocaleTimeString("en-GB", { hour12: false });
 
-    const getDurationName = internShipDuration.find((f) => f.id === selectedDurationId);
-    const allBenefitsData = selectedBenefits;
-
-    // Map UI state to payload
-    const expReq = freshersAllowed ? ["All"] : (minExp && maxExp ? `${minExp}-${maxExp} Years` : experienceRequired);
+    const expReq = freshersAllowed
+      ? ["All"]
+      : (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined
+          ? [`${minExp}-${maxExp} Years`]
+          : (Array.isArray(experienceRequired) ? experienceRequired : [experienceRequired].filter(Boolean)));
 
     let mappedGender = [];
     if (genderPreference === 'Male') mappedGender = ['Male'];
     else if (genderPreference === 'Female') mappedGender = ['Female'];
-    else mappedGender = gender.map(g => g.name);
+    else mappedGender = Array.isArray(gender) ? gender.map(g => g.name || g) : ['Any'];
+
+    const formatTime = (t) => {
+      if (!t) return null;
+      if (dayjs.isDayjs(t) && t.isValid()) return t.format("HH:mm:ss");
+      if (typeof t === 'string' && t !== 'Invalid Date' && t.includes(':')) return t;
+      return null;
+    };
 
     const payload = {
       user_id: getUserDetails.id,
@@ -798,49 +881,48 @@ export default function PostEdit() {
       company_logo: logoUrl || dummyLogo,
       job_title: jobTitle,
       job_nature: jobNatureId === 1 ? "Job" : jobNatureId === 2 ? "Internship" : jobNatureId === 3 ? "Scholarship" : "Job",
-      duration_period: jobNatureId === 1 ? "Permanent" : jobNatureId === 2 ? getDurationName?.duration : jobNatureId === 3 ? "Scholarship" : "Permanent",
+      duration_period: "Permanent",
       workplace_type: workMode === "In office" ? "In Office" : workMode === "Hybrid" ? "Hybrid" : "Work From Home",
-      role: role,
-      industry: industry,
-      employment_type: employmentType,
-      willing_to_relocate: willingToRelocate,
+      role: role || "",
+      industry: industry || "",
+      employment_type: employmentType || "Full Time, Permanent",
+      willing_to_relocate: willingToRelocate ? 1 : 0,
       hybrid_policy: workMode === "Hybrid" ? hybridPolicy : "",
-      work_location: specificCity ? specificCity : (specificLocation.length > 0 ? specificLocation : "Pan India"),
+      work_location: specificCity && specificCity.length > 0 ? specificCity : (specificLocation.length > 0 ? specificLocation : ["Pan India"]),
       job_category: department ? [department] : jobCategory,
       skills: skillsRequired,
       experience_type: freshersAllowed ? "Fresher" : "Experienced",
       experience_required: expReq,
       salary_type: salaryType,
-      hide_salary: hideSalary,
-      currency: currency,
-      min_salary: salaryMin,
-      max_salary: salaryMax,
-      fixed_format: fixedFormat,
-      variable_amount: variableAmount,
-      variable_format: variableFormat,
+      hide_salary: hideSalary ? 1 : 0,
+      currency: currency || "INR",
+      min_salary: salaryMin !== null && salaryMin !== undefined ? salaryMin.toString() : "",
+      max_salary: salaryMax !== null && salaryMax !== undefined ? salaryMax.toString() : "",
+      fixed_format: fixedFormat || "Annually",
+      variable_amount: variableAmount || "",
+      variable_format: variableFormat || "Annually",
       bonus_amount: showBonus ? bonusAmount : "",
       bonus_format: showBonus ? bonusFormat : "",
-      salary_duration: salaryDuration,
+      salary_duration: salaryDuration || "Annual",
       diversity_hiring: mappedGender,
-      benefits: allBenefitsData,
+      benefits: selectedBenefits,
       educational_qualification: educationalDegree,
       candidate_industry: candidateIndustry,
-      created_at: fetchDateTime,
-      openings: jobOpenings,
-      working_days: workingDaysName,
+      openings: jobOpenings || 1,
+      working_days: workingDaysName || "",
       job_description: value,
-      seo_description: seoDescription,
-      questions: isExternalApply ? [] : postQuestions.filter(q => q.question.trim() !== ""),
+      seo_description: seoDescription || "",
+      questions: isExternalApply ? [] : postQuestions.filter(q => q && q.question && q.question.trim() !== ""),
       languages: languages,
-      is_walk_in: isWalkIn,
-      walk_in_start_date: walkInStartDate ? walkInStartDate.format("YYYY-MM-DD") : null,
-      walk_in_end_date: walkInEndDate ? walkInEndDate.format("YYYY-MM-DD") : null,
-      walk_in_start_time: walkInTiming ? walkInTiming[0]?.format("HH:mm") : null,
-      walk_in_end_time: walkInTiming ? walkInTiming[1]?.format("HH:mm") : null,
-      recruiter_name: recruiterName,
-      mobile_number: mobileNumber,
-      venue_address: venueAddress,
-      google_maps_url: googleMapsUrl,
+      is_walk_in: isWalkIn ? 1 : 0,
+      walk_in_start_date: walkInStartDate ? (walkInStartDate.format ? walkInStartDate.format("YYYY-MM-DD") : walkInStartDate) : null,
+      walk_in_end_date: walkInEndDate ? (walkInEndDate.format ? walkInEndDate.format("YYYY-MM-DD") : walkInEndDate) : null,
+      walk_in_start_time: walkInTiming ? formatTime(walkInTiming[0]) : null,
+      walk_in_end_time: walkInTiming ? formatTime(walkInTiming[1]) : null,
+      recruiter_name: recruiterName || "",
+      mobile_number: mobileNumber || "",
+      venue_address: venueAddress || "",
+      google_maps_url: googleMapsUrl || "",
       team_members: teamMembers,
       apply_link: isExternalApply ? applyLink : null,
       about_company: isExternalApply ? aboutCompany : null
@@ -848,16 +930,18 @@ export default function PostEdit() {
 
     try {
       setIsLoading(true);
-      await updateJobPosting(payload);
-      toast.success("Job Posted Successfully.");
+      const res = await updateJobPosting(payload);
+      toast.success(res?.data?.message || "Job updated successfully.");
       navigate("/my-jobs");
     } catch (error) {
-      console.error("Error posting job:", error);
-      toast.error(error.response?.data?.message || "Failed to post job.");
+      console.error("Error updating job:", error);
+      toast.error(error.response?.data?.message || error.message || "Failed to update job.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handlePublishPost = handleSaveJob;
 
   const handleChange = (content, delta, source, editor) => {
     const textLength = editor.getText().trim().length;
@@ -2184,23 +2268,48 @@ export default function PostEdit() {
       {/* Top Navigation */}
       <div className="w-full bg-white border-b border-gray-100 px-6 py-6 lg:px-12 shrink-0 hidden md:block">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    navigate(-1);
+                  } else {
+                    navigate('/my-jobs');
+                  }
+                }}
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-all shadow-xs active:scale-95 cursor-pointer"
+                title="Go back"
+                aria-label="Back"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h1 className="text-[22px] mb-0 font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                  Edit Job
+                  {id && (
+                    <span className="px-2.5 py-0.5 bg-blue-50 text-[#0A66C2] text-xs font-semibold rounded-full border border-blue-200">
+                      ID: #{id}
+                    </span>
+                  )}
+                </h1>
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  navigate(-1);
-                } else {
-                  navigate('/my-jobs');
-                }
-              }}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-all shadow-xs active:scale-95 cursor-pointer"
-              title="Go back"
-              aria-label="Back"
+              onClick={handleSaveJob}
+              disabled={isLoading}
+              className="bg-[#0A66C2] hover:bg-[#004182] text-white px-6 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
-              <ArrowLeft size={18} />
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <CheckOutlined className="text-xs" />
+              )}
+              <span>{isLoading ? 'Saving Changes...' : 'Save Changes'}</span>
             </button>
-            <h1 className="text-[22px] mb-0 font-bold text-gray-900 tracking-tight">Edit Job</h1>
           </div>
 
           <div className="flex items-center w-full">
@@ -2213,19 +2322,17 @@ export default function PostEdit() {
                 <div
                   key={step.id}
                   className={`flex items-center cursor-pointer group opacity-100 ${!isLast ? 'flex-1' : ''}`}
-                  onClick={() => {
-                    if (isCompleted || isActive) setCurrentStep(idx);
-                  }}
+                  onClick={() => setCurrentStep(idx)}
                 >
                   <div className="flex items-center">
                     {(isActive || isCompleted) ? (
-                      <div className="w-6 h-6 rounded-full bg-[#0A66C2] flex items-center justify-center relative z-10 border border-[#0A66C2]">
-                        <CheckOutlined className="text-white text-[12px] font-bold" />
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center relative z-10 border ${isActive ? 'bg-[#0A66C2] border-[#0A66C2]' : 'bg-blue-100 border-blue-300'}`}>
+                        <CheckOutlined className={`${isActive ? 'text-white' : 'text-[#0A66C2]'} text-[11px] font-bold`} />
                       </div>
                     ) : (
                       <div className="w-6 h-6 rounded-full border border-gray-300 bg-white relative z-10 group-hover:border-gray-400 transition-colors" />
                     )}
-                    <h3 className={`ml-3 text-[14px] mb-0 whitespace-nowrap transition-colors ${isActive ? 'text-[#0A66C2] font-semibold' : 'text-[#9ca3af] font-medium group-hover:text-gray-700'}`}>
+                    <h3 className={`ml-3 text-[14px] mb-0 whitespace-nowrap transition-colors ${isActive ? 'text-[#0A66C2] font-semibold' : 'text-gray-600 font-medium group-hover:text-gray-900'}`}>
                       {step.title}
                     </h3>
                   </div>
@@ -2263,9 +2370,20 @@ export default function PostEdit() {
               Edit Job <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded">Free</span>
             </h1>
           </div>
-          <span className="text-sm font-medium text-gray-500">Step {currentStep + 1} of {STEPS.length}</span>
+          <button
+            type="button"
+            onClick={handleSaveJob}
+            disabled={isLoading}
+            className="bg-[#0A66C2] text-white text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5 disabled:opacity-50"
+          >
+            {isLoading ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <CheckOutlined className="text-[10px]" />}
+            Save
+          </button>
         </div>
-        <h3 className="text-[#0A66C2] font-semibold text-sm">{STEPS[currentStep].title}</h3>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-gray-500">Step {currentStep + 1} of {STEPS.length}</span>
+          <h3 className="text-[#0A66C2] font-semibold text-sm mb-0">{STEPS[currentStep].title}</h3>
+        </div>
       </div>
 
       {/* Main Content Area */}
@@ -2284,26 +2402,33 @@ export default function PostEdit() {
             onClick={handleBack}
             className="px-6 py-2.5 rounded-full font-medium text-[14px] transition-colors text-gray-600 hover:bg-gray-100"
           >
-            Back
+            {currentStep === 0 ? 'Cancel' : 'Back'}
           </button>
 
-          {currentStep < STEPS.length - 1 ? (
+          <div className="flex items-center gap-3">
+            {currentStep < STEPS.length - 1 && (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-6 py-2.5 rounded-full font-medium text-[14px] transition shadow-xs cursor-pointer"
+              >
+                Next Step →
+              </button>
+            )}
+
             <button
-              onClick={handleNext}
-              className="bg-[#0A66C2] hover:bg-[#004182] text-white px-8 py-2.5 rounded-full font-medium text-[14px] transition shadow-sm"
-            >
-              Save & Next
-            </button>
-          ) : (
-            <button
-              onClick={handlePublishPost}
+              onClick={handleSaveJob}
               disabled={isLoading}
-              className="bg-[#0A66C2] hover:bg-[#004182] text-white px-8 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50"
+              className="bg-[#0A66C2] hover:bg-[#004182] text-white px-8 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
-              {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : null}
-              {isLoading ? 'Publishing...' : 'Publish Job'}
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <CheckOutlined className="text-xs" />
+              )}
+              <span>{isLoading ? 'Saving Changes...' : 'Save Changes'}</span>
             </button>
-          )}
+          </div>
         </div>
       </div>
 

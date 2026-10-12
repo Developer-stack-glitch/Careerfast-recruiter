@@ -1178,8 +1178,8 @@ export const getDailyStreak = async (payload) => {
 // sendNotification (post notification)
 export const sendNotification = async () => {
   try {
-    const res = await axios.post(
-      `${process.env.REACT_APP_API_URL}/api/broadcast-notification`,
+    const res = await api.post(
+      "/api/broadcast-notification",
       {
         title: "New Job Post Created 🚀",
         body: "Check out the job post details and apply now!",
@@ -1198,8 +1198,8 @@ export const sendNotification = async () => {
 // subscribeTopic (FCM)
 export const subscribeTopic = async (token) => {
   try {
-    const res = await axios.post(
-      `${process.env.REACT_APP_API_URL}/api/subscribe-topic`,
+    const res = await api.post(
+      "/api/subscribe-topic",
       { token }
     );
     return res.data;
@@ -1212,8 +1212,8 @@ export const subscribeTopic = async (token) => {
 // recruiter notification + application save
 export const userApplyJob = async (payload) => {
   try {
-    const response = await axios.post(
-      `${process.env.REACT_APP_API_URL}/api/applyJob`,
+    const response = await api.post(
+      "/api/applyJob",
       payload
     );
     return response;
@@ -1241,14 +1241,9 @@ export const saveToken = async (userId, token) => {
 // ✅ Create Event (Base64 JSON)
 export const createEvent = async (data) => {
   try {
-    const res = await axios.post(
-      `${process.env.REACT_APP_API_URL}/api/events`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    const res = await api.post(
+      "/api/events",
+      data
     );
     return res;
   } catch (error) {
@@ -1324,14 +1319,9 @@ export const checkIsRegistered = async (userId, eventId) => {
 // ✅ Create Workshop
 export const createWorkshop = async (data) => {
   try {
-    const res = await axios.post(
-      `${process.env.REACT_APP_API_URL}/api/workshops`,
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+    const res = await api.post(
+      "/api/workshops",
+      data
     );
     return res;
   } catch (error) {

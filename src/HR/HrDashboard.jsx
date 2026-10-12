@@ -907,7 +907,10 @@ export default function HrDashboard() {
                 <div className="flex flex-col lg:flex-row gap-7 items-start">
 
                     {/* ================= LEFT SIDEBAR (STICKY ANCHOR NAV) ================= */}
-                    <aside className="w-full lg:w-[270px] flex-shrink-0 lg:sticky lg:top-[76px] lg:self-start lg:max-h-[calc(100vh-86px)] lg:overflow-y-auto thin-scrollbar space-y-4">
+                    <aside
+                        className="w-full lg:w-[270px] flex-shrink-0 lg:sticky lg:top-[76px] lg:self-start lg:max-h-[calc(100vh-86px)] lg:overflow-y-auto no-scrollbar space-y-4"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
 
                         {/* Quick Navigation Menu */}
                         <nav className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-2.5 space-y-1">
@@ -1175,7 +1178,10 @@ export default function HrDashboard() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto pr-1">
+                                    <div
+                                        className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto pr-1 no-scrollbar"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    >
                                         {activeSearchesList.map((item) => (
                                             <div
                                                 key={item.id}

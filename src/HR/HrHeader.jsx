@@ -453,6 +453,18 @@ const HrHeader = () => {
                             <span>Folders</span>
                         </Link>
 
+                        {/* 6. Usage */}
+                        <Link
+                            href="/reports"
+                            style={{ textDecoration: 'none' }}
+                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isReportsActive
+                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                }`}
+                        >
+                            <span>Usages</span>
+                        </Link>
+
                         {/* 5. Team Seats - Only visible to Primary Recruiter */}
                         {!userAccess.isSubRecruiter && userAccess.permissions.can_manage_team !== false && (
                             <Link
@@ -466,18 +478,6 @@ const HrHeader = () => {
                                 <span>Team Seats</span>
                             </Link>
                         )}
-
-                        {/* 6. Reports */}
-                        <Link
-                            href="/reports"
-                            style={{ textDecoration: 'none' }}
-                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${isReportsActive
-                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
-                        >
-                            <span>Reports</span>
-                        </Link>
                     </nav>
                 </div>
 

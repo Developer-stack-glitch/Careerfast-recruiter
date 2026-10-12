@@ -907,7 +907,7 @@ export default function HrDashboard() {
                 <div className="flex flex-col lg:flex-row gap-7 items-start">
 
                     {/* ================= LEFT SIDEBAR (STICKY ANCHOR NAV) ================= */}
-                    <aside className="w-full lg:w-[270px] flex-shrink-0 lg:sticky lg:top-24 space-y-5">
+                    <aside className="w-full lg:w-[270px] flex-shrink-0 lg:sticky lg:top-[76px] lg:self-start lg:max-h-[calc(100vh-86px)] lg:overflow-y-auto thin-scrollbar space-y-4">
 
                         {/* Quick Navigation Menu */}
                         <nav className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-2.5 space-y-1">
@@ -1028,8 +1028,8 @@ export default function HrDashboard() {
                                     href="/candidate-search"
                                     className="flex items-center justify-between text-slate-700 hover:text-[#0A66C2] font-semibold p-2 rounded-lg hover:bg-slate-50 transition-colors"
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <Search size={14} className="text-[#0A66C2]" /> Advanced Search
+                                    <span className="flex items-center gap-2 text-sm">
+                                        <Search size={16} className="text-[#0A66C2]" /> Advanced Search
                                     </span>
                                     <ArrowRight size={12} className="text-slate-400" />
                                 </Link>
@@ -1037,8 +1037,8 @@ export default function HrDashboard() {
                                     href="/my-jobs"
                                     className="flex items-center justify-between text-slate-700 hover:text-[#0A66C2] font-semibold p-2 rounded-lg hover:bg-slate-50 transition-colors"
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <Briefcase size={14} className="text-[#0A66C2]" /> Job Management
+                                    <span className="flex items-center gap-2 text-sm">
+                                        <Briefcase size={16} className="text-[#0A66C2]" /> Job Management
                                     </span>
                                     <ArrowRight size={12} className="text-slate-400" />
                                 </Link>
@@ -1046,8 +1046,8 @@ export default function HrDashboard() {
                                     href="/manage-folder"
                                     className="flex items-center justify-between text-slate-700 hover:text-[#0A66C2] font-semibold p-2 rounded-lg hover:bg-slate-50 transition-colors"
                                 >
-                                    <span className="flex items-center gap-2">
-                                        <Folder size={14} className="text-[#0A66C2]" /> Saved Resumes
+                                    <span className="flex items-center gap-2 text-sm">
+                                        <Folder size={16} className="text-[#0A66C2]" /> Saved Resumes
                                     </span>
                                     <ArrowRight size={12} className="text-slate-400" />
                                 </Link>
@@ -1299,29 +1299,6 @@ export default function HrDashboard() {
                                         </Link>
                                     )}
 
-                                    {userAccess.permissions.can_post_jobs !== false && (
-                                        isPostingRestricted ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    alert(subscription.limit_reason || "Job posting is locked because the company's plan limits are reached. All active job slots or monthly posts are in use.");
-                                                }}
-                                                title={subscription.limit_reason || "Company job posting limit reached"}
-                                                className="px-3.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200/90 text-slate-400 font-semibold text-xs inline-flex items-center gap-1.5 cursor-not-allowed shadow-2xs ml-auto sm:ml-0"
-                                            >
-                                                <Lock size={13} className="text-slate-400" />
-                                                <span>Post a Job (Quota Full)</span>
-                                            </button>
-                                        ) : (
-                                            <Link
-                                                href="/post-job"
-                                                className="px-3.5 py-1.5 rounded-xl bg-[#0A66C2] hover:bg-[#004182] text-white text-xs font-medium shadow-2xs hover:shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
-                                            >
-                                                <Plus size={14} />
-                                                Post a Job
-                                            </Link>
-                                        )
-                                    )}
                                 </div>
                             </div>
 
@@ -1331,7 +1308,15 @@ export default function HrDashboard() {
                                     <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                                         <span className="flex items-center gap-1.5 font-bold text-slate-800">
                                             <Crown size={14} className="text-amber-600" />
-                                            <span>{userAccess.isSubRecruiter ? `Assigned Role: ${userAccess.designation || 'Recruiter'}` : `${subscription.plan_name} Plan`}</span>
+                                            <span>
+                                                {userAccess.isSubRecruiter
+                                                    ? `Assigned Role: ${userAccess.designation || 'Recruiter'}`
+                                                    : subscription.plan_name?.toLowerCase().includes('custom')
+                                                        ? 'Custom Plan'
+                                                        : subscription.plan_name?.toLowerCase().endsWith('plan')
+                                                            ? subscription.plan_name
+                                                            : `${subscription.plan_name || 'Basic'} Plan`}
+                                            </span>
                                         </span>
                                         <span className="text-slate-300 hidden sm:inline">•</span>
                                         <span className="flex items-center gap-1.5">
@@ -1359,7 +1344,7 @@ export default function HrDashboard() {
                                         </span>
                                     </div>
                                     {!userAccess.isSubRecruiter && (
-                                        <Link href="/billing" className="text-xs font-bold text-[#0A66C2] hover:underline flex items-center gap-1 cursor-pointer">
+                                        <Link href="/billing" className="text-xs font-semibold text-[#0A66C2] hover:underline flex items-center gap-1 cursor-pointer">
                                             Manage Quota & Limits <ArrowRight size={12} />
                                         </Link>
                                     )}
@@ -1740,7 +1725,7 @@ export default function HrDashboard() {
                                                 ) : (
                                                     <Link
                                                         href="/post-job"
-                                                        className="px-4 py-2.5 rounded-xl bg-[#6b21a8] hover:bg-[#581c87] text-white text-xs sm:text-sm font-medium shadow-md shadow-purple-500/25 transition-all inline-flex items-center gap-2 cursor-pointer active:scale-98"
+                                                        className="px-4 py-2.5 rounded-xl bg-[#6b21a8] hover:bg-[#581c87] text-white text-xs sm:text-sm font-medium transition-all inline-flex items-center gap-2 cursor-pointer active:scale-98 hover:text-white"
                                                     >
                                                         <Plus size={15} strokeWidth={2.4} />
                                                         Post Your First Job

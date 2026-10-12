@@ -171,8 +171,8 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
 
             localStorage.setItem('AccessToken', token);
             localStorage.setItem('loginDetails', JSON.stringify(recruiterDetails));
-            document.cookie = `AccessToken=${token}; path=/; max-age=86400`;
-            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(recruiterDetails))}; path=/; max-age=86400`;
+            document.cookie = `AccessToken=${token}; path=/; max-age=2592000; SameSite=Lax`;
+            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(recruiterDetails))}; path=/; max-age=2592000; SameSite=Lax`;
 
             setTimeout(() => {
               window.location.href = '/create-profile';

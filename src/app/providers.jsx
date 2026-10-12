@@ -24,6 +24,8 @@ if (typeof window !== "undefined") {
       msg.includes("FedCM get() rejects") ||
       msg.includes("[GSI_LOGGER]") ||
       msg.includes("[antd: compatible]") ||
+      msg.includes("[antd: message]") ||
+      msg.includes("[antd: notification]") ||
       msg.includes("src attribute") ||
       msg.includes("BillingNotEnabledMapError") ||
       msg.includes("Places API error") ||
@@ -38,6 +40,8 @@ if (typeof window !== "undefined") {
     const msg = args[0] ? String(args[0]) : "";
     if (
       msg.includes("[antd: compatible]") ||
+      msg.includes("[antd: message]") ||
+      msg.includes("[antd: notification]") ||
       msg.includes("antd v5 support React") ||
       msg.includes("src attribute")
     ) {

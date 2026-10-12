@@ -33,7 +33,7 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
         if (incomingToken) {
           setIsLoading(true);
           localStorage.setItem('AccessToken', incomingToken);
-          document.cookie = `AccessToken=${incomingToken}; path=/; max-age=86400`;
+          document.cookie = `AccessToken=${incomingToken}; path=/; max-age=2592000; SameSite=Lax`;
 
           let parsedDetails = null;
           if (incomingData) {
@@ -75,7 +75,7 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
             }
             safeObj.is_email_verified = 1;
             localStorage.setItem('loginDetails', JSON.stringify(safeObj));
-            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(safeObj))}; path=/; max-age=86400`;
+            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(safeObj))}; path=/; max-age=2592000; SameSite=Lax`;
           }
 
           const greetingName = parsedDetails?.first_name ? `, ${parsedDetails.first_name}` : '';
@@ -174,8 +174,8 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
         localStorage.setItem('loginDetails', JSON.stringify(recruiterDetails));
 
         // Store cookies for cross-route session synchronization
-        document.cookie = `AccessToken=${token}; path=/; max-age=86400`;
-        document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(recruiterDetails))}; path=/; max-age=86400`;
+        document.cookie = `AccessToken=${token}; path=/; max-age=2592000; SameSite=Lax`;
+        document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(recruiterDetails))}; path=/; max-age=2592000; SameSite=Lax`;
 
         const greetingName = recruiterDetails?.first_name ? `, ${recruiterDetails.first_name}` : '';
         showToast(`Welcome back${greetingName}! Redirecting to Recruiter Portal...`, 'success');

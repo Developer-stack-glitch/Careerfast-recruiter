@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
                     if (incomingToken) {
                         localStorage.setItem("AccessToken", incomingToken);
-                        document.cookie = `AccessToken=${incomingToken}; path=/; max-age=86400`;
+                        document.cookie = `AccessToken=${incomingToken}; path=/; max-age=2592000; SameSite=Lax`;
 
                         let parsed = null;
                         if (incomingData) {
@@ -59,7 +59,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
                             }
                             safeParsed.is_email_verified = 1;
                             localStorage.setItem("loginDetails", JSON.stringify(safeParsed));
-                            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(safeParsed))}; path=/; max-age=86400`;
+                            document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(safeParsed))}; path=/; max-age=2592000; SameSite=Lax`;
                         }
 
                         // Clean up URL query parameters without reloading

@@ -277,8 +277,58 @@ export default function HrReports() {
                 }
             }
 
-            if (subRes.status === 'fulfilled' && subRes.value?.data) {
-                setMySubscription(subRes.value.data);
+            if (subRes.status === 'fulfilled' && subRes.value) {
+                const subPayload = subRes.value?.data ? subRes.value.data : subRes.value;
+                setMySubscription(subPayload);
+
+                const isSub = Boolean(
+                    subRes.value?.is_sub_recruiter ||
+                    subPayload?.is_sub_recruiter ||
+                    subPayload?.sub_recruiter_info
+                );
+
+                if (isSub) {
+                    const subInfo = subRes.value?.sub_recruiter_info || subPayload?.sub_recruiter_info || {};
+                    const subPerms = subPayload?.permissions || subInfo?.permissions || {};
+                    const sLimits = subPayload?.limits || {};
+                    const sUsage = subPayload?.usage || {};
+
+                    setUserAccess((prev) => ({
+                        ...prev,
+                        isSubRecruiter: true,
+                        rolePreset: subInfo.role_preset || subPayload.role_preset || prev.rolePreset,
+                        designation: subInfo.designation || subPayload.designation || prev.designation,
+                        permissions: {
+                            ...prev.permissions,
+                            ...subPerms,
+                            can_post_jobs: subPerms.can_post_jobs !== false,
+                            can_view_resumes: subPerms.can_view_resumes !== false,
+                            can_download_resumes: subPerms.can_download_resumes !== false,
+                            can_contact_candidates: subPerms.can_contact_candidates !== false,
+                            can_manage_applications: subPerms.can_manage_applications !== false,
+                            can_edit_company_profile: subPerms.can_edit_company_profile === true,
+                            can_manage_team: subPerms.can_manage_team === true,
+                            can_manage_billing: subPerms.can_manage_billing === true
+                        },
+                        quota: {
+                            mode: subPerms.quota_mode || subInfo.quota_mode || prev.quota.mode || 'split',
+                            allocated_job_posts: sLimits.job_post_limit ?? subPerms.allocated_job_posts ?? subInfo.allocated_job_posts ?? prev.quota.allocated_job_posts,
+                            allocated_resume_views: sLimits.resume_view_limit ?? subPerms.allocated_resume_views ?? subInfo.allocated_resume_views ?? prev.quota.allocated_resume_views,
+                            allocated_resume_downloads: sLimits.resume_download_limit ?? subPerms.allocated_resume_downloads ?? subInfo.allocated_resume_downloads ?? prev.quota.allocated_resume_downloads,
+                            allocated_emails: sLimits.email_limit ?? subPerms.allocated_emails ?? subInfo.allocated_emails ?? null,
+                            allocated_excel_downloads: sLimits.excel_download_limit ?? subPerms.allocated_excel_downloads ?? subInfo.allocated_excel_downloads ?? null,
+                            used_job_posts: sUsage.job_posts_used ?? subPerms.used_job_posts ?? prev.quota.used_job_posts,
+                            used_resume_views: sUsage.resume_views_used ?? subPerms.used_resume_views ?? prev.quota.used_resume_views,
+                            used_resume_downloads: sUsage.resume_downloads_used ?? subPerms.used_resume_downloads ?? prev.quota.used_resume_downloads,
+                            used_emails: sUsage.emails_sent ?? sUsage.emails_used ?? subPerms.used_emails ?? 0,
+                            used_excel_downloads: sUsage.excel_downloads_used ?? subPerms.used_excel_downloads ?? 0
+                        }
+                    }));
+
+                    if (subPayload.company) {
+                        setCompanyInfo(subPayload.company);
+                    }
+                }
             }
         } catch (error) {
             console.warn('Notice: Could not load full report data:', error?.message || error);
@@ -329,32 +379,58 @@ export default function HrReports() {
     const daysRemaining = mySubscription?.days_remaining !== undefined ? mySubscription.days_remaining : 28;
 
     // 1. Active Job Slots
-    const activeSlotLimit = Number(subLimits?.active_job_limit ?? dashboardData?.subscription?.active_job_limit ?? 2500);
+    const activeSlotLimit = userAccess.isSubRecruiter && userAccess.quota.mode === 'split' && (userAccess.quota.allocated_job_posts !== null || subLimits?.job_post_limit !== undefined)
+        ? Math.min(Number(subLimits?.active_job_limit ?? 2500), Number(userAccess.quota.allocated_job_posts ?? subLimits?.job_post_limit ?? 20))
+        : Number(subLimits?.active_job_limit ?? dashboardData?.subscription?.active_job_limit ?? 2500);
     const activeSlotUsed = activeJobs;
     const activeSlotRemaining = Math.max(0, activeSlotLimit - activeSlotUsed);
     const activeSlotPercent = activeSlotLimit > 0 ? Math.min(100, Math.round((activeSlotUsed / activeSlotLimit) * 100)) : 0;
 
     // 2. Monthly Job Posts
-    const postLimit = Number(subLimits?.job_post_limit ?? dashboardData?.subscription?.job_post_limit ?? 2000);
-    const postsUsed = Number(subUsage?.job_posts_used ?? dashboardData?.subscription?.job_posts_used ?? totalJobs);
+    const postLimit = userAccess.isSubRecruiter && userAccess.quota.mode === 'split' && (userAccess.quota.allocated_job_posts !== null || subLimits?.job_post_limit !== undefined)
+        ? Number(userAccess.quota.allocated_job_posts ?? subLimits?.job_post_limit ?? 20)
+        : Number(subLimits?.job_post_limit ?? dashboardData?.subscription?.job_post_limit ?? 2000);
+    const postsUsed = Number(
+        userAccess.isSubRecruiter && userAccess.quota.mode === 'split'
+            ? (userAccess.quota.used_job_posts || subUsage?.job_posts_used || totalJobs)
+            : (subUsage?.job_posts_used ?? dashboardData?.subscription?.job_posts_used ?? totalJobs)
+    );
     const postsRemaining = Math.max(0, postLimit - postsUsed);
     const postLimitPercent = postLimit > 0 ? Math.min(100, Math.round((postsUsed / postLimit) * 100)) : 0;
 
     // 3. Resume / Profile Views
-    const viewLimit = Number(subLimits?.resume_view_limit ?? dashboardData?.subscription?.resume_view_limit ?? 500);
-    const viewsUsed = Number(subUsage?.resume_views_used ?? dashboardData?.subscription?.resume_views_used ?? userAccess.quota.used_resume_views ?? 0);
+    const viewLimit = userAccess.isSubRecruiter && userAccess.quota.mode === 'split' && (userAccess.quota.allocated_resume_views !== null || subLimits?.resume_view_limit !== undefined)
+        ? Number(userAccess.quota.allocated_resume_views ?? subLimits?.resume_view_limit ?? 10)
+        : Number(subLimits?.resume_view_limit ?? dashboardData?.subscription?.resume_view_limit ?? 500);
+    const viewsUsed = Number(
+        userAccess.isSubRecruiter && userAccess.quota.mode === 'split'
+            ? (userAccess.quota.used_resume_views || subUsage?.resume_views_used || 0)
+            : (subUsage?.resume_views_used ?? dashboardData?.subscription?.resume_views_used ?? userAccess.quota.used_resume_views ?? 0)
+    );
     const viewsRemaining = Math.max(0, viewLimit - viewsUsed);
     const viewsPercent = viewLimit > 0 ? Math.min(100, Math.round((viewsUsed / viewLimit) * 100)) : 0;
 
     // 4. Resume Downloads
-    const downloadLimit = Number(subLimits?.resume_download_limit ?? dashboardData?.subscription?.resume_download_limit ?? 250);
-    const downloadsUsed = Number(subUsage?.resume_downloads_used ?? dashboardData?.subscription?.resume_downloads_used ?? userAccess.quota.used_resume_downloads ?? 0);
+    const downloadLimit = userAccess.isSubRecruiter && userAccess.quota.mode === 'split' && (userAccess.quota.allocated_resume_downloads !== null || subLimits?.resume_download_limit !== undefined)
+        ? Number(userAccess.quota.allocated_resume_downloads ?? subLimits?.resume_download_limit ?? 10)
+        : Number(subLimits?.resume_download_limit ?? dashboardData?.subscription?.resume_download_limit ?? 250);
+    const downloadsUsed = Number(
+        userAccess.isSubRecruiter && userAccess.quota.mode === 'split'
+            ? (userAccess.quota.used_resume_downloads || subUsage?.resume_downloads_used || 0)
+            : (subUsage?.resume_downloads_used ?? dashboardData?.subscription?.resume_downloads_used ?? userAccess.quota.used_resume_downloads ?? 0)
+    );
     const downloadsRemaining = Math.max(0, downloadLimit - downloadsUsed);
     const downloadsPercent = downloadLimit > 0 ? Math.min(100, Math.round((downloadsUsed / downloadLimit) * 100)) : 0;
 
     // 5. Email Outreach Quota
-    const emailLimit = Number(subLimits?.email_limit ?? credits?.email_limit ?? 500);
-    const emailsUsed = Number(subUsage?.emails_sent ?? subUsage?.emails_used ?? credits?.email_count ?? 12);
+    const emailLimit = userAccess.isSubRecruiter && userAccess.quota.mode === 'split' && (userAccess.quota.allocated_emails !== null || subLimits?.email_limit !== undefined)
+        ? Number(userAccess.quota.allocated_emails ?? subLimits?.email_limit ?? 10)
+        : Number(subLimits?.email_limit ?? credits?.email_limit ?? 500);
+    const emailsUsed = Number(
+        userAccess.isSubRecruiter && userAccess.quota.mode === 'split'
+            ? (userAccess.quota.used_emails || subUsage?.emails_sent || subUsage?.emails_used || 0)
+            : (subUsage?.emails_sent ?? subUsage?.emails_used ?? credits?.email_count ?? 12)
+    );
     const emailsRemaining = Math.max(0, emailLimit - emailsUsed);
     const emailsPercent = emailLimit > 0 ? Math.min(100, Math.round((emailsUsed / emailLimit) * 100)) : 0;
 
@@ -371,8 +447,14 @@ export default function HrReports() {
     const subseatsPercent = subseatLimit > 0 ? Math.min(100, Math.round((subseatsUsed / subseatLimit) * 100)) : 0;
 
     // 8. Excel Candidate Export Quota
-    const excelLimit = Number(subLimits?.excel_download_limit ?? credits?.excel_limit ?? 100);
-    const excelUsed = Number(subUsage?.excel_downloads_used ?? credits?.excel_downloads ?? 3);
+    const excelLimit = userAccess.isSubRecruiter && userAccess.quota.mode === 'split' && (userAccess.quota.allocated_excel_downloads !== null || subLimits?.excel_download_limit !== undefined)
+        ? Number(userAccess.quota.allocated_excel_downloads ?? subLimits?.excel_download_limit ?? 10)
+        : Number(subLimits?.excel_download_limit ?? credits?.excel_limit ?? 100);
+    const excelUsed = Number(
+        userAccess.isSubRecruiter && userAccess.quota.mode === 'split'
+            ? (userAccess.quota.used_excel_downloads || subUsage?.excel_downloads_used || 0)
+            : (subUsage?.excel_downloads_used ?? credits?.excel_downloads ?? 3)
+    );
     const excelRemaining = Math.max(0, excelLimit - excelUsed);
     const excelPercent = excelLimit > 0 ? Math.min(100, Math.round((excelUsed / excelLimit) * 100)) : 0;
 
@@ -420,6 +502,152 @@ export default function HrReports() {
         CommonToaster("Complete plan usage report downloaded successfully!", "success");
     };
 
+    // ─── Reports Page Shimmer Skeleton Loader ─────────────────────────────
+    if (loading) {
+        const shimmerClass = 'relative overflow-hidden bg-slate-200/70 rounded-lg before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.8s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/60 before:to-transparent';
+        const shimmerDark = 'relative overflow-hidden bg-white/15 rounded-lg before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.8s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent';
+
+        return (
+            <div className="min-h-screen bg-[#F8FAFC] py-7 text-slate-800 antialiased font-sans overflow-x-hidden w-full">
+                {/* Shimmer keyframe */}
+                <style>{`@keyframes shimmer{100%{transform:translateX(100%)}}`}</style>
+
+                <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
+                    {/* 1. Header Skeleton */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div className="flex items-center gap-2.5 flex-wrap">
+                                <div className={`h-8 w-72 sm:w-96 rounded-xl ${shimmerClass}`} />
+                                <div className={`h-6 w-32 rounded-full ${shimmerClass}`} />
+                            </div>
+                            <div className={`h-4 w-60 sm:w-96 mt-2.5 rounded ${shimmerClass}`} />
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className={`h-9 w-32 rounded-xl ${shimmerClass}`} />
+                        </div>
+                    </div>
+
+                    {/* 2. Plan Highlights Hero Banner Skeleton */}
+                    <div className="bg-gradient-to-r from-[#0A66C2] via-indigo-700 to-[#084e96] rounded-3xl p-6 sm:p-6 text-white shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                            <div className="flex items-start sm:items-center gap-5">
+                                <div className={`w-12 h-12 rounded-xl shrink-0 ${shimmerDark}`} />
+                                <div className="space-y-2.5">
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <div className={`h-7 w-36 sm:w-44 rounded-lg ${shimmerDark}`} />
+                                        <div className={`h-6 w-20 rounded-full ${shimmerDark}`} />
+                                        <div className={`h-6 w-32 rounded-full ${shimmerDark}`} />
+                                    </div>
+                                    <div className={`h-4 w-64 sm:w-[460px] rounded ${shimmerDark}`} />
+                                </div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
+                                <div className="p-2 px-3 flex flex-col items-center gap-1.5">
+                                    <div className={`h-3 w-20 rounded ${shimmerDark}`} />
+                                    <div className={`h-6 w-24 rounded-lg ${shimmerDark}`} />
+                                </div>
+                                <div className={`h-11 w-36 rounded-xl ${shimmerDark}`} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. Executive Workspace & KPI Cards Card */}
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-6">
+                        {/* Top Greeting row */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 pb-4 border-b border-slate-100">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shrink-0 ${shimmerClass}`} />
+                                <div className="space-y-2 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <div className={`h-7 w-48 sm:w-60 rounded-lg ${shimmerClass}`} />
+                                        <div className={`h-5 w-32 rounded-full ${shimmerClass}`} />
+                                        <div className={`h-5 w-44 rounded-full ${shimmerClass}`} />
+                                    </div>
+                                    <div className={`h-3.5 w-56 sm:w-80 rounded ${shimmerClass}`} />
+                                </div>
+                            </div>
+                            {/* CTA Action Buttons */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <div className={`w-10 h-10 rounded-xl ${shimmerClass}`} />
+                                <div className={`w-36 h-10 rounded-xl ${shimmerClass}`} />
+                                <div className={`w-32 h-10 rounded-xl ${shimmerClass}`} />
+                            </div>
+                        </div>
+
+                        {/* 10 KPI Cards Grid Skeleton */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-3 sm:gap-4 pt-4">
+                            {[...Array(10)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 border border-slate-200/70 flex flex-col justify-between space-y-3"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className={`h-3.5 w-24 rounded ${shimmerClass}`} />
+                                        <div className={`w-7 h-7 rounded-lg shrink-0 ${shimmerClass}`} />
+                                    </div>
+                                    <div>
+                                        <div className={`h-7 w-20 rounded-lg mb-1.5 ${shimmerClass}`} />
+                                        <div className={`h-3 w-28 rounded ${shimmerClass}`} />
+                                    </div>
+                                    <div className={`h-3 w-20 rounded mt-1 ${shimmerClass}`} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 4. Plan Entitlements & Features Breakdown Table Skeleton */}
+                    <div className="bg-white rounded-3xl shadow-xs overflow-hidden border border-slate-100">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className={`h-6 w-64 sm:w-80 rounded-lg ${shimmerClass}`} />
+                                <div className={`h-3.5 w-80 sm:w-96 rounded ${shimmerClass}`} />
+                            </div>
+                            <div className={`h-6 w-28 rounded-full ${shimmerClass}`} />
+                        </div>
+
+                        <div className="divide-y divide-slate-100">
+                            {[...Array(4)].map((_, gIdx) => (
+                                <div key={gIdx} className="p-6 space-y-4">
+                                    <div className={`h-3.5 w-52 rounded ${shimmerClass}`} />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {[...Array(4)].map((_, fIdx) => (
+                                            <div
+                                                key={fIdx}
+                                                className="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/70 flex items-start gap-3"
+                                            >
+                                                <div className={`w-7 h-7 rounded-lg shrink-0 mt-0.5 ${shimmerClass}`} />
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className={`h-4 w-36 sm:w-48 rounded ${shimmerClass}`} />
+                                                        <div className={`h-4 w-20 rounded ${shimmerClass}`} />
+                                                    </div>
+                                                    <div className={`h-3 w-5/6 rounded ${shimmerClass}`} />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 5. Upgrade Banner CTA Skeleton */}
+                    <div className="p-6 rounded-3xl bg-slate-100/90 border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-2xl shrink-0 ${shimmerClass}`} />
+                            <div className="space-y-2">
+                                <div className={`h-5 w-64 sm:w-80 rounded-lg ${shimmerClass}`} />
+                                <div className={`h-3.5 w-80 sm:w-[480px] rounded ${shimmerClass}`} />
+                            </div>
+                        </div>
+                        <div className={`h-11 w-44 rounded-xl shrink-0 ${shimmerClass}`} />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] py-7 text-slate-800 antialiased font-sans overflow-x-hidden w-full [&_a]:no-underline [&_a:hover]:no-underline">
             <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
@@ -454,7 +682,7 @@ export default function HrReports() {
                 </div>
 
                 {/* Tab Filter Bar */}
-                <div className="flex items-center overflow-x-auto pb-1 -mt-1 scrollbar-none">
+                {/* <div className="flex items-center overflow-x-auto pb-1 -mt-1 scrollbar-none">
                     <div className="inline-flex items-center p-1 bg-slate-100 border border-slate-200/80 rounded-xl gap-1">
                         {[
                             { id: 'all', label: 'All Plan Details' },
@@ -477,7 +705,7 @@ export default function HrReports() {
                             </button>
                         ))}
                     </div>
-                </div>
+                </div> */}
 
                 {/* Plan Highlights Hero Banner */}
                 <div className="bg-gradient-to-r from-[#0A66C2] via-indigo-700 to-[#084e96] rounded-3xl p-6 sm:p-6 text-white shadow-lg relative overflow-hidden">
@@ -501,7 +729,11 @@ export default function HrReports() {
                                     </span>
                                 </div>
                                 <p className="text-blue-100 text-sm mt-0 mb-0 max-w-2xl leading-relaxed">
-                                    Enterprise recruiter package with {activeSlotLimit} concurrent job slots, {emailLimit} email credits, {whatsappLimit} WhatsApp messages, and {subseatLimit} sub-recruiter team seats.
+                                    {userAccess.isSubRecruiter
+                                        ? (userAccess.quota.mode === 'split'
+                                            ? `Dedicated sub-recruiter license under ${companyInfo.company_name || 'parent company'}${companyInfo.main_recruiter_name ? ` (${companyInfo.main_recruiter_name})` : ''} with ${activeSlotLimit} concurrent job slots, ${emailLimit} email credits, ${whatsappLimit} WhatsApp messages, and ${postLimit} monthly job postings.`
+                                            : `Shared sub-recruiter workspace under ${companyInfo.company_name || 'parent company'}${companyInfo.main_recruiter_name ? ` (${companyInfo.main_recruiter_name})` : ''} with company-shared job slots, email, WhatsApp, and resume search allowances.`)
+                                        : `Enterprise recruiter package with ${activeSlotLimit} concurrent job slots, ${emailLimit} email credits, ${whatsappLimit} WhatsApp messages, and ${subseatLimit} sub-recruiter team seats.`}
                                 </p>
                             </div>
                         </div>
@@ -585,7 +817,7 @@ export default function HrReports() {
                                             </span>
                                             <Link
                                                 href="/billing"
-                                                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900 border-1 border-amber-200/80 transition-all cursor-pointer shadow-2xs"
+                                                className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 text-amber-900 hover:text-amber-900 border-1 border-amber-200/80 transition-all cursor-pointer shadow-2xs"
                                                 title="View subscription plan and slot quota"
                                             >
                                                 <Crown size={12} className="text-amber-600" />
@@ -596,7 +828,9 @@ export default function HrReports() {
                                     )}
                                 </div>
                                 <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium mb-0">
-                                    Real-time intelligence on your active job searches, postings, email/WhatsApp outreach, and subseat quotas.
+                                    {userAccess.isSubRecruiter
+                                        ? 'Real-time intelligence on your assigned job postings, candidate searches, email/WhatsApp outreach, and allocated quotas.'
+                                        : 'Real-time intelligence on your active job searches, postings, email/WhatsApp outreach, and subseat quotas.'}
                                 </p>
                             </div>
                         </div>
@@ -739,38 +973,68 @@ export default function HrReports() {
                         </Link>
 
                         {/* 4. Monthly Post Quota */}
-                        <Link
-                            href="/billing"
-                            className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-200/70 hover:border-blue-200 transition-all cursor-pointer group block"
-                        >
-                            <div className="flex items-center justify-between text-slate-500 mb-2">
-                                <span className="text-[12.5px] font-semibold">Monthly Post Quota</span>
-                                <div className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                    <Crown size={14} strokeWidth={2.3} />
+                        {userAccess.isSubRecruiter ? (
+                            <Link
+                                href="/my-jobs"
+                                className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-200/70 hover:border-blue-200 transition-all cursor-pointer group block"
+                            >
+                                <div className="flex items-center justify-between text-slate-500 mb-2">
+                                    <span className="text-[12.5px] font-semibold">Monthly Post Quota</span>
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <Crown size={14} strokeWidth={2.3} />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-                                    {postsUsed} <span className="text-sm font-semibold text-slate-400">/ {postLimit}</span>
-                                </span>
-                                <span className={`text-[11px] font-bold ${postsUsed >= postLimit ? 'text-rose-600' : 'text-slate-500'}`}>
-                                    {postsRemaining} left
-                                </span>
-                            </div>
-                            <div className="text-[11px] font-semibold text-[#0A66C2] mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                                <span className="truncate">{planName}</span>
-                                <ArrowRight size={11} />
-                            </div>
-                        </Link>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                                        {postsUsed} <span className="text-sm font-semibold text-slate-400">/ {postLimit}</span>
+                                    </span>
+                                    <span className={`text-[11px] font-bold ${postsUsed >= postLimit ? 'text-rose-600' : 'text-slate-500'}`}>
+                                        {postsRemaining} left
+                                    </span>
+                                </div>
+                                <div className="text-[11px] font-semibold text-[#0A66C2] mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                    <span className="truncate">{userAccess.quota.mode === 'split' ? 'Allocated Quota' : 'Shared Pool'}</span>
+                                    <ArrowRight size={11} />
+                                </div>
+                            </Link>
+                        ) : (
+                            <Link
+                                href="/billing"
+                                className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-200/70 hover:border-blue-200 transition-all cursor-pointer group block"
+                            >
+                                <div className="flex items-center justify-between text-slate-500 mb-2">
+                                    <span className="text-[12.5px] font-semibold">Monthly Post Quota</span>
+                                    <div className="w-7 h-7 rounded-lg bg-indigo-100/70 text-indigo-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <Crown size={14} strokeWidth={2.3} />
+                                    </div>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                                        {postsUsed} <span className="text-sm font-semibold text-slate-400">/ {postLimit}</span>
+                                    </span>
+                                    <span className={`text-[11px] font-bold ${postsUsed >= postLimit ? 'text-rose-600' : 'text-slate-500'}`}>
+                                        {postsRemaining} left
+                                    </span>
+                                </div>
+                                <div className="text-[11px] font-semibold text-[#0A66C2] mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                    <span className="truncate">{planName}</span>
+                                    <ArrowRight size={11} />
+                                </div>
+                            </Link>
+                        )}
 
                         {/* 5. Credits Usage */}
                         <div
-                            onClick={() => router.push('/billing')}
-                            className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-blue-50/50 border border-slate-200/70 hover:border-blue-200 transition-all cursor-pointer group"
+                            onClick={() => {
+                                if (!userAccess.isSubRecruiter) {
+                                    router.push('/billing');
+                                }
+                            }}
+                            className={`p-3.5 sm:p-4 rounded-xl bg-slate-50/70 border border-slate-200/70 transition-all ${!userAccess.isSubRecruiter ? 'hover:bg-blue-50/50 hover:border-blue-200 cursor-pointer group' : ''}`}
                         >
                             <div className="flex items-center justify-between text-slate-500 mb-2">
                                 <span className="text-[12.5px] font-semibold">Credits Usage</span>
-                                <div className="w-7 h-7 rounded-lg bg-blue-100/70 text-[#0A66C2] flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <div className="w-7 h-7 rounded-lg bg-blue-100/70 text-[#0A66C2] flex items-center justify-center">
                                     <CreditCard size={14} strokeWidth={2.3} />
                                 </div>
                             </div>
@@ -782,9 +1046,9 @@ export default function HrReports() {
                                     used ({formatCompactNumber(credits.profile_usage_used)})
                                 </span>
                             </div>
-                            <div className="text-[11px] font-semibold text-[#0A66C2] mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                                <span>View credit quota</span>
-                                <ArrowRight size={11} />
+                            <div className="text-[11px] font-semibold text-[#0A66C2] mt-1.5 flex items-center gap-1">
+                                <span>{userAccess.isSubRecruiter ? 'Company Pool Credits' : 'View credit quota'}</span>
+                                {!userAccess.isSubRecruiter && <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />}
                             </div>
                         </div>
 
@@ -839,29 +1103,55 @@ export default function HrReports() {
                         </div>
 
                         {/* 8. Sub-Recruiter Subseats (Team Licenses) */}
-                        <Link
-                            href="/team"
-                            className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-purple-50/50 border border-slate-200/70 hover:border-purple-200 transition-all cursor-pointer group block"
-                        >
-                            <div className="flex items-center justify-between text-slate-500 mb-2">
-                                <span className="text-[12.5px] font-semibold">Subseats (Team)</span>
-                                <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-                                    <Users size={14} strokeWidth={2.3} />
+                        {(!userAccess.isSubRecruiter || userAccess.permissions.can_manage_team) ? (
+                            <Link
+                                href="/team"
+                                className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-purple-50/50 border border-slate-200/70 hover:border-purple-200 transition-all cursor-pointer group block"
+                            >
+                                <div className="flex items-center justify-between text-slate-500 mb-2">
+                                    <span className="text-[12.5px] font-semibold">Subseats (Team)</span>
+                                    <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <Users size={14} strokeWidth={2.3} />
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-baseline gap-2">
-                                <span className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
-                                    {subseatsUsed} <span className="text-sm font-semibold text-slate-400">/ {subseatLimit}</span>
-                                </span>
-                                <span className="text-[11px] font-bold text-purple-700">
-                                    {subseatsRemaining} Seats Free
-                                </span>
-                            </div>
-                            <div className="text-[11px] font-semibold text-purple-700 mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                                <span>Manage Team Seats</span>
-                                <ArrowRight size={11} />
-                            </div>
-                        </Link>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                                        {subseatsUsed} <span className="text-sm font-semibold text-slate-400">/ {subseatLimit}</span>
+                                    </span>
+                                    <span className="text-[11px] font-bold text-purple-700">
+                                        {subseatsRemaining} Seats Free
+                                    </span>
+                                </div>
+                                <div className="text-[11px] font-semibold text-purple-700 mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                    <span>Manage Team Seats</span>
+                                    <ArrowRight size={11} />
+                                </div>
+                            </Link>
+                        ) : (
+                            <Link
+                                href="/candidate-search"
+                                className="p-3.5 sm:p-4 rounded-xl bg-slate-50/70 hover:bg-emerald-50/50 border border-slate-200/70 hover:border-emerald-200 transition-all cursor-pointer group block"
+                            >
+                                <div className="flex items-center justify-between text-slate-500 mb-2">
+                                    <span className="text-[12.5px] font-semibold">Excel Exports</span>
+                                    <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                        <FileSpreadsheet size={14} strokeWidth={2.3} />
+                                    </div>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">
+                                        {excelUsed} <span className="text-sm font-semibold text-slate-400">/ {excelLimit}</span>
+                                    </span>
+                                    <span className="text-[11px] font-bold text-emerald-700">
+                                        {excelRemaining} left
+                                    </span>
+                                </div>
+                                <div className="text-[11px] font-semibold text-emerald-700 mt-1.5 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                                    <span>Candidate Export Quota</span>
+                                    <ArrowRight size={11} />
+                                </div>
+                            </Link>
+                        )}
 
                         {/* 9. Resume / CV Views */}
                         <Link
@@ -986,7 +1276,31 @@ export default function HrReports() {
                                         { title: 'Excel / CSV Candidate Export', value: `${excelLimit} Sheets / Month`, desc: 'Export full candidate contact lists and applicant spreadsheets.' }
                                     ]
                                 },
-                                {
+                                userAccess.isSubRecruiter ? {
+                                    category: 'Sub-Recruiter Access & Team Governance',
+                                    items: [
+                                        { 
+                                            title: 'Assigned Role & Designation', 
+                                            value: `${userAccess.designation || 'Recruiter'} (${userAccess.rolePreset === 'team_admin' ? 'Team Admin' : 'Sub-Recruiter'})`, 
+                                            desc: `Operating under parent organization ${companyInfo.company_name || 'Organization'}${companyInfo.main_recruiter_name ? ` (${companyInfo.main_recruiter_name})` : ''}.` 
+                                        },
+                                        { 
+                                            title: 'Quota Allocation Mode', 
+                                            value: userAccess.quota.mode === 'split' ? 'Dedicated Split Quota' : 'Company Shared Pool', 
+                                            desc: userAccess.quota.mode === 'split' ? 'Operating with isolated, dedicated allowances allocated by your company administrator.' : 'Operating with shared allowances drawn directly from company resource pool.' 
+                                        },
+                                        { 
+                                            title: 'Candidate Sourcing & Outreach', 
+                                            value: userAccess.permissions.can_view_resumes ? 'Active Access' : 'Restricted', 
+                                            desc: 'Direct email, WhatsApp candidate messaging, and resume database search permissions.' 
+                                        },
+                                        { 
+                                            title: 'Analytics & Reporting Export', 
+                                            value: 'Full CSV Export', 
+                                            desc: 'Export end-to-end recruitment velocity, quota utilization, and candidate search history to CSV.' 
+                                        }
+                                    ]
+                                } : {
                                     category: 'Team Collaboration & Subseat Governance',
                                     items: [
                                         { title: 'Team Sub-Recruiter Subseats', value: `${subseatLimit} Seats Allocated`, desc: 'Delegate sub-accounts with customized role and permission controls.' },

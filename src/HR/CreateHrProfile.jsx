@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import {
     Form,
-    message,
+    App,
     Input,
     Select,
     Upload,
@@ -102,6 +102,7 @@ const DEFAULT_INDUSTRIES = [
 const CreateHrProfile = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate();
+    const { message } = App.useApp();
 
     const [currentStep, setCurrentStep] = useState(0);
     const [progress, setProgress] = useState(25);

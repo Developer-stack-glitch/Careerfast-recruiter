@@ -46,7 +46,7 @@ const HrProfiles = () => {
                 if (res?.data?.data) {
                     setProfile(res.data.data);
                 } else {
-                    message.error("Could not load HR profile.");
+                    setProfile(null);
                 }
             } else {
                 setLoading(false);

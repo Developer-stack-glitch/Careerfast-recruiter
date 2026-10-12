@@ -6,8 +6,8 @@ export const getPlaceholderSvg = (text = "Logo", width = 100, height = 100) => {
 };
 
 export const getImageUrl = (url, fallbackText) => {
-  if (!url || url === "undefined" || url === "null") {
-    return fallbackText ? getPlaceholderSvg(fallbackText) : null;
+  if (!url || url === "undefined" || url === "null" || url === "") {
+    return fallbackText ? getPlaceholderSvg(fallbackText) : "/favicon.png";
   }
   
   // Handle Next.js static image imports/Modules which are objects
@@ -31,7 +31,7 @@ export const getImageUrl = (url, fallbackText) => {
     return url;
   }
   
-  const baseUrl = process.env.REACT_APP_API_URL || process.env.NEXT_PUBLIC_API_URL || 'https://api.careerfast.com';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3006';
   // If it's just a filename or a path that doesn't look like a local asset, prepend API URL
   const cleanUrl = url.startsWith('/') ? url : `/${url}`;
   return `${baseUrl}${cleanUrl}`;

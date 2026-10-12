@@ -552,6 +552,7 @@ const HrHeader = () => {
                                         src={recruiterDetails?.profile_image || companyInfo?.company_logo}
                                         alt={displayName}
                                         className="w-full h-full object-contain p-0.5"
+                                        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "/favicon.png"; }}
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-amber-800 font-bold text-[13px]">

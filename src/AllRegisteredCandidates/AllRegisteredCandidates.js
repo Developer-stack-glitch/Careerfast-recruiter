@@ -296,7 +296,7 @@ export default function AllRegisteredCandidates() {
                             </div>
                             <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                                 <PhoneOutlined style={{ fontSize: 10 }} />
-                                <span>{record.phone_code ? `${record.phone_code} ` : ""}{record.phone}</span>
+                                <span>{record.phone ? `${record.phone_code ? `${record.phone_code} ` : ""}${record.phone}` : "N/A"}</span>
                             </div>
                         </div>
                     </Space >
@@ -501,7 +501,7 @@ export default function AllRegisteredCandidates() {
                             </div>
                             <div style={{ fontSize: 12, color: "#94a3b8", display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
                                 <PhoneOutlined style={{ fontSize: 10 }} />
-                                <span>{record.phone_code ? `${record.phone_code} ` : ""}{record.phone}</span>
+                                <span>{record.phone ? `${record.phone_code ? `${record.phone_code} ` : ""}${record.phone}` : "N/A"}</span>
                             </div>
                         </div>
                     </Space>
@@ -1058,7 +1058,7 @@ export default function AllRegisteredCandidates() {
                                                                 <div className="info-item-icon-wrapper"><PhoneOutlined /></div>
                                                                 <div>
                                                                     <div className="info-item-label">Phone</div>
-                                                                    <div className="info-item-value">{selectedUser.phone_code ? `${selectedUser.phone_code} ` : ""}{selectedUser.phone || "N/A"}</div>
+                                                                    <div className="info-item-value">{selectedUser.phone ? `${selectedUser.phone_code ? `${selectedUser.phone_code} ` : ""}${selectedUser.phone}` : "N/A"}</div>
                                                                 </div>
                                                             </div>
                                                             <div className="info-item-box">
@@ -1234,7 +1234,7 @@ export default function AllRegisteredCandidates() {
                                                         <div className="info-item-icon-wrapper" style={{ background: "rgba(16, 185, 129, 0.08)", color: "#10b981" }}><PhoneOutlined /></div>
                                                         <div>
                                                             <div className="info-item-label">Telephone</div>
-                                                            <div className="info-item-value">{selectedUser.phone_code ? `${selectedUser.phone_code} ` : ""}{selectedUser.phone || "N/A"}</div>
+                                                            <div className="info-item-value">{selectedUser.phone ? `${selectedUser.phone_code ? `${selectedUser.phone_code} ` : ""}${selectedUser.phone}` : "N/A"}</div>
                                                         </div>
                                                     </div>
                                                     <div className="info-item-box">

@@ -3479,11 +3479,13 @@ const CandidateSearchResults = () => {
                         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[12px] text-slate-700 font-semibold shadow-2xs">
                           <Phone size={12.5} className="text-[#0A66C2]" />
                           <span>
-                            {isUnmasked
-                              ? `${candidate.phone_code ? `${candidate.phone_code} ` : ''}${candidate.phone || 'Not Available'} (Viewed)`
-                              : `+91-${candidate.phone ? candidate.phone.slice(0, 3) : '638'}******`}
+                            {!candidate.phone
+                              ? 'N/A'
+                              : isUnmasked
+                              ? `${candidate.phone_code ? `${candidate.phone_code} ` : ''}${candidate.phone} (Viewed)`
+                              : `${candidate.phone_code || '+91'}-${candidate.phone.slice(0, 3)}******`}
                           </span>
-                          {!isUnmasked && (
+                          {!isUnmasked && candidate.phone && (
                             <button
                               type="button"
                               onClick={() => handleToggleUnmaskPhone(candidate)}

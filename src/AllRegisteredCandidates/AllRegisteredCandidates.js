@@ -135,8 +135,15 @@ export default function AllRegisteredCandidates() {
                 college: user.college_name || "N/A",
                 status: user.status || "Pending",
                 score: user.score || 0,
-                joinDate: user.created_at || "2024-01-01",
+                joinDate: user.created_date || user.created_at || "N/A",
             }));
+
+            // Sort recently registered first dynamically
+            formattedUsers.sort((a, b) => {
+                const dateA = new Date(a.created_date || a.created_at || 0).getTime();
+                const dateB = new Date(b.created_date || b.created_at || 0).getTime();
+                return dateB - dateA || (b.id || 0) - (a.id || 0);
+            });
 
             setUsers(formattedUsers);
         } catch (error) {

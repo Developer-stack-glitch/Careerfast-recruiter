@@ -66,7 +66,8 @@ import {
     addVenue,
     getTeamMembers,
     addTeamMember,
-    getMySubscription
+    getMySubscription,
+    searchLocationsAPI
 } from "../ApiService/action";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -302,7 +303,7 @@ export default function Posting() {
     const [salaryMinError, setSalaryMinError] = useState("");
     const [salaryMaxError, setSalaryMaxError] = useState("");
     const [salaryNotDisclosed, setSalaryNotDisclosed] = useState(false);
-    const [salaryType, setSalaryType] = useState("Total CTC");
+    const [salaryType, setSalaryType] = useState("Range");
     const [hideSalary, setHideSalary] = useState(false);
     const [willingToRelocate, setWillingToRelocate] = useState(false);
     const [workMode, setWorkMode] = useState("In office");
@@ -339,6 +340,9 @@ export default function Posting() {
 
     const [value, setValue] = useState(DEFAULT_CONTENT);
     const [workLocationOption, setWorkLocationOption] = useState([]);
+    const [defaultLocations, setDefaultLocations] = useState([]);
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+    const [locationSearchTimeout, setLocationSearchTimeout] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [logoUrl, setLogoUrl] = useState(null);
     const [aboutCompany, setAboutCompany] = useState("");
@@ -458,24 +462,72 @@ export default function Posting() {
         } catch (error) { console.error("Error fetching team members", error); }
     };
 
-    const loadCitiesAPI = () => {
-        const allCities = Object.keys(cities).map((city) => ({
-            label: city,
-            value: city,
-            state: cities[city].country === 'IN' ? 'India' : cities[city].country,
-            country: cities[city].country,
-        }));
-        // Ensure some top Indian cities are at the top for the example UI
-        const topMetros = ["Ahmedabad", "Bengaluru", "Chennai", "Hyderabad", "Kolkata", "Pune", "Mumbai", "Delhi"].map(city => ({
-            label: city,
-            value: city,
-            state: 'India',
-            country: 'IN',
-            isTop: true
-        }));
+    const loadCitiesAPI = async () => {
+        try {
+            const locs = await searchLocationsAPI("");
+            if (locs && locs.length > 0) {
+                setDefaultLocations(locs);
+                setWorkLocationOption(locs);
+                return;
+            }
+        } catch (e) {
+            console.warn("Could not load default locations:", e);
+        }
+    };
 
-        const rest = allCities.filter(c => !topMetros.find(t => t.value === c.value));
-        setWorkLocationOption([...topMetros, ...rest]);
+    const handleLocationSearch = (value) => {
+        if (locationSearchTimeout) clearTimeout(locationSearchTimeout);
+        const term = (value || "").trim();
+
+        if (!term || term.length < 2) {
+            // Restore default locations while preserving any currently selected locations
+            const preserved = (specificCity || []).map(val => ({
+                label: val,
+                value: val,
+                mainText: val,
+                subText: ""
+            }));
+            const combined = [...preserved, ...defaultLocations];
+            const unique = [];
+            const seen = new Set();
+            for (const item of combined) {
+                if (!seen.has(item.value)) {
+                    seen.add(item.value);
+                    unique.push(item);
+                }
+            }
+            setWorkLocationOption(unique);
+            setIsSearchingLocation(false);
+            return;
+        }
+
+        setIsSearchingLocation(true);
+        setLocationSearchTimeout(setTimeout(async () => {
+            try {
+                const results = await searchLocationsAPI(term);
+                // Preserve currently selected cities so tag rendering stays intact
+                const preserved = (specificCity || []).map(val => ({
+                    label: val,
+                    value: val,
+                    mainText: val,
+                    subText: ""
+                }));
+                const combined = [...preserved, ...(results || [])];
+                const unique = [];
+                const seen = new Set();
+                for (const item of combined) {
+                    if (!seen.has(item.value)) {
+                        seen.add(item.value);
+                        unique.push(item);
+                    }
+                }
+                setWorkLocationOption(unique);
+            } catch (err) {
+                console.error("Location search error:", err);
+            } finally {
+                setIsSearchingLocation(false);
+            }
+        }, 250));
     };
 
     const getJobNatureData = async () => {
@@ -627,8 +679,10 @@ export default function Posting() {
             let salMinErr = "";
             let salMaxErr = "";
             if (!hideSalary) {
-                if (salaryMin !== null && salaryMin !== "" && salaryMin < 5000) salMinErr = "Minimum monthly salary must be greater than ₹5,000";
-                if (salaryMin !== null && salaryMin !== "" && salaryMax !== null && salaryMax !== "" && salaryMin > salaryMax) salMaxErr = "Max salary must be greater than Min";
+                if (salaryMin !== null && salaryMin !== "" && Number(salaryMin) < 5000) salMinErr = "Minimum monthly salary must be greater than ₹5,000";
+                if ((salaryType === "Range" || salaryType === "Total CTC") && salaryMin !== null && salaryMin !== "" && salaryMax !== null && salaryMax !== "" && Number(salaryMin) > Number(salaryMax)) {
+                    salMaxErr = "Max salary must be greater than Min";
+                }
             }
 
             setJobTitleError(jobTitleValidate);
@@ -1102,12 +1156,22 @@ export default function Posting() {
                                     showSearch
                                     className="w-full custom-benefits-select"
                                     size="large"
-                                    placeholder="Add more locations"
+                                    placeholder="Search worldwide city, area, country (e.g. Kochi, Guindy, London)..."
                                     value={specificCity}
-                                    onChange={setSpecificCity}
+                                    onChange={(newVals) => {
+                                        if (newVals.length <= 9) {
+                                            setSpecificCity(newVals);
+                                        } else {
+                                            toast.error("Maximum 9 locations allowed");
+                                        }
+                                    }}
+                                    onSearch={handleLocationSearch}
+                                    filterOption={false}
+                                    notFoundContent={isSearchingLocation ? (
+                                        <div className="py-2 text-center text-sm text-gray-500">Searching worldwide locations...</div>
+                                    ) : null}
                                     options={workLocationOption}
                                     menuItemSelectedIcon={null}
-                                    filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                                     tagRender={(props) => {
                                         const { label, closable, onClose } = props;
                                         return (
@@ -1127,8 +1191,14 @@ export default function Posting() {
                                                 <div className="flex items-start gap-2 py-1">
                                                     <EnvironmentOutlined className={`mt-1 ${isSelected ? 'text-[#0A66C2]' : 'text-gray-400'}`} />
                                                     <div className="flex flex-col">
-                                                        <span className={`text-[15px] ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>{option.data.label}</span>
-                                                        <span className={`text-[12px] ${isSelected ? 'text-[#0A66C2]' : 'text-gray-500'}`}>{option.data.state}</span>
+                                                        <span className={`text-[15px] ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
+                                                            {option.data.mainText || option.data.label}
+                                                        </span>
+                                                        {(option.data.subText || option.data.state) && (
+                                                            <span className={`text-[12px] ${isSelected ? 'text-[#0A66C2]' : 'text-gray-500'}`}>
+                                                                {option.data.subText || option.data.state}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {isSelected && <CheckOutlined className="text-[#0A66C2] font-bold text-[14px]" />}
@@ -1220,19 +1290,35 @@ export default function Posting() {
 
                             <div>
                                 <label className="block text-[15px] font-medium text-[#0e2c53] mb-2">Salary type</label>
-                                <div className="flex flex-wrap gap-3 mb-3">
-                                    {["Total CTC", "Fixed + Variable"].map(type => (
-                                        <button
-                                            key={type}
-                                            onClick={() => setSalaryType(type)}
-                                            className={`px-[18px] py-[6px] rounded-full border-1 text-[14px] transition-all ${salaryType === type ? 'border-[#0A66C2] text-[#0A66C2] bg-white' : 'border-[#d9d9d9] text-gray-600 hover:border-[#b3b3b3] bg-white'}`}
-                                        >
-                                            {type}
-                                        </button>
-                                    ))}
+                                <div className="border-b border-gray-200 mb-4">
+                                    <div className="flex gap-6">
+                                        {["Range", "Fixed + Variable"].map(type => {
+                                            const isActive = salaryType === type || (type === "Range" && salaryType === "Total CTC");
+                                            return (
+                                                <button
+                                                    key={type}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSalaryType(type);
+                                                        setSalaryMaxError("");
+                                                        if (type === "Fixed + Variable") {
+                                                            setSalaryMax(null);
+                                                        }
+                                                    }}
+                                                    className={`pb-2.5 px-1 text-[14px] font-semibold border-b-2 -mb-[1px] transition-all cursor-pointer ${
+                                                        isActive
+                                                            ? 'border-[#0A66C2] text-[#0A66C2]'
+                                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                    }`}
+                                                >
+                                                    {type}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
-                                {salaryType === "Total CTC" ? (
+                                {salaryType === "Range" || salaryType === "Total CTC" ? (
                                     <div className="flex flex-col gap-2">
                                         <div className="flex items-center gap-3">
                                             <Select
@@ -1301,35 +1387,20 @@ export default function Posting() {
                                                         value={salaryMin || undefined}
                                                         onChange={(val) => {
                                                             setSalaryMin(val);
-                                                            if (salaryMax !== null && val > salaryMax) setSalaryMaxError("Max must be > Min");
-                                                            else setSalaryMaxError("");
+                                                            setSalaryMax(null);
+                                                            if (val !== null && val !== "" && Number(val) < 5000) setSalaryMinError("Minimum monthly salary must be greater than ₹5,000");
+                                                            else setSalaryMinError("");
+                                                            setSalaryMaxError("");
                                                         }}
 
                                                         className={`w-full custom-department-select ${salaryMinError ? '!border-red-500' : ''}`}
-                                                        placeholder="Min"
-                                                        options={salaryBracketOptions}
-                                                        showSearch
-                                                    />
-                                                </div>
-                                                <span className="text-gray-500 text-sm">to</span>
-                                                <div className="flex-1">
-                                                    <Select
-                                                        size="large"
-                                                        value={salaryMax || undefined}
-                                                        onChange={(val) => {
-                                                            setSalaryMax(val);
-                                                            if (salaryMin !== null && val < salaryMin) setSalaryMaxError("Max must be > Min");
-                                                            else setSalaryMaxError("");
-                                                        }}
-
-                                                        className={`w-full custom-department-select ${salaryMaxError ? '!border-red-500' : ''}`}
-                                                        placeholder="Max"
+                                                        placeholder="Fixed salary amount"
                                                         options={salaryBracketOptions}
                                                         showSearch
                                                     />
                                                 </div>
                                             </div>
-                                            {(salaryMinError || salaryMaxError) && <p className="text-red-500 text-xs">{salaryMinError || salaryMaxError}</p>}
+                                            {salaryMinError && <p className="text-red-500 text-xs">{salaryMinError}</p>}
                                         </div>
 
                                         {/* Variable */}

@@ -316,7 +316,10 @@ const MyJobs = () => {
             return `${n}`;
         };
         if (min && max) return `₹${formatAmount(min)} - ₹${formatAmount(max)}`;
-        if (min) return `From ₹${formatAmount(min)}`;
+        if (min) {
+            if (type === 'Fixed' || type === 'Fixed + Variable') return `₹${formatAmount(min)}`;
+            return `From ₹${formatAmount(min)}`;
+        }
         if (max) return `Up to ₹${formatAmount(max)}`;
         return 'Competitive';
     };

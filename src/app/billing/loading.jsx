@@ -1,5 +1,10 @@
-import CommonLoader from '@/Common/CommonLoader';
+import HrLayout from '@/HR/HrLayout';
+import BillingSkeleton from '@/HR/BillingSkeleton';
 
 export default function Loading() {
-  return <CommonLoader fullScreen={true} text="Loading Billing & Plans..." />;
+  return (
+    <HrLayout>
+      <BillingSkeleton />
+    </HrLayout>
+  );
 }

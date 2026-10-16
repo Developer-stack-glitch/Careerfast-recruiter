@@ -358,15 +358,15 @@ export default function HrReports() {
 
     // Credits breakdown from dashboard API or defaults
     const credits = dashboardData?.credits || {
-        profile_usage_used: 45300,
-        profile_usage_total: 750000,
-        profile_usage_percent: 6,
-        email_count: 12,
-        email_limit: 100,
-        whatsapp_count: 8,
-        whatsapp_limit: 50,
-        excel_downloads: 3,
-        excel_limit: 25
+        profile_usage_used: subUsage?.resume_views_used || 0,
+        profile_usage_total: subLimits?.resume_view_limit || 1000,
+        profile_usage_percent: subLimits?.resume_view_limit > 0 ? Math.round(((subUsage?.resume_views_used || 0) / subLimits.resume_view_limit) * 100) : 0,
+        email_count: subUsage?.emails_sent || 0,
+        email_limit: subLimits?.email_limit || 50,
+        whatsapp_count: subUsage?.whatsapp_messages_sent || 0,
+        whatsapp_limit: subLimits?.whatsapp_limit || 50,
+        excel_downloads: subUsage?.excel_downloads_used || 0,
+        excel_limit: subLimits?.excel_download_limit || 10
     };
 
     // Limits & Usage Resolution from mySubscription and dashboardData

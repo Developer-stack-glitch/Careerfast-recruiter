@@ -31,9 +31,8 @@ import {
     Share2,
 } from 'lucide-react';
 import { getBillingPlans, getMySubscription } from '../ApiService/action';
-import { Spin } from 'antd';
 import toast from 'react-hot-toast';
-import CommonLoader from '../Common/CommonLoader';
+import BillingSkeleton, { PlansSkeletonGrid } from './BillingSkeleton';
 
 const Subscription = () => {
     const [billingPlans, setBillingPlans] = useState([]);
@@ -329,6 +328,10 @@ const Subscription = () => {
         },
     ];
 
+    if (loadingSubscription) {
+        return <BillingSkeleton />;
+    }
+
     return (
         <motion.div
             className="p-6 md:p-10 mx-auto font-sans max-w-7xl"
@@ -364,11 +367,7 @@ const Subscription = () => {
             <motion.div variants={itemVariants} className="mb-8 relative overflow-hidden bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-600 rounded-2xl p-6 text-white shadow-xl">
                 <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
 
-                {loadingSubscription ? (
-                    <div className="py-8 flex items-center justify-center">
-                        <Spin size="default" />
-                    </div>
-                ) : hasActiveSub ? (
+                {hasActiveSub ? (
                     <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-3">
                             <div className="flex items-center gap-4">
@@ -565,7 +564,7 @@ const Subscription = () => {
                 </div>
 
                 {loadingPlans ? (
-                    <CommonLoader fullScreen={false} text="Loading Subscription Plans..." />
+                    <PlansSkeletonGrid />
                 ) : billingPlans.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
                         {billingPlans.map((p) => {

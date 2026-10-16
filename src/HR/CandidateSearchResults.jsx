@@ -111,21 +111,29 @@ const getPageNumbers = (currentPage, totalPages) => {
   const pages = [];
   pages.push(1);
 
-  if (currentPage > 3) {
+  if (currentPage <= 4) {
+    for (let i = 2; i <= 5; i++) {
+      pages.push(i);
+    }
     pages.push('...');
+    pages.push(totalPages);
+    return pages;
   }
 
-  const start = Math.max(2, currentPage - 1);
-  const end = Math.min(totalPages - 1, currentPage + 1);
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
-  }
-
-  if (currentPage < totalPages - 2) {
+  if (currentPage >= totalPages - 3) {
     pages.push('...');
+    for (let i = totalPages - 4; i < totalPages; i++) {
+      pages.push(i);
+    }
+    pages.push(totalPages);
+    return pages;
   }
 
+  pages.push('...');
+  pages.push(currentPage - 1);
+  pages.push(currentPage);
+  pages.push(currentPage + 1);
+  pages.push('...');
   pages.push(totalPages);
   return pages;
 };
@@ -975,11 +983,15 @@ const CandidateSearchResults = () => {
         const total = typeof countFromApi === 'number' ? countFromApi : fetchedList.length;
 
         const pagesFromApi = res.data.data.totalPages ?? res.data.data.pagination?.totalPages;
-        const calcPages = Math.max(1, Math.ceil(total / (filters.limit || 10)));
+        const calcPages = Math.max(1, Math.ceil(total / (filters.limit || 40)));
         const totalP = typeof pagesFromApi === 'number' && pagesFromApi > 0 ? pagesFromApi : calcPages;
 
         setTotalCandidates(total);
         setTotalPages(totalP);
+
+        if (filters.page > totalP && totalP > 0) {
+          setFilters(prev => ({ ...prev, page: 1 }));
+        }
         if (res.data.data.totalAllEmployees !== undefined) {
           setTotalAllEmployees(res.data.data.totalAllEmployees);
         }
@@ -2460,10 +2472,10 @@ const CandidateSearchResults = () => {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               options={[
-                { value: 10, label: '10 per page' },
-                { value: 20, label: '20 per page' },
                 { value: 40, label: '40 per page' },
-                { value: 100, label: '100 per page' },
+                { value: 80, label: '80 per page' },
+                { value: 120, label: '120 per page' },
+                { value: 160, label: '160 per page' },
               ]}
               buttonClassName="py-2"
             />
@@ -2522,7 +2534,7 @@ const CandidateSearchResults = () => {
           ) : (
             <div className="bg-gradient-to-r from-purple-50/90 via-indigo-50/60 to-white border border-purple-100/90 rounded-2xl px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex flex-wrap items-center gap-3">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-600 text-white font-bold text-[11px] shadow-2xs">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-600 text-white font-semibold text-[11px] shadow-2xs">
                   <Crown size={13} />
                   <span>{planTitle}</span>
                 </div>
@@ -2800,7 +2812,17 @@ const CandidateSearchResults = () => {
                 };
 
                 // Role & Company
-                const jobTitle = cleanText(candidate.current_job_title) || cleanText(candidate.past_job_title) || cleanText(candidate.designation) || 'Candidate';
+                const isFresher = cleanText(candidate.experince_type)?.toLowerCase() === 'fresher'
+                  || candidate.experience_display === 'Fresher'
+                  || candidate.total_years === '0 Years'
+                  || candidate.total_years === '0'
+                  || (candidate.experience_years === 0 && (candidate.experience_months || 0) === 0)
+                  || (!cleanText(candidate.total_years) && !cleanText(candidate.past_experience_display) && !cleanText(candidate.current_company));
+
+                const jobTitle = cleanText(candidate.current_job_title)
+                  || cleanText(candidate.past_job_title)
+                  || cleanText(candidate.designation)
+                  || (isFresher ? 'Fresher' : (cleanText(candidate.experince_type) === 'Experienced' ? 'Experienced Professional' : 'Candidate'));
                 const companyName = cleanText(candidate.current_company) || cleanText(candidate.past_company) || cleanText(candidate.organization) || null;
 
                 // Experience text
@@ -3543,10 +3565,14 @@ const CandidateSearchResults = () => {
           </div>
 
           {/* Bottom Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white rounded-2xl border border-slate-200/90 px-5 py-3 shadow-2xs text-[13px] mt-4">
+          {totalCandidates > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white rounded-2xl border border-slate-200/90 px-5 py-3.5 shadow-2xs text-[13px] mt-4">
               <span className="text-slate-500">
-                Showing Page <span className="font-semibold text-slate-800">{filters.page}</span> of <span className="font-semibold text-slate-800">{totalPages}</span>
+                Showing{' '}
+                <span className="font-semibold text-slate-800">
+                  {Math.min((filters.page - 1) * (filters.limit || 40) + 1, totalCandidates)} - {Math.min(filters.page * (filters.limit || 40), totalCandidates)}
+                </span>{' '}
+                of <span className="font-semibold text-slate-800">{totalCandidates}</span> candidates (Page <span className="font-semibold text-slate-800">{filters.page}</span> of <span className="font-semibold text-slate-800">{totalPages}</span>)
               </span>
               <div className="flex items-center gap-1">
                 <button
@@ -3562,12 +3588,12 @@ const CandidateSearchResults = () => {
                 </button>
                 {getPageNumbers(filters.page, totalPages).map((item, idx) => {
                   if (item === '...') {
-                    return <span key={`btm-el-${idx}`} className="px-2 text-slate-400">…</span>;
+                    return <span key={`btm-el-${idx}`} className="px-2 text-slate-400 select-none">…</span>;
                   }
                   const isActive = filters.page === item;
                   return (
                     <button
-                      key={`btm-pg-${item}`}
+                      key={`btm-pg-${item}-${idx}`}
                       type="button"
                       onClick={() => handlePageChange(item)}
                       className={`w-8 h-8 rounded-lg font-semibold text-[13px] transition-all cursor-pointer ${isActive
@@ -3687,7 +3713,12 @@ const CandidateSearchResults = () => {
                   </div>
 
                   <p className="text-[13.5px] text-blue-100 font-medium mt-1 mb-2">
-                    {renderHighlightedText(resumeModalCandidate.current_job_title || 'Software Professional')}
+                    {renderHighlightedText(
+                      resumeModalCandidate.current_job_title ||
+                      ((cleanText(resumeModalCandidate.experince_type)?.toLowerCase() === 'fresher' || resumeModalCandidate.experience_display === 'Fresher')
+                        ? 'Fresher'
+                        : 'Professional')
+                    )}
                     {resumeModalCandidate.current_company && (
                       <span className="text-blue-200/90 font-normal"> at <strong className="text-white font-semibold">{renderHighlightedText(resumeModalCandidate.current_company)}</strong></span>
                     )}
@@ -4674,7 +4705,10 @@ const CandidateSearchResults = () => {
                               {`${cand.first_name || ''} ${cand.last_name || ''}`.trim() || 'Candidate'}
                             </h4>
                             <p className="text-[12px] text-slate-500 font-medium mt-0.5 line-clamp-1 mb-0">
-                              {cand.current_job_title || 'Software Professional'}
+                              {cand.current_job_title ||
+                                ((cand.experince_type?.toLowerCase() === 'fresher' || cand.experience_display === 'Fresher')
+                                  ? 'Fresher'
+                                  : 'Professional')}
                             </p>
                             {cand.current_company && (
                               <p className="text-[11px] text-slate-400 mb-0 font-normal">at {cand.current_company}</p>

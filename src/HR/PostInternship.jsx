@@ -58,7 +58,8 @@ import {
     addVenue,
     getTeamMembers,
     addTeamMember,
-    getMySubscription
+    getMySubscription,
+    searchLocationsAPI
 } from "../ApiService/action";
 
 const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
@@ -281,7 +282,7 @@ export default function Posting() {
     const [salaryMinError, setSalaryMinError] = useState("");
     const [salaryMaxError, setSalaryMaxError] = useState("");
     const [salaryNotDisclosed, setSalaryNotDisclosed] = useState(false);
-    const [salaryType, setSalaryType] = useState("Total CTC");
+    const [salaryType, setSalaryType] = useState("Range");
     const [hideSalary, setHideSalary] = useState(false);
     const [willingToRelocate, setWillingToRelocate] = useState(false);
     const [workMode, setWorkMode] = useState("In office");
@@ -311,6 +312,9 @@ export default function Posting() {
 
     const [value, setValue] = useState(DEFAULT_CONTENT);
     const [workLocationOption, setWorkLocationOption] = useState([]);
+    const [defaultLocations, setDefaultLocations] = useState([]);
+    const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+    const [locationSearchTimeout, setLocationSearchTimeout] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [logoUrl, setLogoUrl] = useState(null);
     const [aboutCompany, setAboutCompany] = useState("");
@@ -406,24 +410,70 @@ export default function Posting() {
         } catch (error) { console.error("Error fetching team members", error); }
     };
 
-    const loadCitiesAPI = () => {
-        const allCities = Object.keys(cities).map((city) => ({
-            label: city,
-            value: city,
-            state: cities[city].country === 'IN' ? 'India' : cities[city].country,
-            country: cities[city].country,
-        }));
-        // Ensure some top Indian cities are at the top for the example UI
-        const topMetros = ["Ahmedabad", "Bengaluru", "Chennai", "Hyderabad", "Kolkata", "Pune", "Mumbai", "Delhi"].map(city => ({
-            label: city,
-            value: city,
-            state: 'India',
-            country: 'IN',
-            isTop: true
-        }));
+    const loadCitiesAPI = async () => {
+        try {
+            const locs = await searchLocationsAPI("");
+            if (locs && locs.length > 0) {
+                setDefaultLocations(locs);
+                setWorkLocationOption(locs);
+                return;
+            }
+        } catch (e) {
+            console.warn("Could not load default locations:", e);
+        }
+    };
 
-        const rest = allCities.filter(c => !topMetros.find(t => t.value === c.value));
-        setWorkLocationOption([...topMetros, ...rest]);
+    const handleLocationSearch = (value) => {
+        if (locationSearchTimeout) clearTimeout(locationSearchTimeout);
+        const term = (value || "").trim();
+
+        if (!term || term.length < 2) {
+            const preserved = (specificCity || []).map(val => ({
+                label: val,
+                value: val,
+                mainText: val,
+                subText: ""
+            }));
+            const combined = [...preserved, ...defaultLocations];
+            const unique = [];
+            const seen = new Set();
+            for (const item of combined) {
+                if (!seen.has(item.value)) {
+                    seen.add(item.value);
+                    unique.push(item);
+                }
+            }
+            setWorkLocationOption(unique);
+            setIsSearchingLocation(false);
+            return;
+        }
+
+        setIsSearchingLocation(true);
+        setLocationSearchTimeout(setTimeout(async () => {
+            try {
+                const results = await searchLocationsAPI(term);
+                const preserved = (specificCity || []).map(val => ({
+                    label: val,
+                    value: val,
+                    mainText: val,
+                    subText: ""
+                }));
+                const combined = [...preserved, ...(results || [])];
+                const unique = [];
+                const seen = new Set();
+                for (const item of combined) {
+                    if (!seen.has(item.value)) {
+                        seen.add(item.value);
+                        unique.push(item);
+                    }
+                }
+                setWorkLocationOption(unique);
+            } catch (err) {
+                console.error("Location search error:", err);
+            } finally {
+                setIsSearchingLocation(false);
+            }
+        }, 250));
     };
 
     const getJobNatureData = async () => {
@@ -1153,12 +1203,22 @@ export default function Posting() {
                                     showSearch
                                     className="w-full custom-benefits-select"
                                     size="large"
-                                    placeholder="Add more locations"
+                                    placeholder="Search worldwide city, area, country (e.g. Kochi, Guindy, London)..."
                                     value={specificCity}
-                                    onChange={setSpecificCity}
+                                    onChange={(newVals) => {
+                                        if (newVals.length <= 9) {
+                                            setSpecificCity(newVals);
+                                        } else {
+                                            toast.error("Maximum 9 locations allowed");
+                                        }
+                                    }}
+                                    onSearch={handleLocationSearch}
+                                    filterOption={false}
+                                    notFoundContent={isSearchingLocation ? (
+                                        <div className="py-2 text-center text-sm text-gray-500">Searching worldwide locations...</div>
+                                    ) : null}
                                     options={workLocationOption}
                                     menuItemSelectedIcon={null}
-                                    filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
                                     tagRender={(props) => {
                                         const { label, closable, onClose } = props;
                                         return (
@@ -1178,8 +1238,14 @@ export default function Posting() {
                                                 <div className="flex items-start gap-2 py-1">
                                                     <EnvironmentOutlined className={`mt-1 ${isSelected ? 'text-[#0A66C2]' : 'text-gray-400'}`} />
                                                     <div className="flex flex-col">
-                                                        <span className={`text-[15px] ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>{option.data.label}</span>
-                                                        <span className={`text-[12px] ${isSelected ? 'text-[#0A66C2]' : 'text-gray-500'}`}>{option.data.state}</span>
+                                                        <span className={`text-[15px] ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
+                                                            {option.data.mainText || option.data.label}
+                                                        </span>
+                                                        {(option.data.subText || option.data.state) && (
+                                                            <span className={`text-[12px] ${isSelected ? 'text-[#0A66C2]' : 'text-gray-500'}`}>
+                                                                {option.data.subText || option.data.state}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {isSelected && <CheckOutlined className="text-[#0A66C2] font-bold text-[14px]" />}

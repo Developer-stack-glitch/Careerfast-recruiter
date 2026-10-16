@@ -3,8 +3,12 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import HrLayout from '@/HR/HrLayout';
 import { Shield } from 'lucide-react';
+import BillingSkeleton from '@/HR/BillingSkeleton';
 
-const PageComponent = dynamic(() => import('@/HR/Subscription'), { ssr: false });
+const PageComponent = dynamic(() => import('@/HR/Subscription'), {
+  ssr: false,
+  loading: () => <BillingSkeleton />
+});
 
 export default function Page() {
   const [isSub, setIsSub] = useState(false);

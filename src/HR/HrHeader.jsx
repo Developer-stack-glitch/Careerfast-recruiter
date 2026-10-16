@@ -301,7 +301,6 @@ const HrHeader = () => {
         ? `${recruiterDetails.first_name} ${recruiterDetails.last_name || ''}`.trim()
         : 'SANDIYA MS';
 
-    const isOverviewActive = pathname === '/overview' || pathname === '/recruit' || pathname === '/';
     const isSearchActive = pathname?.startsWith('/candidate-search');
     const isJobActive = pathname?.startsWith('/post-job') ||
         pathname?.startsWith('/my-jobs') ||
@@ -322,8 +321,13 @@ const HrHeader = () => {
 
                 {/* Left Side: Logo & Main Navigation */}
                 <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 shrink-0">
-                    {/* Brand Logo */}
-                    <Link href="/overview" className="flex items-center gap-2 group select-none shrink-0 no-underline hover:no-underline" style={{ textDecoration: 'none' }}>
+                    {/* Brand Logo - Clicking navigates to Overview */}
+                    <Link
+                        href="/overview"
+                        className="flex items-center gap-2 group select-none shrink-0 no-underline hover:no-underline cursor-pointer"
+                        style={{ textDecoration: 'none' }}
+                        title="Overview"
+                    >
                         {logo ? (
                             <Image
                                 src={logo}
@@ -341,21 +345,9 @@ const HrHeader = () => {
                     </Link>
 
                     {/* Horizontal Navigation Menu */}
-                    <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
+                    <nav className="hidden md:flex items-center gap-2 lg:gap-3">
 
-                        {/* 1. Overview (Home) */}
-                        <Link
-                            href="/overview"
-                            style={{ textDecoration: 'none' }}
-                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg no-underline hover:no-underline ${isOverviewActive
-                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                }`}
-                        >
-                            <span>Overview</span>
-                        </Link>
-
-                        {/* 2. Search */}
+                        {/* 1. Search */}
                         <Link
                             href="/candidate-search"
                             style={{ textDecoration: 'none' }}

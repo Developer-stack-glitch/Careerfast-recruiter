@@ -52,7 +52,7 @@ const formatCompactNumber = (number) => {
         const formatted = (num / 1000000).toFixed(1);
         return formatted.endsWith('.0') ? `${Math.floor(num / 1000000)}M` : `${formatted}M`;
     }
-    if (num >= 1000) {
+    if (num >= 10000) {
         const formatted = (num / 1000).toFixed(1);
         return formatted.endsWith('.0') ? `${Math.floor(num / 1000)}k` : `${formatted}k`;
     }
@@ -548,17 +548,20 @@ export default function HrDashboard() {
 
     const campaignsList = dashboardData?.campaigns || [];
     const credits = dashboardData?.credits || {
-        profile_usage_used: 45300,
-        profile_usage_total: 720000,
-        profile_views: 1300,
-        excel_downloads: 10,
-        job_posting_used: subscription.job_posts_used || totalJobs,
+        profile_usage_used: subscription.resume_views_used || 0,
+        profile_usage_total: subscription.resume_view_limit || 1000,
+        profile_views: subscription.resume_views_used || 0,
+        excel_downloads: subscription.excel_downloads_used || 0,
+        excel_download_limit: subscription.excel_download_limit || 10,
+        job_posting_used: subscription.job_posts_used !== undefined ? subscription.job_posts_used : totalJobs,
         job_posting_total: subscription.job_post_limit || 5,
         jobs_posted: totalJobs || 0,
-        outreach_used: 1400000,
-        outreach_total: 10800000,
-        email_count: 0,
-        whatsapp_count: 0,
+        outreach_used: (subscription.emails_sent || 0) + (subscription.whatsapp_messages_sent || 0),
+        outreach_total: (subscription.email_limit || 0) + (subscription.whatsapp_limit || 0) || 100,
+        email_count: subscription.emails_sent || 0,
+        email_limit: subscription.email_limit || 50,
+        whatsapp_count: subscription.whatsapp_messages_sent || 0,
+        whatsapp_limit: subscription.whatsapp_limit || 50,
         sms_count: 0
     };
 
@@ -589,18 +592,18 @@ export default function HrDashboard() {
         });
     }, [candidatesList, selectedFolderFilter, resumeFilterTab, resumeSearchTerm]);
 
-    // Circular gauge percentage calculation
+    // Circular gauge percentage calculation (strictly dynamic with 0 default)
     const profilePercent = credits.profile_usage_total > 0
         ? Math.min(100, Math.round((credits.profile_usage_used / credits.profile_usage_total) * 100))
-        : 6;
+        : 0;
 
     const jobPostPercent = credits.job_posting_total > 0
         ? Math.min(100, Math.round((credits.job_posting_used / credits.job_posting_total) * 100))
-        : 5;
+        : 0;
 
     const outreachPercent = credits.outreach_total > 0
         ? Math.min(100, Math.round((credits.outreach_used / credits.outreach_total) * 100))
-        : 13;
+        : 0;
 
     const recruiterInitials = (recruiterName || 'HR')
         .split(' ')

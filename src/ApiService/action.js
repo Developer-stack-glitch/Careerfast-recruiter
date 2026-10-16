@@ -389,6 +389,55 @@ export const getWorkPlaceLocation = async () => {
   }
 };
 
+export const searchLocationsAPI = async (query = "") => {
+  try {
+    const response = await api.get("/api/location/search", {
+      params: { q: query },
+      timeout: 5000,
+    });
+    if (response?.data?.success && Array.isArray(response?.data?.data)) {
+      return response.data.data;
+    }
+  } catch (backendError) {
+    console.warn("Backend location search failed, trying fallback:", backendError.message);
+  }
+
+  // Fallback directly to Photon API
+  try {
+    const q = (query || "").trim();
+    if (!q || q.length < 2) return [];
+    const photonRes = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=en&limit=20`);
+    if (photonRes.ok) {
+      const data = await photonRes.json();
+      return (data.features || []).map(f => {
+        const p = f.properties || {};
+        if (!p.name) return null;
+        const name = p.name;
+        const city = p.city && p.city.toLowerCase() !== name.toLowerCase() ? p.city : null;
+        const state = p.state && p.state.toLowerCase() !== name.toLowerCase() ? p.state : null;
+        const country = p.country;
+        const fullParts = [name];
+        if (city && !fullParts.includes(city)) fullParts.push(city);
+        if (state && !fullParts.includes(state)) fullParts.push(state);
+        if (country && !fullParts.includes(country)) fullParts.push(country);
+        const fullLabel = fullParts.join(', ');
+        return {
+          label: fullLabel,
+          value: fullLabel,
+          mainText: city ? `${name}, ${city}` : name,
+          subText: [state, country].filter(Boolean).join(', ') || country || '',
+          city: city || name,
+          state: state || '',
+          country: country || ''
+        };
+      }).filter(Boolean);
+    }
+  } catch (fallbackError) {
+    console.error("Direct photon fallback failed:", fallbackError);
+  }
+  return [];
+};
+
 export const getBenifitsData = async () => {
   try {
     return await fetchCachedGet("/api/getBenefits");

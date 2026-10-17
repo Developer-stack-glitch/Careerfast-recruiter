@@ -746,7 +746,7 @@ export default function Posting() {
             working_days: workingDaysName,
             job_description: value,
             seo_description: seoDescription,
-            questions: isExternalApply ? [] : postQuestions.filter(q => q.question.trim() !== ""),
+            questions: postQuestions.filter(q => q && q.question && q.question.trim() !== ""),
             languages: languages,
             is_walk_in: isWalkIn,
             walk_in_start_date: walkInStartDate ? walkInStartDate.format("YYYY-MM-DD") : null,
@@ -1707,7 +1707,7 @@ export default function Posting() {
                                         <button
                                             key={g}
                                             onClick={() => setGenderPreference(g)}
-                                            className={`px-4 py-2 rounded-full border-1 text-sm font-medium transition-all ${genderPreference === g ? 'border-[#0A66C2] text-[#0A66C2] bg-blue-50/50' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
+                                            className={`px-4 py-2 rounded-full border border-gray-200 text-sm font-medium transition-all ${genderPreference === g ? 'border-[#0A66C2] text-[#0A66C2] bg-blue-50/50' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
                                         >
                                             {g}
                                         </button>
@@ -1722,7 +1722,7 @@ export default function Posting() {
                                         <button
                                             key={lang}
                                             onClick={() => toggleLanguageSelection(lang)}
-                                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border-1 text-sm transition-all ${languages.includes(lang) ? 'border-[#0A66C2] text-[#0A66C2] bg-white' : 'border-gray-300 text-gray-600 hover:border-gray-400 bg-white'}`}
+                                            className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-gray-200 text-sm font-medium transition-all ${languages.includes(lang) ? 'border-[#0A66C2] text-[#0A66C2] bg-white' : 'border-gray-300 text-gray-600 hover:border-gray-400 bg-white'}`}
                                         >
                                             {languages.includes(lang) ? <CheckOutlined className="text-[12px]" /> : <PlusOutlined className="text-[12px]" />}
                                             {lang}

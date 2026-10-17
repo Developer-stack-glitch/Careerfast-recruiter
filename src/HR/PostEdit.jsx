@@ -456,13 +456,24 @@ export default function PostEdit() {
         }
         setSeoDescription(job.seo_description || "");
         if (job.questions && Array.isArray(job.questions)) {
-          setPostQuestions(job.questions.map(q => ({
-            id: q.id,
-            question: q.question || "",
-            isrequired: q.isrequired === 1 || q.isrequired === true ? 1 : 0,
-            type: q.type || "Short answer",
-            options: q.options || []
-          })));
+          setPostQuestions(job.questions.map(q => {
+            let parsedOpts = [];
+            if (q.options) {
+              try {
+                parsedOpts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                if (!Array.isArray(parsedOpts)) parsedOpts = [];
+              } catch (e) {
+                parsedOpts = [];
+              }
+            }
+            return {
+              id: q.id,
+              question: q.question || "",
+              isrequired: q.isrequired === 1 || q.isrequired === true ? 1 : 0,
+              type: q.type || q.question_type || "Short answer",
+              options: parsedOpts
+            };
+          }));
         }
 
         // Restore walk-in fields
@@ -710,9 +721,12 @@ export default function PostEdit() {
   const getSkillsDataType = async () => {
     try {
       const response = await getSkillsData();
-      const formattedOptions = response?.data?.data?.map((skill) => ({
-        label: skill.name, value: skill.name,
-      })) || [];
+      const formattedOptions = (response?.data?.data || [])
+        .filter((skill) => skill && skill.name != null && String(skill.name).trim() !== '')
+        .map((skill) => ({
+          label: String(skill.name).trim(),
+          value: String(skill.name).trim(),
+        }));
       setSkillsRequiredOption(formattedOptions);
     } catch (error) { console.log(error); }
     finally { setTimeout(() => { getJobCategoryDataTypes(); }, 300); }
@@ -721,9 +735,12 @@ export default function PostEdit() {
   const getJobCategoryDataTypes = async () => {
     try {
       const response = await getJobCategoryData();
-      const jobCategoryFormatted = response?.data?.data?.map((cat) => ({
-        label: cat.category_name, value: cat.category_name,
-      })) || [];
+      const jobCategoryFormatted = (response?.data?.data || [])
+        .filter((cat) => cat && cat.category_name != null && String(cat.category_name).trim() !== '')
+        .map((cat) => ({
+          label: String(cat.category_name).trim(),
+          value: String(cat.category_name).trim(),
+        }));
 
       const uniqueCategories = Array.from(new Map(jobCategoryFormatted.map(item => [item.value, item])).values());
       setJobCategoryOptions(uniqueCategories);
@@ -734,15 +751,22 @@ export default function PostEdit() {
   const getEducationData = async () => {
     try {
       const response = await getQualification();
-      const formattedOptions = response?.data?.data?.map((edu) => ({
-        label: edu.name, value: edu.name,
-      })) || [];
+      const formattedOptions = (response?.data?.data || [])
+        .filter((edu) => edu && edu.name != null && String(edu.name).trim() !== '')
+        .map((edu) => ({
+          label: String(edu.name).trim(),
+          value: String(edu.name).trim(),
+        }));
       setEducationalQualificationOptions(formattedOptions);
 
       const specRes = await getSpecialization();
-      const formattedSpecs = specRes?.data?.data?.map((s) => ({
-        id: s.name, title: s.name, hasChildren: false
-      })) || [];
+      const formattedSpecs = (specRes?.data?.data || [])
+        .filter((s) => s && s.name != null && String(s.name).trim() !== '')
+        .map((s) => ({
+          id: String(s.name).trim(),
+          title: String(s.name).trim(),
+          hasChildren: false
+        }));
       setSpecializationData(formattedSpecs);
     } catch (error) { console.log(error); }
     finally { setPageLoading(false); }
@@ -909,8 +933,8 @@ export default function PostEdit() {
     const expReq = freshersAllowed
       ? ["All"]
       : (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined
-          ? [`${minExp}-${maxExp} Years`]
-          : (Array.isArray(experienceRequired) ? experienceRequired : [experienceRequired].filter(Boolean)));
+        ? [`${minExp}-${maxExp} Years`]
+        : (Array.isArray(experienceRequired) ? experienceRequired : [experienceRequired].filter(Boolean)));
 
     let mappedGender = [];
     if (genderPreference === 'Male') mappedGender = ['Male'];
@@ -962,7 +986,7 @@ export default function PostEdit() {
       working_days: workingDaysName || "",
       job_description: value,
       seo_description: seoDescription || "",
-      questions: isExternalApply ? [] : postQuestions.filter(q => q && q.question && q.question.trim() !== ""),
+      questions: postQuestions.filter(q => q && q.question && q.question.trim() !== ""),
       languages: languages,
       is_walk_in: isWalkIn ? 1 : 0,
       walk_in_start_date: walkInStartDate ? (walkInStartDate.format ? walkInStartDate.format("YYYY-MM-DD") : walkInStartDate) : null,
@@ -1416,11 +1440,10 @@ export default function PostEdit() {
                               setSalaryMax(null);
                             }
                           }}
-                          className={`pb-2.5 px-1 text-[14px] font-semibold border-b-2 -mb-[1px] transition-all cursor-pointer ${
-                            isActive
-                              ? 'border-[#0A66C2] text-[#0A66C2]'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                          }`}
+                          className={`pb-2.5 px-1 text-[14px] font-semibold border-b-2 -mb-[1px] transition-all cursor-pointer ${isActive
+                            ? 'border-[#0A66C2] text-[#0A66C2]'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
                         >
                           {type}
                         </button>
@@ -1738,8 +1761,8 @@ export default function PostEdit() {
                   size="large"
                   showSearch
                   placeholder="Type skill"
-                  value={skillsRequired}
-                  options={skillsRequiredOptions}
+                  value={Array.isArray(skillsRequired) ? skillsRequired.filter(v => v != null && v !== '') : []}
+                  options={(skillsRequiredOptions || []).filter(opt => opt && opt.value != null && opt.value !== '')}
                   onChange={setSkillsRequired}
                   menuItemSelectedIcon={null}
                   tagRender={(props) => {
@@ -1755,7 +1778,8 @@ export default function PostEdit() {
                     );
                   }}
                   optionRender={(option) => {
-                    const isSelected = skillsRequired.includes(option.value);
+                    const optVal = option?.value != null ? option.value : option?.data?.value;
+                    const isSelected = Array.isArray(skillsRequired) && optVal != null ? skillsRequired.includes(optVal) : false;
                     return (
                       <div className={`flex justify-between items-center w-full px-1 py-0.5 ${isSelected ? 'font-medium' : ''}`}>
                         <span className={`text-[15px] ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>{option.label}</span>
@@ -2078,7 +2102,7 @@ export default function PostEdit() {
                     <button
                       key={g}
                       onClick={() => setGenderPreference(g)}
-                      className={`px-4 py-2 rounded-full border-1 text-sm font-medium transition-all ${genderPreference === g ? 'border-[#0A66C2] text-[#0A66C2] bg-blue-50/50' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
+                      className={`px-4 py-2 rounded-full border-1 border-gray-200 text-sm font-medium transition-all ${genderPreference === g ? 'border-[#0A66C2] text-[#0A66C2] bg-blue-50/50' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
                     >
                       {g}
                     </button>
@@ -2093,7 +2117,7 @@ export default function PostEdit() {
                     <button
                       key={lang}
                       onClick={() => toggleLanguageSelection(lang)}
-                      className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border-1 text-sm transition-all ${languages.includes(lang) ? 'border-[#0A66C2] text-[#0A66C2] bg-white' : 'border-gray-300 text-gray-600 hover:border-gray-400 bg-white'}`}
+                      className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-gray-200 text-sm font-medium transition-all ${languages.includes(lang) ? 'border-[#0A66C2] text-[#0A66C2] bg-white' : 'border-gray-300 text-gray-600 hover:border-gray-400 bg-white'}`}
                     >
                       {languages.includes(lang) ? <CheckOutlined className="text-[12px]" /> : <PlusOutlined className="text-[12px]" />}
                       {lang}

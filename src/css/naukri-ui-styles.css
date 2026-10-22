@@ -205,7 +205,6 @@
 
 .naukri-job-card:hover {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-  border-color: #d0d0d0;
   transform: translateY(-2px);
 }
 
@@ -526,7 +525,6 @@
 
 .naukri-job-card:hover {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-  border-color: var(--naukri-primary);
   transform: translateY(-2px);
 }
 

@@ -1,10 +1,16 @@
-import React from 'react';
-import CreateHrProfile from '@/HR/CreateHrProfile';
+'use client';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import CommonLoader from '@/Common/CommonLoader';
 
-export const metadata = {
-  title: "Create HR Profile | CareerFast",
-};
+export default function CreateProfilePage() {
+  const router = useRouter();
 
-export default function Page() {
-  return <CreateHrProfile />;
+  useEffect(() => {
+    // Recruiter profile creation is integrated into the registration process.
+    // Redirect existing visits directly to recruiter dashboard.
+    router.replace('/overview');
+  }, [router]);
+
+  return <CommonLoader fullScreen={true} text="Redirecting to Recruiter Portal..." />;
 }

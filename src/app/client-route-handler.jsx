@@ -94,10 +94,9 @@ export default function ClientRouteHandler({ children }) {
       } catch (e) { }
 
       if (isRecruiter) {
-        if (!isVerified) {
-          if (pathname !== "/create-profile") {
-            router.replace("/create-profile");
-          }
+        // Create-profile page is removed; redirect any direct visits to recruiter overview
+        if (pathname === "/create-profile" || pathname === "/create-hr-profile") {
+          router.replace("/overview");
           return;
         }
 

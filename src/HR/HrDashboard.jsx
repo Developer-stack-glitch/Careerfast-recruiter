@@ -1001,7 +1001,7 @@ export default function HrDashboard() {
                             </p>
 
                             {/* Animated Audio Waveform Graphic in brand blue & orange */}
-                            <div className="flex items-center justify-between gap-1 h-8 px-3 py-1 bg-white/5 rounded-xl border border-white/10 mb-4">
+                            <div className="flex items-center justify-between gap-1 h-8 px-3 py-1 bg-white/5 rounded-xl mb-4">
                                 {[10, 22, 16, 28, 14, 24, 30, 12, 26, 18, 28, 20, 14, 26, 12, 22, 16].map((h, i) => (
                                     <span
                                         key={i}

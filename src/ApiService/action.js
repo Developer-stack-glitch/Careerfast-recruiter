@@ -304,6 +304,14 @@ export const getIndustryTypes = async () => {
   }
 };
 
+export const getJobCategories = async (params = null) => {
+  try {
+    return await fetchCachedGet("/api/getJobCategories", params);
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getJobNature = async () => {
   try {
     return await fetchCachedGet("/api/job/getJobNature");
@@ -2019,4 +2027,11 @@ export const deleteSubRecruiter = async (id) => {
     throw error;
   }
 };
+
+export {
+  fetchWorldwideLocations,
+  getInitialLocations,
+  TOP_INDIAN_LOCATIONS,
+} from "../Common/worldwideDataService";
+
 

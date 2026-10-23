@@ -1,69 +1,566 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { register, login, getOrganizationType } from '../ApiService/action';
+import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
+import { Select } from 'antd';
+import {
+  register,
+  login,
+  getOrganizationType,
+  getIndustryTypes,
+  getJobCategories,
+  verifyEmail,
+  verifyOtp,
+} from '../ApiService/action';
+import {
+  fetchWorldwideLocations,
+  getInitialLocations,
+  TOP_INDIAN_LOCATIONS,
+} from '../Common/worldwideDataService';
 import { officialEmailValidator } from '../Common/Validation';
+import { WORLDWIDE_COUNTRY_CODES } from '../Common/countryPhoneCodes';
+import CommonSelectField from '../Common/CommonSelectField';
+import logo from '../images/hrportal_logo1.png';
+import '../css/HrRecruiter.css';
+import {
+  User,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Phone,
+  MapPin,
+  Building,
+  Briefcase,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  Camera,
+  X,
+  Check,
+  Award,
+  Globe,
+  Search,
+  Calendar,
+} from 'lucide-react';
+
+// 50+ Master Industries from database & recruiter standards (including all from reference)
+const ALL_MASTER_INDUSTRIES = [
+  'Accounting, Auditing & Taxation',
+  'Advertising, Marketing & Public Relations',
+  'Aerospace & Aviation',
+  'Agriculture, Farming & AgriTech',
+  'Architecture & Interior Design',
+  'Artificial Intelligence & Machine Learning',
+  'Automobile & Electric Vehicles',
+  'Automotive & Electric Vehicles',
+  'Banking & Financial Services (BFSI)',
+  'Banking, Financial Services & Insurance (BFSI)',
+  'Chemicals & Petrochemicals',
+  'Civil Engineering & Construction',
+  'Consulting & Professional Services',
+  'Consumer Goods & FMCG',
+  'Defense & Military Technology',
+  'E-Commerce & Digital Marketplaces',
+  'E-Commerce & Retail',
+  'Education & EdTech',
+  'Education, EdTech & Academia',
+  'Electronics & Semiconductor Manufacturing',
+  'Energy, Power & Utilities',
+  'Environmental Services & Waste Management',
+  'FinTech & Digital Payments',
+  'Food Production & Processing',
+  'Freight Forwarding & Maritime Shipping',
+  'Gaming, Animation & VFX',
+  'Government Administration & Public Policy',
+  'Healthcare & Hospitals',
+  'Healthcare & Pharmaceuticals',
+  'Higher Education & Research Institutes',
+  'Hospitality, Travel & Tourism',
+  'Human Resources & Staffing Services',
+  'Information Technology & Services',
+  'Investment Banking & Venture Capital',
+  'IT / Software Services',
+  'IT & Software',
+  'Legal Services & Law Practice',
+  'Logistics & Supply Chain',
+  'Logistics, Supply Chain & Warehousing',
+  'Management Consulting & Strategy',
+  'Manufacturing & Engineering',
+  'Manufacturing, Industrial & Heavy Machinery',
+  'Media, Entertainment & Gaming',
+  'Media, Entertainment & Publishing',
+  'Medical Devices & Diagnostics',
+  'Mining, Metals & Metallurgy',
+  'Non-Profit, NGO & Social Impact',
+  'Oil, Gas & Petroleum Exploration',
+  'Pharmaceuticals & Biotechnology',
+  'Real Estate & Construction',
+  'Real Estate & Property Management',
+  'Renewable Energy & CleanTech',
+  'Restaurants & Food Services',
+  'Retail & Wholesale Trade',
+  'Security & Surveillance Systems',
+  'Software Product & SaaS',
+  'Telecom & Networking',
+  'Telecommunications & Networking',
+  'Textiles, Apparel & Fashion',
+];
+
+const POPULAR_INDUSTRIES = [
+  'IT / Software Services',
+  'Banking & Financial Services (BFSI)',
+  'Healthcare & Pharmaceuticals',
+  'E-Commerce & Retail',
+  'Manufacturing & Engineering',
+  'Education & EdTech',
+  'Consulting & Professional Services',
+  'Media, Entertainment & Gaming',
+  'Telecom & Networking',
+  'Automobile & Electric Vehicles',
+  'Real Estate & Construction',
+  'Logistics & Supply Chain',
+];
+
+// Master Functional Areas / Domains from job categories database
+const ALL_MASTER_FUNCTIONS = [
+  'Software Development & Engineering',
+  'Software Development',
+  'Frontend Development',
+  'Backend Development',
+  'Full Stack Development',
+  'Mobile App Development',
+  'DevOps & Cloud Computing',
+  'Data Science, Analytics & AI/ML',
+  'Data Science & Analytics',
+  'Data Science & Machine Learning',
+  'Cybersecurity',
+  'AI Data & Prompt Engineering',
+  'Ai Ml Engineer',
+  'AR/VR Development',
+  'Blockchain Development',
+  'Game Development',
+  'Embedded Systems',
+  'Quality Assurance & Testing',
+  'Software Testing',
+  'Database Administration',
+  'IT Consulting',
+  'IT Infrastructure Services',
+  'IT Support & Helpdesk',
+  'Product Management',
+  'Product Management - Technology',
+  'UI / UX & Product Design',
+  'UI / UX',
+  'UI/UX Design',
+  'Web Design',
+  'Graphic Design',
+  'Animation',
+  'Human Resources & Talent Acquisition',
+  'Human Resources - Other',
+  'Recruitment & Talent Acquisition',
+  'HR Analytics',
+  'HR Operations',
+  'Compensation & Benefits',
+  'Employee Relations',
+  'Corporate Training',
+  'Sales & Business Development',
+  'Sales Support & Operations',
+  'Enterprise & B2B Sales',
+  'Retail & B2C Sales',
+  'Business Development',
+  'BD / Pre Sales',
+  'Client Relations',
+  'Marketing, Content & Growth',
+  'Marketing',
+  'Digital Marketing',
+  'Content Marketing',
+  'Social Media Marketing',
+  'Brand Management',
+  'SEO/SEM',
+  'Market Research & Insights',
+  'Finance, Accounting & Tax',
+  'Finance & Accounting',
+  'Accounting & Auditing',
+  'Accounting & Taxation',
+  'Financial Analysis',
+  'Investment Banking, Private Equity & VC',
+  'Banking',
+  'Risk Management & Compliance',
+  'Operations & Customer Success',
+  'Customer Success, Service & Operations',
+  'Operations Manager',
+  'Supply Chain Management',
+  'SCM & Logistics',
+  'Procurement & Sourcing',
+  'Warehouse Operations',
+  'Public Relations',
+  'Corporate Communication',
+  'Legal Consulting',
+  'Corporate Law',
+  'Compliance',
+  'Civil Engineering',
+  'Mechanical Engineering',
+  'Electrical Engineering',
+  'Robotics Engineering',
+  'Biotechnology',
+  'Pharmaceutical & Biotechnology',
+  'Medical Research',
+  'Healthcare Administration',
+  'Higher Education',
+  'K-12 Education',
+];
+
+const POPULAR_FUNCTIONS = [
+  'Software Development & Engineering',
+  'Human Resources & Talent Acquisition',
+  'Sales & Business Development',
+  'Marketing, Content & Growth',
+  'Product Management',
+  'UI / UX & Product Design',
+  'Operations & Customer Success',
+  'Finance, Accounting & Tax',
+  'Quality Assurance & Testing',
+  'Data Science, Analytics & AI/ML',
+];
+
+const HIRING_LEVELS_OPTIONS = [
+  'Entry Level / Freshers (0-2 yrs)',
+  'Mid-Level Professionals (2-5 yrs)',
+  'Senior Engineers / Specialists (5-8 yrs)',
+  'Lead / Engineering Manager (8-12 yrs)',
+  'Director / CXO / Executive Leadership',
+  'All Experience Levels',
+];
+
+const POPULAR_SKILLS = [
+  'React.js',
+  'Node.js',
+  'Python',
+  'Java',
+  'Fullstack',
+  'AWS',
+  'DevOps',
+  'SQL',
+  'Product Management',
+  'Talent Acquisition',
+  'Technical Sourcing',
+  'Sales',
+];
+
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 30 }, (_, i) => String(CURRENT_YEAR - i));
+
+const HIRING_EXPERIENCE_OPTIONS = [
+  { label: '0 - 1 Years', value: '0-1 Years' },
+  { label: '1 - 3 Years', value: '1-3 Years' },
+  { label: '3 - 5 Years', value: '3-5 Years' },
+  { label: '5 - 8 Years', value: '5-8 Years' },
+  { label: '8 - 12 Years', value: '8-12 Years' },
+  { label: '12+ Years', value: '12+ Years' },
+];
+
+const POPULAR_PHONE_CODES = [
+  { name: 'India', code: 'IN', dial_code: '+91', flag: '🇮🇳' },
+  { name: 'United States', code: 'US', dial_code: '+1', flag: '🇺🇸' },
+  { name: 'United Kingdom', code: 'GB', dial_code: '+44', flag: '🇬🇧' },
+  { name: 'United Arab Emirates', code: 'AE', dial_code: '+971', flag: '🇦🇪' },
+  { name: 'Singapore', code: 'SG', dial_code: '+65', flag: '🇸🇬' },
+  { name: 'Australia', code: 'AU', dial_code: '+61', flag: '🇦🇺' },
+  { name: 'Germany', code: 'DE', dial_code: '+49', flag: '🇩🇪' },
+  { name: 'France', code: 'FR', dial_code: '+33', flag: '🇫🇷' },
+  { name: 'Japan', code: 'JP', dial_code: '+81', flag: '🇯🇵' },
+  { name: 'Canada', code: 'CA', dial_code: '+1', flag: '🇨🇦' },
+];
+
+const PHONE_CODE_OPTIONS = (() => {
+  const seenCodes = new Set();
+  const list = [];
+
+  const addCode = (c) => {
+    if (!c || !c.code || seenCodes.has(c.code)) return;
+    seenCodes.add(c.code);
+    const triggerLabel = `${c.code} ${c.dial_code}`;
+    list.push({
+      value: c.dial_code,
+      key: `${c.code}-${c.dial_code}`,
+      triggerLabel: triggerLabel,
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+          <span style={{ fontWeight: 600, color: '#0f172a' }}>{triggerLabel}</span>
+          <span style={{ color: '#64748b', fontSize: '12px' }}>{c.name}</span>
+        </div>
+      ),
+      search: `${c.name} ${c.code} ${c.dial_code}`,
+    });
+  };
+
+  POPULAR_PHONE_CODES.forEach(addCode);
+  WORLDWIDE_COUNTRY_CODES.forEach(addCode);
+
+  return list;
+})();
 
 export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
-  // Form states
+  // Form State
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     workEmail: '',
+    phoneCode: '+91',
     phone: '',
-    companyName: '',
-    orgTypeId: '',
+    location: '',
     password: '',
     confirmPassword: '',
+    // Professional Details
+    companyName: '',
+    designation: '',
+    websiteUrl: '',
+    establishedDate: '',
+    fromMonth: 'January',
+    fromYear: '2023',
+    toMonth: 'Present',
+    toYear: 'Present',
+    isCurrentlyWorking: true,
+    // Company Address
+    address1: '',
+    address2: '',
+    city: '',
+    state: '',
+    country: 'India',
+    pincode: '',
+    // Preferences
+    hiringExperience: '3-5 Years',
+    referralCode: '',
     agreeTerms: true,
   });
 
+  const [avatarImage, setAvatarImage] = useState(null);
+  const [selectedIndustries, setSelectedIndustries] = useState([]);
+  const [selectedFunctions, setSelectedFunctions] = useState([]);
+  const [selectedHiringLevels, setSelectedHiringLevels] = useState(['Entry Level / Freshers (0-2 yrs)']);
+  const [skillsList, setSkillsList] = useState(['React.js', 'Node.js', 'Talent Acquisition']);
+  const [skillInput, setSkillInput] = useState('');
+  const [previousCompanies, setPreviousCompanies] = useState([]);
+
+  // Dynamic API Datasets
+  const [allIndustries, setAllIndustries] = useState(ALL_MASTER_INDUSTRIES);
+  const [allFunctions, setAllFunctions] = useState(ALL_MASTER_FUNCTIONS);
+  const [loadingIndustries, setLoadingIndustries] = useState(false);
+  const [loadingFunctions, setLoadingFunctions] = useState(false);
+
+  // Work Email Verification State
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [verifiedEmailAddress, setVerifiedEmailAddress] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+
+  // OTP Resend Countdown Timer
+  useEffect(() => {
+    let interval = null;
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer]);
+
+  const handleWorkEmailChange = (e) => {
+    const val = e.target.value;
+    setFormData({ ...formData, workEmail: val });
+    if (errors.workEmail) setErrors({ ...errors, workEmail: null });
+    if (isEmailVerified && val.toLowerCase().trim() !== verifiedEmailAddress) {
+      setIsEmailVerified(false);
+      setOtpSent(false);
+      setOtpInput('');
+    }
+  };
+
+  const handleSendEmailOtp = async () => {
+    const email = formData.workEmail.trim().toLowerCase();
+    if (!email) {
+      setErrors((prev) => ({ ...prev, workEmail: 'Official work email is required' }));
+      showToast('Please enter an official work email address first', 'error');
+      return;
+    }
+
+    const emailErr = officialEmailValidator(email);
+    if (emailErr) {
+      setErrors((prev) => ({ ...prev, workEmail: emailErr }));
+      showToast(emailErr, 'error');
+      return;
+    }
+
+    setSendingOtp(true);
+    try {
+      const res = await verifyEmail({ email });
+      setOtpSent(true);
+      setOtpTimer(60);
+      showToast(res?.data?.message || `Verification code sent to ${email}`, 'success');
+    } catch (err) {
+      console.error('Send OTP error:', err);
+      const errMsg =
+        err?.response?.data?.details ||
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to send verification code. Please try again.';
+      showToast(errMsg, 'error');
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    const email = formData.workEmail.trim().toLowerCase();
+    const cleanOtp = otpInput.trim();
+    if (!cleanOtp || cleanOtp.length < 4) {
+      showToast('Please enter the verification code received', 'error');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    try {
+      const res = await verifyOtp({ email, otp: cleanOtp });
+      if (res?.data?.message || res?.status === 200) {
+        setIsEmailVerified(true);
+        setVerifiedEmailAddress(email);
+        setOtpSent(false);
+        setOtpInput('');
+        if (errors.workEmail) setErrors((prev) => ({ ...prev, workEmail: null }));
+        showToast('Work email verified successfully! Verified recruiter badge granted.', 'success');
+      }
+    } catch (err) {
+      console.error('Verify OTP error:', err);
+      const errMsg =
+        err?.response?.data?.details ||
+        err?.response?.data?.error ||
+        err?.response?.data?.message ||
+        err?.message ||
+        'Invalid or expired OTP. Please check the code and try again.';
+      showToast(errMsg, 'error');
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  // Worldwide Location API State
+  const [locationOptions, setLocationOptions] = useState(getInitialLocations());
+  const [loadingLocations, setLoadingLocations] = useState(false);
+  const locationSearchTimer = useRef(null);
+
+  const handleSearchLocation = (searchText) => {
+    if (locationSearchTimer.current) clearTimeout(locationSearchTimer.current);
+
+    if (!searchText || !searchText.trim()) {
+      setLocationOptions(getInitialLocations());
+      setLoadingLocations(false);
+      return;
+    }
+
+    setLoadingLocations(true);
+    locationSearchTimer.current = setTimeout(async () => {
+      try {
+        const results = await fetchWorldwideLocations(searchText);
+        const currentLoc = formData.location ? [formData.location] : [];
+        setLocationOptions([...new Set([...currentLoc, ...results])]);
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+      } finally {
+        setLoadingLocations(false);
+      }
+    }, 250);
+  };
+
+  // Visibility & UI states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [orgTypes, setOrgTypes] = useState([]);
-  const [loadingOrgTypes, setLoadingOrgTypes] = useState(false);
 
-  // Fetch dynamic organization types on mount
+  const fileInputRef = useRef(null);
+
+  // Load Organization Types, All Industries, and All Job Categories/Functions from API
   useEffect(() => {
-    fetchOrgTypes();
-  }, []);
-
-  const fetchOrgTypes = async () => {
-    try {
-      setLoadingOrgTypes(true);
-      const res = await getOrganizationType();
-      const list = res?.data?.data || res?.data || [];
-      if (Array.isArray(list) && list.length > 0) {
-        setOrgTypes(list);
-      } else {
-        // Fallback default list if API array is empty
-        setOrgTypes([
-          { id: 1, name: 'IT / Software Services' },
-          { id: 2, name: 'Banking & Financial Services (BFSI)' },
-          { id: 3, name: 'Healthcare & Pharmaceuticals' },
-          { id: 4, name: 'E-Commerce & Retail' },
-          { id: 5, name: 'Manufacturing & Engineering' },
-          { id: 6, name: 'Education & EdTech' },
-          { id: 7, name: 'Consulting & Professional Services' },
-        ]);
+    const fetchMasterData = async () => {
+      // 1. Organization Types
+      try {
+        const res = await getOrganizationType();
+        const list = res?.data?.data || res?.data || [];
+        if (Array.isArray(list) && list.length > 0) {
+          setOrgTypes(list);
+        }
+      } catch (e) {
+        // Fallback in place
       }
-    } catch (err) {
-      console.warn('Organization types fetch warning:', err);
-      setOrgTypes([
-        { id: 1, name: 'IT / Software Services' },
-        { id: 2, name: 'Banking & Financial Services (BFSI)' },
-        { id: 3, name: 'Healthcare & Pharmaceuticals' },
-        { id: 4, name: 'E-Commerce & Retail' },
-        { id: 5, name: 'Manufacturing & Engineering' },
-        { id: 6, name: 'Education & EdTech' },
-        { id: 7, name: 'Consulting & Professional Services' },
-      ]);
-    } finally {
-      setLoadingOrgTypes(false);
-    }
-  };
+
+      // 2. All Industry Types from backend API
+      try {
+        setLoadingIndustries(true);
+        const indRes = await getIndustryTypes();
+        const indList = indRes?.data?.data || indRes?.data || [];
+        if (Array.isArray(indList) && indList.length > 0) {
+          const mapped = indList
+            .map((item) => (typeof item === 'string' ? item : item.name))
+            .filter(Boolean);
+          const combined = Array.from(new Set([...mapped, ...ALL_MASTER_INDUSTRIES])).sort((a, b) =>
+            a.localeCompare(b)
+          );
+          setAllIndustries(combined);
+        }
+      } catch (e) {
+        console.warn('Industry fetch notice:', e);
+      } finally {
+        setLoadingIndustries(false);
+      }
+
+      // 3. All Function / Domain Categories from backend API
+      try {
+        setLoadingFunctions(true);
+        const catRes = await getJobCategories();
+        const catList = catRes?.data?.data || catRes?.data || [];
+        if (Array.isArray(catList) && catList.length > 0) {
+          const mapped = catList
+            .map((item) => (typeof item === 'string' ? item : item.category_name || item.name))
+            .filter(Boolean)
+            .filter((name) => !/^(bangalore|chenna|gurugram|kochi|pune|vadodara|thirussur|x|css|ui)$/i.test(name.trim()));
+          const combined = Array.from(new Set([...mapped, ...ALL_MASTER_FUNCTIONS])).sort((a, b) =>
+            a.localeCompare(b)
+          );
+          setAllFunctions(combined);
+        }
+      } catch (e) {
+        console.warn('Job categories fetch notice:', e);
+      } finally {
+        setLoadingFunctions(false);
+      }
+    };
+
+    fetchMasterData();
+  }, []);
 
   const showToast = (text, type = 'success') => {
     setToastMessage({ text, type });
@@ -72,6 +569,93 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
     }, 4500);
   };
 
+  // Image Upload Handler
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please upload a valid image file (JPG, PNG, WebP)', 'error');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image size should be less than 2MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAvatarImage(event.target?.result);
+      showToast('Profile photo updated!', 'success');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAvatar = () => {
+    setAvatarImage(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Hiring Level Toggles
+  const toggleHiringLevel = (lvl) => {
+    if (selectedHiringLevels.includes(lvl)) {
+      if (selectedHiringLevels.length === 1) return;
+      setSelectedHiringLevels(selectedHiringLevels.filter((l) => l !== lvl));
+    } else {
+      setSelectedHiringLevels([...selectedHiringLevels, lvl]);
+    }
+  };
+
+  // Skills handlers
+  const handleAddSkill = (skillToAdd) => {
+    const trimmed = (skillToAdd || skillInput).trim();
+    if (!trimmed) return;
+    if (skillsList.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+      setSkillInput('');
+      return;
+    }
+    setSkillsList([...skillsList, trimmed]);
+    setSkillInput('');
+  };
+
+  const handleRemoveSkill = (skillToRemove) => {
+    setSkillsList(skillsList.filter((s) => s !== skillToRemove));
+  };
+
+  const handleSkillKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      handleAddSkill();
+    }
+  };
+
+  // Previous Companies Handlers
+  const addPreviousCompany = () => {
+    setPreviousCompanies([
+      ...previousCompanies,
+      {
+        id: Date.now(),
+        company_name: '',
+        designation: '',
+        from_year: '2020',
+        to_year: '2022',
+        location: '',
+      },
+    ]);
+  };
+
+  const updatePreviousCompany = (id, field, value) => {
+    setPreviousCompanies(
+      previousCompanies.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+    );
+  };
+
+  const removePreviousCompany = (id) => {
+    setPreviousCompanies(previousCompanies.filter((c) => c.id !== id));
+  };
+
+  // Form Validation
   const validate = () => {
     const errs = {};
 
@@ -81,27 +665,21 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
       errs.firstName = 'Minimum 2 characters';
     }
 
-    if (!formData.lastName.trim()) {
-      errs.lastName = 'Last name is required';
-    }
-
     const emailErr = officialEmailValidator(formData.workEmail);
     if (emailErr) {
       errs.workEmail = emailErr;
+    } else if (!isEmailVerified) {
+      errs.workEmail = 'Please verify your work email with OTP before registering';
     }
 
     if (!formData.phone.trim()) {
       errs.phone = 'Phone number is required';
     } else if (!/^[0-9]{10}$/.test(formData.phone.trim().replace(/\D/g, ''))) {
-      errs.phone = 'Enter a valid 10-digit phone number';
+      errs.phone = 'Enter a valid 10-digit mobile number';
     }
 
-    if (!formData.companyName.trim()) {
-      errs.companyName = 'Company name is required';
-    }
-
-    if (!formData.orgTypeId) {
-      errs.orgTypeId = 'Please select your industry type';
+    if (!formData.location.trim()) {
+      errs.location = 'Please select or enter your current location';
     }
 
     if (!formData.password) {
@@ -116,14 +694,55 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
       errs.confirmPassword = 'Passwords do not match';
     }
 
+    if (!formData.companyName.trim()) {
+      errs.companyName = 'Current company name is required';
+    }
+
+    if (!formData.designation.trim()) {
+      errs.designation = 'Current designation is required';
+    }
+
+    if (!formData.address1.trim()) {
+      errs.address1 = 'Street address line 1 is required';
+    }
+
+    if (!formData.city.trim()) {
+      errs.city = 'City is required';
+    }
+
+    if (!formData.state.trim()) {
+      errs.state = 'State / Region is required';
+    }
+
+    if (!formData.pincode.trim()) {
+      errs.pincode = 'Zip / Pin code is required';
+    }
+
+    if (selectedIndustries.length === 0) {
+      errs.industries = 'Please select at least 1 industry';
+    }
+
+    if (selectedFunctions.length === 0) {
+      errs.functions = 'Please select at least 1 function/domain';
+    }
+
+    if (skillsList.length === 0) {
+      errs.skills = 'Please add at least 1 hiring skill';
+    }
+
     if (!formData.agreeTerms) {
-      errs.agreeTerms = 'You must accept the terms & conditions';
+      errs.agreeTerms = 'You must agree to the Terms of Service to continue';
     }
 
     setErrors(errs);
+    if (Object.keys(errs).length > 0) {
+      const firstKey = Object.keys(errs)[0];
+      showToast(errs[firstKey] || 'Please complete all required fields (*)', 'error');
+    }
     return Object.keys(errs).length === 0;
   };
 
+  // Submit Handler
   const handleSubmit = async (e) => {
     e?.preventDefault();
     if (!validate()) return;
@@ -131,16 +750,62 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
     setIsLoading(true);
 
     const cleanPhone = formData.phone.trim().replace(/\D/g, '').slice(-10);
+
+    // Map selected industry to orgTypeId if matched
+    let matchedOrgId = 1;
+    if (orgTypes.length > 0 && selectedIndustries.length > 0) {
+      const found = orgTypes.find((ot) =>
+        selectedIndustries.some(
+          (ind) =>
+            ind.toLowerCase().includes(ot.name.toLowerCase()) ||
+            ot.name.toLowerCase().includes(ind.toLowerCase())
+        )
+      );
+      if (found) matchedOrgId = found.id;
+    }
+
     const payload = {
       first_name: formData.firstName.trim(),
       last_name: formData.lastName.trim(),
-      phone_code: '+91',
+      phone_code: formData.phoneCode,
       phone: cleanPhone,
       email: formData.workEmail.trim().toLowerCase(),
       password: formData.password,
       organization: formData.companyName.trim(),
-      organization_type_id: Number(formData.orgTypeId) || 1,
-      role_id: 3, // Role 3 is explicitly RECRUITER in database
+      organization_type_id: matchedOrgId,
+      role_id: 3, // Role 3 is explicitly RECRUITER
+      is_email_verified: 1,
+      // Comprehensive Recruiter Profile fields
+      profile_image: avatarImage || null,
+      designation: formData.designation.trim(),
+      website_url: formData.websiteUrl.trim(),
+      year_established: formData.establishedDate.trim(),
+      location: formData.location.trim(),
+      address1: formData.address1.trim(),
+      address2: formData.address2.trim(),
+      city: formData.city.trim(),
+      state: formData.state.trim(),
+      country: formData.country.trim(),
+      pincode: formData.pincode.trim(),
+      experience_from: `${formData.fromMonth} ${formData.fromYear}`,
+      experience_to: formData.isCurrentlyWorking ? 'Present' : `${formData.toMonth} ${formData.toYear}`,
+      hiring_experience: formData.hiringExperience,
+      hiring_levels: selectedHiringLevels,
+      referral_code: formData.referralCode.trim(),
+      industries: selectedIndustries,
+      functions: selectedFunctions,
+      skills: skillsList,
+      previous_companies: previousCompanies
+        .filter((c) => c.company_name && c.company_name.trim())
+        .map((c) => ({
+          company_name: c.company_name.trim(),
+          designation: (c.designation || '').trim(),
+          from_year: c.from_year || '',
+          to_year: c.to_year || '',
+          start_date: c.from_year || '',
+          end_date: c.to_year || '',
+          location: c.location || '',
+        })),
     };
 
     try {
@@ -153,9 +818,9 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
           throw new Error(response?.data?.message || 'Registration failed. Please check your information.');
         }
 
-        showToast('Recruiter account created successfully! Logging you in...', 'success');
+        showToast('Recruiter profile created successfully! Logging you into TalentHub...', 'success');
 
-        // Auto-login to streamline onboarding directly into recruiter portal
+        // Automatic Login to streamline onboarding directly into recruiter dashboard
         try {
           const fcm_token = typeof window !== 'undefined' ? localStorage.getItem('fcm_token') : null;
           const loginRes = await login({
@@ -167,28 +832,30 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
 
           if (loginRes?.data?.token) {
             const token = loginRes.data.token;
-            const recruiterDetails = loginRes.data.data?.[0];
+            const recruiterDetails = loginRes.data.data?.[0] || {};
+            recruiterDetails.is_email_verified = 1;
 
             localStorage.setItem('AccessToken', token);
             localStorage.setItem('loginDetails', JSON.stringify(recruiterDetails));
             document.cookie = `AccessToken=${token}; path=/; max-age=2592000; SameSite=Lax`;
             document.cookie = `loginDetails=${encodeURIComponent(JSON.stringify(recruiterDetails))}; path=/; max-age=2592000; SameSite=Lax`;
 
+            // Directly navigate to Recruiter Overview (NO separate create profile page!)
             setTimeout(() => {
-              window.location.href = '/create-profile';
-            }, 900);
+              window.location.href = '/overview';
+            }, 600);
             return;
           }
         } catch (loginErr) {
           console.warn('Auto-login notice:', loginErr);
         }
 
-        // Fallback redirect to recruiter login
+        // Fallback to login
         setTimeout(() => {
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }
-        }, 1200);
+        }, 1000);
       }
     } catch (error) {
       console.error('Recruiter registration error:', error);
@@ -213,1403 +880,49 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
     }
   };
 
-  const handleSocialLogin = (provider) => {
-    showToast(`Redirecting to ${provider} recruiter registration...`, 'info');
-  };
-
   return (
-    <div className="hl-screen">
-      {/* Styles matching HrLogin */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-
-        .hl-screen {
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          min-height: 100vh;
-          width: 100%;
-          display: flex;
-          background-color: #f8fafc;
-          color: #0f172a;
-          box-sizing: border-box;
-          overflow-x: hidden;
-        }
-
-        .hl-screen * {
-          box-sizing: border-box;
-        }
-
-        .cursive-font {
-          font-family: 'Caveat', cursive, sans-serif !important;
-        }
-
-        /* LEFT PANE: 64% width with background image */
-        .hl-left-pane {
-          flex: 1.68;
-          min-height: 100vh;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 38px 45px 32px 90px;
-          background-image: url('/recruiter_bg.jpg');
-          background-size: cover;
-          background-position: 55% center;
-          background-repeat: no-repeat;
-          overflow: hidden;
-        }
-
-        .hl-left-content {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          justify-content: space-between;
-        }
-
-        /* Top Header & Headlines */
-        .hl-tag-recruiter {
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.16em;
-          color: #64748b;
-          text-transform: uppercase;
-          margin-bottom: 10px;
-          display: inline-block;
-        }
-
-        .hl-title-main {
-          font-size: 42px;
-          font-weight: 800;
-          line-height: 1.12;
-          letter-spacing: -0.03em;
-          color: #0f172a;
-          margin: 0 0 12px 0;
-        }
-
-        .hl-title-main .hl-blue {
-          color: #2563eb;
-        }
-
-        .hl-sub-desc {
-          font-size: 18px;
-          line-height: 1.5;
-          color: #475569;
-          max-width: 420px;
-          margin: 0 0 24px 0;
-        }
-
-        /* Middle Area: 4 Bullets on left, ATS Card on right */
-        .hl-middle-section {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 20px;
-        }
-
-        /* 4 Key Features */
-        .hl-features-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          max-width: 360px;
-        }
-
-        .hl-feature-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-
-        .hl-feature-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
-          background: #eff6ff;
-          color: #2563eb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          box-shadow: 0 2px 5px rgba(37, 99, 235, 0.08);
-        }
-
-        .hl-feature-details h4 {
-          margin: 0 0 2px 0;
-          font-size: 18px;
-          font-weight: 700;
-          color: #0f172a;
-          line-height: 1.25;
-        }
-
-        .hl-feature-details p {
-          margin: 0;
-          font-size: 14px;
-          color: #64748b;
-          line-height: 1.35;
-        }
-
-        /* Floating ATS Candidate Pipeline Card */
-        .hl-ats-float-card {
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          border-radius: 16px;
-          padding: 12px 14px;
-          width: 225px;
-          box-shadow: 0 16px 36px -6px rgba(15, 23, 42, 0.16);
-          flex-shrink: 0;
-          margin-bottom: 12px;
-          margin-right: 12px;
-          transition: transform 0.2s ease;
-        }
-
-        .hl-ats-float-card:hover {
-          transform: translateY(-2px);
-        }
-
-        .hl-ats-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 6px 0;
-          border-bottom: 1px solid #f1f5f9;
-        }
-
-        .hl-ats-row:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-
-        .hl-ats-user {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .hl-ats-avatar-wrap {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          overflow: hidden;
-          background: #e2e8f0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 10px;
-          font-weight: 700;
-          color: #334155;
-          flex-shrink: 0;
-        }
-
-        .hl-ats-avatar-wrap img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .hl-ats-meta h5 {
-          margin: 0;
-          font-size: 11px;
-          font-weight: 700;
-          color: #0f172a;
-          line-height: 1.2;
-        }
-
-        .hl-ats-meta span {
-          font-size: 9px;
-          color: #64748b;
-          display: block;
-        }
-
-        .hl-status-pill {
-          font-size: 8.5px;
-          font-weight: 600;
-          padding: 2px 7px;
-          border-radius: 999px;
-        }
-
-        .hl-status-pill.shortlisted {
-          background-color: #ecfdf5;
-          color: #059669;
-          border: 1px solid #a7f3d0;
-        }
-
-        .hl-status-pill.interview {
-          background-color: #eff6ff;
-          color: #2563eb;
-          border: 1px solid #bfdbfe;
-        }
-
-        .hl-status-pill.applied {
-          background-color: #f1f5f9;
-          color: #475569;
-          border: 1px solid #e2e8f0;
-        }
-
-        /* Bottom Row: Handwritten Script + 3 Metrics Cards */
-        .hl-bottom-section {
-          display: flex;
-          align-items: center;
-          gap: 24px;
-          margin-top: 8px;
-        }
-
-        .hl-script-possibilities {
-          font-size: 32px;
-          line-height: 1.05;
-          font-weight: 700;
-          color: #1d4ed8;
-          transform: rotate(-3deg);
-          flex-shrink: 0;
-          display: inline-block;
-        }
-
-        .hl-script-possibilities svg {
-          display: block;
-          width: 86px;
-          height: 12px;
-          margin-top: 3px;
-        }
-
-        /* 3 Metrics Cards */
-        .hl-metrics-stack {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .hl-metric-card {
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          border-radius: 12px;
-          padding: 14px 18px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-        }
-
-        .hl-metric-icon-box {
-          width: 30px;
-          height: 30px;
-          border-radius: 8px;
-          background: #eff6ff;
-          color: #2563eb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .hl-metric-text strong {
-          display: block;
-          font-size: 15px;
-          font-weight: 800;
-          color: #0f172a;
-          line-height: 1.1;
-        }
-
-        .hl-metric-text span {
-          font-size: 10px;
-          font-weight: 600;
-          color: #64748b;
-          white-space: nowrap;
-        }
-
-        /* RIGHT PANE: Clean, Modern SaaS Auth Panel */
-        .hl-right-pane {
-          flex: 1.25;
-          min-height: 100vh;
-          background-color: #f8fafc;
-          border-left: 1px solid #e2e8f0;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          align-items: center;
-          padding: 24px 36px 20px;
-          position: relative;
-          overflow-y: auto;
-        }
-
-        /* Soft Aurora Mesh Glow */
-        .hl-aurora-bg {
-          position: absolute;
-          inset: 0;
-          overflow: hidden;
-          pointer-events: none;
-          z-index: 1;
-        }
-
-        .hl-aurora-blob {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(85px);
-          opacity: 0.7;
-          will-change: transform, opacity;
-          pointer-events: none;
-        }
-
-        .hl-aurora-1 {
-          width: 480px;
-          height: 480px;
-          top: -120px;
-          right: -90px;
-          background: radial-gradient(circle, rgba(37, 99, 235, 0.16) 0%, rgba(96, 165, 250, 0.08) 50%, transparent 70%);
-          animation: hlAuroraDrift1 22s ease-in-out infinite alternate;
-        }
-
-        .hl-aurora-2 {
-          width: 450px;
-          height: 450px;
-          bottom: -100px;
-          left: -100px;
-          background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(167, 139, 250, 0.07) 50%, transparent 70%);
-          animation: hlAuroraDrift2 25s ease-in-out infinite alternate;
-        }
-
-        .hl-aurora-3 {
-          width: 400px;
-          height: 400px;
-          top: 30%;
-          left: 45%;
-          background: radial-gradient(circle, rgba(14, 165, 233, 0.11) 0%, rgba(224, 231, 255, 0.05) 55%, transparent 70%);
-          animation: hlAuroraDrift3 20s ease-in-out infinite alternate;
-        }
-
-        .hl-aurora-4 {
-          width: 350px;
-          height: 350px;
-          top: 65%;
-          right: -50px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
-          animation: hlAuroraDrift4 24s ease-in-out infinite alternate;
-        }
-
-        @keyframes hlAuroraDrift1 {
-          0% { transform: translate(0px, 0px) scale(1); opacity: 0.6; }
-          50% { transform: translate(-35px, 45px) scale(1.12); opacity: 0.82; }
-          100% { transform: translate(25px, 25px) scale(0.95); opacity: 0.55; }
-        }
-
-        @keyframes hlAuroraDrift2 {
-          0% { transform: translate(0px, 0px) scale(1); opacity: 0.55; }
-          50% { transform: translate(45px, -40px) scale(1.1); opacity: 0.78; }
-          100% { transform: translate(-25px, -20px) scale(0.92); opacity: 0.5; }
-        }
-
-        @keyframes hlAuroraDrift3 {
-          0% { transform: translate(0px, 0px) scale(0.95); opacity: 0.5; }
-          50% { transform: translate(-30px, -30px) scale(1.14); opacity: 0.72; }
-          100% { transform: translate(30px, 20px) scale(1); opacity: 0.45; }
-        }
-
-        @keyframes hlAuroraDrift4 {
-          0% { transform: translate(0px, 0px) scale(1); opacity: 0.45; }
-          50% { transform: translate(-30px, -35px) scale(1.12); opacity: 0.68; }
-          100% { transform: translate(20px, 20px) scale(0.92); opacity: 0.45; }
-        }
-
-        /* Top Right: Need Help */
-        .hl-top-help-row {
-          width: 100%;
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          position: relative;
-          z-index: 2;
-          margin-bottom: 12px;
-        }
-
-        .hl-help-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 13.5px;
-          font-weight: 600;
-          color: #64748b;
-          text-decoration: none;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 6px 12px;
-          border-radius: 8px;
-          transition: all 0.15s ease;
-        }
-
-        .hl-help-link:hover {
-          color: #1e293b;
-          background-color: #f1f5f9;
-        }
-
-        .hl-help-icon {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          border: 1.5px solid currentColor;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 10px;
-          font-weight: 700;
-        }
-
-        /* Crisp White Sign Up Card */
-        .hl-signup-box {
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border-radius: 20px;
-          width: 100%;
-          max-width: 480px;
-          padding: 24px 30px 22px;
-          color: #0f172a;
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
-          position: relative;
-          z-index: 2;
-          margin-bottom: 16px;
-        }
-
-        .hl-form-title {
-          font-size: 27px;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0 0 5px 0;
-          letter-spacing: -0.025em;
-        }
-
-        .hl-form-subtitle {
-          font-size: 13px;
-          color: #64748b;
-          margin: 0 0 20px 0;
-          line-height: 1.45;
-        }
-
-        .hl-form-grid-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .hl-form-item {
-          margin-bottom: 14px;
-        }
-
-        .hl-input-lbl {
-          display: block;
-          font-size: 12.5px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 5px;
-        }
-
-        .hl-input-lbl .hl-req {
-          color: #ef4444;
-          margin-left: 2px;
-        }
-
-        .hl-input-wrapper {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-
-        .hl-prefix-icon {
-          position: absolute;
-          left: 13px;
-          color: #94a3b8;
-          display: flex;
-          align-items: center;
-          pointer-events: none;
-        }
-
-        .hl-custom-input,
-        .hl-custom-select {
-          width: 100%;
-          height: 44px;
-          padding: 0 14px 0 38px;
-          font-size: 13.5px;
-          font-family: inherit;
-          color: #0f172a;
-          background: #ffffff;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          outline: none;
-          transition: all 0.2s ease;
-        }
-
-        .hl-custom-select {
-          appearance: none;
-          background-image: url("data:image/svg2+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-          background-repeat: no-repeat;
-          background-position: right 12px center;
-          background-size: 16px;
-          cursor: pointer;
-        }
-
-        .hl-custom-input::placeholder {
-          color: #94a3b8;
-          font-size: 13px;
-        }
-
-        .hl-custom-input:hover,
-        .hl-custom-select:hover {
-          border-color: #cbd5e1;
-        }
-
-        .hl-custom-input:focus,
-        .hl-custom-select:focus {
-          border-color: #2563eb;
-          box-shadow: 0 0 0 3.5px rgba(37, 99, 235, 0.12);
-        }
-
-        .hl-custom-input.err-border,
-        .hl-custom-select.err-border {
-          border-color: #ef4444;
-          background-color: #fffafa;
-        }
-
-        .hl-password-toggle {
-          position: absolute;
-          right: 10px;
-          background: none;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          padding: 5px;
-          border-radius: 6px;
-          transition: color 0.15s;
-        }
-
-        .hl-password-toggle:hover {
-          color: #1e293b;
-        }
-
-        .hl-error-caption {
-          font-size: 11px;
-          color: #ef4444;
-          margin-top: 4px;
-        }
-
-        /* Checkbox row */
-        .hl-terms-row {
-          margin: 12px 0 18px;
-        }
-
-        .hl-checkbox-container {
-          display: flex;
-          align-items: flex-start;
-          gap: 8px;
-          font-size: 12.5px;
-          color: #475569;
-          cursor: pointer;
-          user-select: none;
-          line-height: 1.4;
-        }
-
-        .hl-checkbox-container input {
-          width: 16px;
-          height: 16px;
-          margin-top: 2px;
-          border: 1.5px solid #cbd5e1;
-          border-radius: 4px;
-          cursor: pointer;
-          accent-color: #2563eb;
-          flex-shrink: 0;
-        }
-
-        .hl-terms-link {
-          color: #2563eb;
-          text-decoration: none;
-          font-weight: 600;
-        }
-
-        .hl-terms-link:hover {
-          text-decoration: underline;
-        }
-
-        /* Register Button */
-        .hl-submit-btn {
-          width: 100%;
-          height: 48px;
-          background: #2563eb;
-          color: #ffffff;
-          border: none;
-          border-radius: 12px;
-          font-size: 14.5px;
-          font-weight: 600;
-          font-family: inherit;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
-        }
-
-        .hl-submit-btn:hover:not(:disabled) {
-          background-color: #1d4ed8;
-          box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
-          transform: translateY(-1px);
-        }
-
-        .hl-submit-btn:active:not(:disabled) {
-          transform: translateY(0);
-        }
-
-        .hl-submit-btn:disabled {
-          opacity: 0.65;
-          cursor: not-allowed;
-          box-shadow: none;
-        }
-
-        /* OR Divider */
-        .hl-divider-bar {
-          display: flex;
-          align-items: center;
-          margin: 18px 0 14px;
-          gap: 12px;
-        }
-
-        .hl-divider-segment {
-          flex: 1;
-          height: 1px;
-          background-color: #e2e8f0;
-        }
-
-        .hl-divider-caption {
-          font-size: 11px;
-          font-weight: 700;
-          color: #94a3b8;
-          letter-spacing: 0.05em;
-        }
-
-        /* Social SSO Buttons */
-        .hl-social-pair {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin-bottom: 18px;
-        }
-
-        .hl-social-tile {
-          height: 42px;
-          background: #ffffff;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 0 10px;
-          font-size: 12.5px;
-          font-weight: 600;
-          color: #334155;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .hl-social-tile:hover {
-          background-color: #f8fafc;
-          border-color: #cbd5e1;
-          transform: translateY(-1px);
-          box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04);
-        }
-
-        .hl-registration-prompt {
-          text-align: center;
-          font-size: 13px;
-          color: #64748b;
-        }
-
-        .hl-signup-action {
-          font-weight: 700;
-          color: #2563eb;
-          cursor: pointer;
-          background: none;
-          border: none;
-          padding: 0;
-          margin-left: 4px;
-          font-size: inherit;
-          transition: color 0.15s;
-        }
-
-        .hl-signup-action:hover {
-          color: #1d4ed8;
-          text-decoration: underline;
-        }
-
-        /* Bottom Security Footnote */
-        .hl-right-footnote {
-          font-size: 11.5px;
-          color: #94a3b8;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          position: relative;
-          z-index: 2;
-          margin-top: auto;
-          padding-top: 10px;
-        }
-
-        /* Toast Popup */
-        .hl-toast {
-          position: fixed;
-          top: 24px;
-          right: 24px;
-          padding: 12px 20px;
-          border-radius: 10px;
-          font-size: 14px;
-          font-weight: 600;
-          color: #fff;
-          z-index: 1000;
-          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2);
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .hl-toast.success { background-color: #10b981; }
-        .hl-toast.error { background-color: #ef4444; }
-        .hl-toast.info { background-color: #2563eb; }
-
-        /* Responsive */
-        @media (max-width: 1180px) {
-          .hl-screen {
-            flex-direction: column;
-          }
-          .hl-left-pane {
-            min-height: auto;
-            padding: 36px 28px;
-          }
-          .hl-right-pane {
-            min-height: auto;
-            padding: 36px 20px;
-          }
-          .hl-middle-section {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .hl-ats-float-card {
-            margin: 16px 0;
-          }
-          .hl-bottom-section {
-            flex-wrap: wrap;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .hl-form-grid-2 {
-            grid-template-columns: 1fr;
-          }
-          .hl-social-pair {
-            grid-template-columns: 1fr;
-          }
-          .hl-signup-box {
-            padding: 24px 18px;
-          }
-        }
-      `}</style>
-
-      {/* Toast Alert */}
+    <div className="cf-recruiter-page">
+      {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className={`hl-toast ${toastMessage.type}`}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 24,
+            right: 24,
+            zIndex: 9999,
+            padding: '12px 20px',
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15)',
+            color: '#fff',
+            backgroundColor: toastMessage.type === 'error' ? '#ef4444' : '#10b981',
+            animation: 'fadeIn 0.2s ease-in-out',
+          }}
+        >
+          {toastMessage.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
           <span>{toastMessage.text}</span>
         </div>
       )}
 
-      {/* LEFT PANE: Full-Bleed Background + Content Overlay (Same as HrLogin) */}
-      <section className="hl-left-pane">
-        <div className="hl-left-content">
-          {/* Top Section: Category & Headline */}
-          <div>
-            <span className="hl-tag-recruiter">FOR RECRUITERS</span>
-            <h1 className="hl-title-main">
-              Hire Smarter.<br />
-              Build <span className="hl-blue">Stronger Teams.</span>
-            </h1>
-            <p className="hl-sub-desc">
-              Connect with top talent, manage your hiring process and grow your organization — all in one place.
-            </p>
-
-            {/* Middle Section: 4 Bullets on left, ATS Card on right */}
-            <div className="hl-middle-section">
-              {/* 4 Feature Bullets */}
-              <div className="hl-features-list">
-                <div className="hl-feature-row">
-                  <div className="hl-feature-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </div>
-                  <div className="hl-feature-details">
-                    <h4>Access Top Talent</h4>
-                    <p>Find and connect with qualified candidates faster.</p>
-                  </div>
-                </div>
-
-                <div className="hl-feature-row">
-                  <div className="hl-feature-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                  </div>
-                  <div className="hl-feature-details">
-                    <h4>Streamline Hiring</h4>
-                    <p>Manage jobs, applications and interviews in one place.</p>
-                  </div>
-                </div>
-
-                <div className="hl-feature-row">
-                  <div className="hl-feature-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="20" x2="18" y2="10" />
-                      <line x1="12" y1="20" x2="12" y2="4" />
-                      <line x1="6" y1="20" x2="6" y2="14" />
-                    </svg>
-                  </div>
-                  <div className="hl-feature-details">
-                    <h4>Data-Driven Decisions</h4>
-                    <p>Get insights that help you hire smarter.</p>
-                  </div>
-                </div>
-
-                <div className="hl-feature-row">
-                  <div className="hl-feature-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                      <path d="m9 12 2 2 4-4" />
-                    </svg>
-                  </div>
-                  <div className="hl-feature-details">
-                    <h4>Secure & Reliable</h4>
-                    <p>Your data and hiring process are always safe with us.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating ATS Candidate Pipeline Card */}
-              <div className="hl-ats-float-card">
-                <div className="hl-ats-row">
-                  <div className="hl-ats-user">
-                    <div className="hl-ats-avatar-wrap">
-                      <img
-                        src="/images/priya.jpg"
-                        alt="Priya Nair"
-                        onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = 'PN'; }}
-                      />
-                    </div>
-                    <div className="hl-ats-meta">
-                      <h5>Priya Nair</h5>
-                      <span>Software Engineer</span>
-                    </div>
-                  </div>
-                  <span className="hl-status-pill shortlisted">Shortlisted</span>
-                </div>
-
-                <div className="hl-ats-row">
-                  <div className="hl-ats-user">
-                    <div className="hl-ats-avatar-wrap">
-                      <img
-                        src="/images/arjun.jpg"
-                        alt="Arjun Menon"
-                        onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = 'AM'; }}
-                      />
-                    </div>
-                    <div className="hl-ats-meta">
-                      <h5>Arjun Menon</h5>
-                      <span>Product Designer</span>
-                    </div>
-                  </div>
-                  <span className="hl-status-pill interview">Interview</span>
-                </div>
-
-                <div className="hl-ats-row">
-                  <div className="hl-ats-user">
-                    <div className="hl-ats-avatar-wrap">
-                      <img
-                        src="/images/sneha.jpg"
-                        alt="Sneha Varghese"
-                        onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.innerText = 'SV'; }}
-                      />
-                    </div>
-                    <div className="hl-ats-meta">
-                      <h5>Sneha Varghese</h5>
-                      <span>Data Analyst</span>
-                    </div>
-                  </div>
-                  <span className="hl-status-pill applied">Applied</span>
-                </div>
-              </div>
-            </div>
+      {/* Top Navigation */}
+      <nav className="cf-recruiter-nav">
+        <div className="cf-recruiter-nav-inner">
+          <div className="cf-brand-link">
+            <Image src={logo} alt="CareerFast TalentHub" className="cf-brand-logo" priority />
+            <span className="cf-brand-badge">
+              <Sparkles size={13} /> Recruiter Onboarding
+            </span>
           </div>
 
-          {/* Bottom Section: Handwritten Script + 3 Metrics Cards */}
-          <div className="hl-bottom-section">
-            <div className="hl-script-possibilities cursive-font">
-              People<br />Build Possibilities
-              <svg viewBox="0 0 86 12" fill="none">
-                <path d="M2 5 C 28 12, 58 10, 84 3" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-            </div>
-
-            <div className="hl-metrics-stack">
-              <div className="hl-metric-card">
-                <div className="hl-metric-icon-box">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </div>
-                <div className="hl-metric-text">
-                  <strong>10K+</strong>
-                  <span>Active Candidates</span>
-                </div>
-              </div>
-
-              <div className="hl-metric-card">
-                <div className="hl-metric-icon-box">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="4" y="2" width="16" height="20" rx="2" />
-                    <line x1="9" y1="22" x2="9" y2="2" />
-                    <path d="M14 6h2" /><path d="M14 10h2" /><path d="M14 14h2" /><path d="M14 18h2" />
-                  </svg>
-                </div>
-                <div className="hl-metric-text">
-                  <strong>500+</strong>
-                  <span>Hiring Companies</span>
-                </div>
-              </div>
-
-              <div className="hl-metric-card">
-                <div className="hl-metric-icon-box">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                </div>
-                <div className="hl-metric-text">
-                  <strong>3x</strong>
-                  <span>Faster Hiring</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RIGHT PANE: Clean, Modern SaaS Recruiter Sign Up Panel */}
-      <section className="hl-right-pane">
-        {/* Soft Aurora Mesh Glow Background */}
-        <div className="hl-aurora-bg" aria-hidden="true">
-          <div className="hl-aurora-blob hl-aurora-1"></div>
-          <div className="hl-aurora-blob hl-aurora-2"></div>
-          <div className="hl-aurora-blob hl-aurora-3"></div>
-          <div className="hl-aurora-blob hl-aurora-4"></div>
-        </div>
-
-        {/* Top Right: Need Help */}
-        <div className="hl-top-help-row">
-          <button
-            type="button"
-            className="hl-help-link"
-            onClick={() => showToast('For assistance, email support@careerfast.com', 'info')}
-          >
-            <span>Need help?</span>
-            <span className="hl-help-icon">?</span>
-          </button>
-        </div>
-
-        {/* Crisp White Sign Up Card */}
-        <div className="hl-signup-box">
-          <h2 className="hl-form-title">Join as a Recruiter</h2>
-          <p className="hl-form-subtitle">
-            Create your organization account to post jobs and discover top talent.
-          </p>
-
-          <form onSubmit={handleSubmit} noValidate>
-            {/* First & Last Name (Grid 2 cols) */}
-            <div className="hl-form-grid-2">
-              <div className="hl-form-item">
-                <label className="hl-input-lbl" htmlFor="firstName">
-                  First Name<span className="hl-req">*</span>
-                </label>
-                <div className="hl-input-wrapper">
-                  <span className="hl-prefix-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </span>
-                  <input
-                    id="firstName"
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={(e) => {
-                      setFormData({ ...formData, firstName: e.target.value });
-                      if (errors.firstName) setErrors({ ...errors, firstName: null });
-                    }}
-                    placeholder="Jane"
-                    className={`hl-custom-input ${errors.firstName ? 'err-border' : ''}`}
-                    autoComplete="given-name"
-                  />
-                </div>
-                {errors.firstName && <div className="hl-error-caption">{errors.firstName}</div>}
-              </div>
-
-              <div className="hl-form-item">
-                <label className="hl-input-lbl" htmlFor="lastName">
-                  Last Name<span className="hl-req">*</span>
-                </label>
-                <div className="hl-input-wrapper">
-                  <span className="hl-prefix-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </span>
-                  <input
-                    id="lastName"
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => {
-                      setFormData({ ...formData, lastName: e.target.value });
-                      if (errors.lastName) setErrors({ ...errors, lastName: null });
-                    }}
-                    placeholder="Doe"
-                    className={`hl-custom-input ${errors.lastName ? 'err-border' : ''}`}
-                    autoComplete="family-name"
-                  />
-                </div>
-                {errors.lastName && <div className="hl-error-caption">{errors.lastName}</div>}
-              </div>
-            </div>
-
-            {/* Official Work Email */}
-            <div className="hl-form-item">
-              <label className="hl-input-lbl" htmlFor="workEmail">
-                Official Work Email<span className="hl-req">*</span>
-              </label>
-              <div className="hl-input-wrapper">
-                <span className="hl-prefix-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                    <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-                  </svg>
-                </span>
-                <input
-                  id="workEmail"
-                  type="email"
-                  name="workEmail"
-                  value={formData.workEmail}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFormData({ ...formData, workEmail: val });
-                    const err = officialEmailValidator(val);
-                    setErrors({ ...errors, workEmail: err || null });
-                  }}
-                  onBlur={() => {
-                    const err = officialEmailValidator(formData.workEmail);
-                    if (err) setErrors({ ...errors, workEmail: err });
-                  }}
-                  placeholder="name@company.com"
-                  className={`hl-custom-input ${errors.workEmail ? 'err-border' : ''}`}
-                  autoComplete="email"
-                />
-              </div>
-              {errors.workEmail && <div className="hl-error-caption">{errors.workEmail}</div>}
-            </div>
-
-            {/* Phone & Company Name (Grid 2 cols) */}
-            <div className="hl-form-grid-2">
-              <div className="hl-form-item">
-                <label className="hl-input-lbl" htmlFor="phone">
-                  Phone Number<span className="hl-req">*</span>
-                </label>
-                <div className="hl-input-wrapper">
-                  <span className="hl-prefix-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                    </svg>
-                  </span>
-                  <input
-                    id="phone"
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={(e) => {
-                      setFormData({ ...formData, phone: e.target.value });
-                      if (errors.phone) setErrors({ ...errors, phone: null });
-                    }}
-                    placeholder="9876543210"
-                    className={`hl-custom-input ${errors.phone ? 'err-border' : ''}`}
-                    autoComplete="tel"
-                  />
-                </div>
-                {errors.phone && <div className="hl-error-caption">{errors.phone}</div>}
-              </div>
-
-              <div className="hl-form-item">
-                <label className="hl-input-lbl" htmlFor="companyName">
-                  Company / Organization<span className="hl-req">*</span>
-                </label>
-                <div className="hl-input-wrapper">
-                  <span className="hl-prefix-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
-                      <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
-                      <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
-                      <path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
-                    </svg>
-                  </span>
-                  <input
-                    id="companyName"
-                    type="text"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={(e) => {
-                      setFormData({ ...formData, companyName: e.target.value });
-                      if (errors.companyName) setErrors({ ...errors, companyName: null });
-                    }}
-                    placeholder="Acme Corp"
-                    className={`hl-custom-input ${errors.companyName ? 'err-border' : ''}`}
-                    autoComplete="organization"
-                  />
-                </div>
-                {errors.companyName && <div className="hl-error-caption">{errors.companyName}</div>}
-              </div>
-            </div>
-
-            {/* Dynamic Organization Type / Industry */}
-            <div className="hl-form-item">
-              <label className="hl-input-lbl" htmlFor="orgTypeId">
-                Industry / Organization Type<span className="hl-req">*</span>
-              </label>
-              <div className="hl-input-wrapper">
-                <span className="hl-prefix-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                  </svg>
-                </span>
-                <select
-                  id="orgTypeId"
-                  name="orgTypeId"
-                  value={formData.orgTypeId}
-                  onChange={(e) => {
-                    setFormData({ ...formData, orgTypeId: e.target.value });
-                    if (errors.orgTypeId) setErrors({ ...errors, orgTypeId: null });
-                  }}
-                  className={`hl-custom-select ${errors.orgTypeId ? 'err-border' : ''}`}
-                  disabled={loadingOrgTypes}
-                >
-                  <option value="">Select Industry / Type</option>
-                  {orgTypes.map((ot) => (
-                    <option key={ot.id} value={ot.id}>
-                      {ot.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.orgTypeId && <div className="hl-error-caption">{errors.orgTypeId}</div>}
-            </div>
-
-            {/* Password & Confirm Password (Grid 2 cols) */}
-            <div className="hl-form-grid-2">
-              <div className="hl-form-item">
-                <label className="hl-input-lbl" htmlFor="password">
-                  Password<span className="hl-req">*</span>
-                </label>
-                <div className="hl-input-wrapper">
-                  <span className="hl-prefix-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={(e) => {
-                      setFormData({ ...formData, password: e.target.value });
-                      if (errors.password) setErrors({ ...errors, password: null });
-                    }}
-                    placeholder="Min 6 chars"
-                    className={`hl-custom-input ${errors.password ? 'err-border' : ''}`}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="hl-password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                {errors.password && <div className="hl-error-caption">{errors.password}</div>}
-              </div>
-
-              <div className="hl-form-item">
-                <label className="hl-input-lbl" htmlFor="confirmPassword">
-                  Confirm Password<span className="hl-req">*</span>
-                </label>
-                <div className="hl-input-wrapper">
-                  <span className="hl-prefix-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  <input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={(e) => {
-                      setFormData({ ...formData, confirmPassword: e.target.value });
-                      if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: null });
-                    }}
-                    placeholder="Repeat password"
-                    className={`hl-custom-input ${errors.confirmPassword ? 'err-border' : ''}`}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="hl-password-toggle"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showConfirmPassword ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </svg>
-                    ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <div className="hl-error-caption">{errors.confirmPassword}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Terms checkbox */}
-            <div className="hl-terms-row">
-              <label className="hl-checkbox-container">
-                <input
-                  type="checkbox"
-                  checked={formData.agreeTerms}
-                  onChange={(e) => {
-                    setFormData({ ...formData, agreeTerms: e.target.checked });
-                    if (errors.agreeTerms) setErrors({ ...errors, agreeTerms: null });
-                  }}
-                />
-                <span>
-                  I agree to CareerFast's{' '}
-                  <a href="/terms" className="hl-terms-link" target="_blank" rel="noreferrer">
-                    Terms of Service
-                  </a>{' '}
-                  and{' '}
-                  <a href="/privacy" className="hl-terms-link" target="_blank" rel="noreferrer">
-                    Privacy Policy
-                  </a>
-                </span>
-              </label>
-              {errors.agreeTerms && <div className="hl-error-caption">{errors.agreeTerms}</div>}
-            </div>
-
-            {/* Register Button */}
-            <button type="submit" className="hl-submit-btn" disabled={isLoading}>
-              {isLoading ? (
-                <span>Creating Account...</span>
-              ) : (
-                <>
-                  <span>Create Recruiter Account</span>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* OR Divider */}
-          <div className="hl-divider-bar">
-            <span className="hl-divider-segment"></span>
-            <span className="hl-divider-caption">OR</span>
-            <span className="hl-divider-segment"></span>
-          </div>
-
-          {/* Social SSO Buttons */}
-          <div className="hl-social-pair">
+          <div className="cf-login-redirect">
+            <span>Existing Employers/Recruiters?</span>
             <button
               type="button"
-              className="hl-social-tile"
-              onClick={() => handleSocialLogin('Google')}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <span>Google SSO</span>
-            </button>
-
-            <button
-              type="button"
-              className="hl-social-tile"
-              onClick={() => handleSocialLogin('LinkedIn')}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#0A66C2">
-                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-              </svg>
-              <span>LinkedIn SSO</span>
-            </button>
-          </div>
-
-          {/* Already registered prompt */}
-          <div className="hl-registration-prompt">
-            Already have a recruiter account?
-            <button
-              type="button"
-              className="hl-signup-action"
+              className="cf-login-btn"
               onClick={() => {
                 if (typeof onNavigateLogin === 'function') {
                   onNavigateLogin();
@@ -1618,20 +931,910 @@ export default function HrRecruiter({ onRegisterSuccess, onNavigateLogin }) {
                 }
               }}
             >
-              Sign In
+              Sign In <ArrowRight size={14} />
             </button>
           </div>
         </div>
+      </nav>
 
-        {/* Security Footnote */}
-        <div className="hl-right-footnote">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span>Encrypted 256-bit SSL verified recruiter onboarding</span>
+      {/* Header Intro */}
+      <header className="cf-header-section">
+        <div className="cf-header-badge">
+          <ShieldCheck size={14} color="#2563eb" /> Verified Employer Portal
         </div>
-      </section>
+        <h1 className="cf-page-title">Create Recruiter Profile</h1>
+        <p className="cf-page-subtitle">
+          Complete your registration, company details, and hiring preferences in one single step. Once submitted, your recruiter account and verified profile will be active instantly with zero waiting.
+        </p>
+      </header>
+
+      {/* Main Registration Form */}
+      <form onSubmit={handleSubmit} noValidate>
+        <div className="cf-grid-layout">
+          {/* ===================== LEFT COLUMN: Personal Details ===================== */}
+          <div className="cf-column-left">
+            <div className="cf-card">
+              <div className="cf-card-header">
+                <div className="cf-card-icon blue">
+                  <User />
+                </div>
+                <div>
+                  <h2 className="cf-card-title">Personal Details</h2>
+                  <p className="cf-card-subtitle">Your recruiter identity & login credentials</p>
+                </div>
+              </div>
+
+              {/* Profile Photo Uploader */}
+              <div className="cf-avatar-section">
+                <div className="cf-avatar-circle">
+                  {avatarImage ? (
+                    <img src={avatarImage} alt="Recruiter Avatar" className="cf-avatar-img" />
+                  ) : (
+                    <div className="cf-avatar-placeholder">
+                      <Camera size={26} />
+                    </div>
+                  )}
+                </div>
+                <div className="cf-avatar-controls">
+                  <h4 className="cf-avatar-title">Profile Picture</h4>
+                  <p className="cf-avatar-hint">PNG, JPG, WebP up to 2MB</p>
+                  <div className="cf-avatar-btn-group">
+                    <button
+                      type="button"
+                      className="cf-upload-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Camera size={13} /> {avatarImage ? 'Change Photo' : 'Upload Photo'}
+                    </button>
+                    {avatarImage && (
+                      <button type="button" className="cf-remove-btn" onClick={removeAvatar}>
+                        <X size={13} /> Remove
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageUpload}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                  />
+                </div>
+              </div>
+
+              {/* Name Fields */}
+              <div className="cf-row-2">
+                <div className="cf-form-group">
+                  <label className="cf-label">
+                    First Name <span className="cf-req">*</span>
+                  </label>
+                  <div className="cf-input-wrapper">
+                    <span className="cf-input-icon">
+                      <User size={16} />
+                    </span>
+                    <input
+                      type="text"
+                      className={`cf-input ${errors.firstName ? 'err-border' : ''}`}
+                      placeholder="e.g. John"
+                      value={formData.firstName}
+                      onChange={(e) => {
+                        setFormData({ ...formData, firstName: e.target.value });
+                        if (errors.firstName) setErrors({ ...errors, firstName: null });
+                      }}
+                    />
+                  </div>
+                  {errors.firstName && <div className="cf-error-text">{errors.firstName}</div>}
+                </div>
+
+                <div className="cf-form-group">
+                  <label className="cf-label">Last Name</label>
+                  <div className="cf-input-wrapper">
+                    <input
+                      type="text"
+                      className="cf-input no-icon"
+                      placeholder="e.g. Doe"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Official Work Email with OTP Verification */}
+              <div className="cf-form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label className="cf-label" style={{ marginBottom: 0 }}>
+                    Official Work Email <span className="cf-req">*</span>
+                  </label>
+                  {isEmailVerified && (
+                    <span className="cf-verified-badge-pill">
+                      <CheckCircle2 size={13} strokeWidth={2.5} /> Verified
+                    </span>
+                  )}
+                </div>
+
+                <div className="cf-input-wrapper">
+                  <span className="cf-input-icon">
+                    <Mail size={16} />
+                  </span>
+                  <input
+                    type="email"
+                    className={`cf-input ${errors.workEmail ? 'err-border' : ''} ${isEmailVerified ? 'is-verified-input' : ''}`}
+                    placeholder="name@company.com"
+                    value={formData.workEmail}
+                    onChange={handleWorkEmailChange}
+                    disabled={isEmailVerified}
+                    style={{ paddingRight: isEmailVerified ? '90px' : (formData.workEmail.trim() ? '130px' : '14px') }}
+                  />
+
+                  {/* Action inside input: Verify OTP or Change Email */}
+                  {isEmailVerified ? (
+                    <button
+                      type="button"
+                      className="cf-email-change-btn"
+                      onClick={() => {
+                        setIsEmailVerified(false);
+                        setOtpSent(false);
+                      }}
+                      title="Click to edit and re-verify email"
+                    >
+                      Change
+                    </button>
+                  ) : (
+                    formData.workEmail.trim() && (
+                      <button
+                        type="button"
+                        className="cf-verify-otp-action-btn"
+                        onClick={handleSendEmailOtp}
+                        disabled={sendingOtp}
+                      >
+                        {sendingOtp ? 'Sending...' : (otpSent ? 'Resend OTP' : 'Verify with OTP')}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                {errors.workEmail && <div className="cf-error-text">{errors.workEmail}</div>}
+
+                {/* Inline OTP Verification Card */}
+                {otpSent && !isEmailVerified && (
+                  <div className="cf-otp-verify-card">
+                    <div className="cf-otp-card-header">
+                      <span>Enter the 6-digit OTP sent to <strong>{formData.workEmail}</strong></span>
+                    </div>
+
+                    <div className="cf-otp-input-action-row">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        className="cf-otp-code-input"
+                        placeholder="• • • • • •"
+                        value={otpInput}
+                        onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="cf-otp-confirm-btn"
+                        onClick={handleVerifyEmailOtp}
+                        disabled={verifyingOtp || otpInput.trim().length < 4}
+                      >
+                        {verifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                      </button>
+                    </div>
+
+                    <div className="cf-otp-card-footer">
+                      <button
+                        type="button"
+                        className="cf-otp-resend-btn"
+                        onClick={handleSendEmailOtp}
+                        disabled={otpTimer > 0 || sendingOtp}
+                      >
+                        {otpTimer > 0 ? `Resend OTP in ${otpTimer}s` : 'Resend OTP'}
+                      </button>
+                      <button
+                        type="button"
+                        className="cf-otp-cancel-btn"
+                        onClick={() => {
+                          setOtpSent(false);
+                          setOtpInput('');
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Number with Country Code */}
+              <div className="cf-form-group">
+                <label className="cf-label">
+                  Mobile Number <span className="cf-req">*</span>
+                </label>
+                <div className="cf-phone-combo">
+                  <CommonSelectField
+                    value={formData.phoneCode}
+                    onChange={(val) => setFormData({ ...formData, phoneCode: val })}
+                    options={PHONE_CODE_OPTIONS}
+                    showSearch
+                    optionLabelProp="triggerLabel"
+                    classNames={{
+                      popup: { root: 'cf-search-select-dropdown cf-country-dropdown' },
+                    }}
+                    popupMatchSelectWidth={260}
+                    className="premium-input cf-country-code-select"
+                  />
+                  <div className="cf-input-wrapper">
+                    <span className="cf-input-icon">
+                      <Phone size={16} />
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={14}
+                      className={`cf-input ${errors.phone ? 'err-border' : ''}`}
+                      placeholder="10-digit number"
+                      value={formData.phone}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        setFormData({ ...formData, phone: val });
+                        if (errors.phone) setErrors({ ...errors, phone: null });
+                      }}
+                    />
+                  </div>
+                </div>
+                {errors.phone && <div className="cf-error-text">{errors.phone}</div>}
+              </div>
+
+              {/* Current Location */}
+              <div className="cf-form-group">
+                <label className="cf-label">
+                  Current Location <span className="cf-req">*</span>
+                </label>
+                <Select
+                  showSearch
+                  allowClear
+                  prefix={<MapPin size={16} />}
+                  placeholder="e.g. Chennai"
+                  value={formData.location || undefined}
+                  onSearch={handleSearchLocation}
+                  onChange={(val) => {
+                    setFormData({ ...formData, location: val || '' });
+                    if (errors.location) setErrors({ ...errors, location: null });
+                  }}
+                  filterOption={false}
+                  loading={loadingLocations}
+                  className={`cf-location-select ${errors.location ? 'err-border' : ''}`}
+                  classNames={{
+                    popup: { root: 'cf-search-select-dropdown' },
+                  }}
+                  notFoundContent={
+                    loadingLocations ? (
+                      <div style={{ padding: '8px 12px', color: '#64748b', fontSize: '13px' }}>
+                        Searching cities...
+                      </div>
+                    ) : (
+                      <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: '13px' }}>
+                        No matching city found
+                      </div>
+                    )
+                  }
+                  options={locationOptions.map((loc) => ({
+                    label: loc,
+                    value: loc,
+                  }))}
+                />
+                {errors.location && <div className="cf-error-text">{errors.location}</div>}
+              </div>
+
+              {/* Password Fields */}
+              <div className="cf-form-group">
+                <label className="cf-label">
+                  Create Password <span className="cf-req">*</span>
+                </label>
+                <div className="cf-input-wrapper">
+                  <span className="cf-input-icon">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className={`cf-input ${errors.password ? 'err-border' : ''}`}
+                    placeholder="At least 6 characters"
+                    value={formData.password}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      if (errors.password) setErrors({ ...errors, password: null });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="cf-password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {errors.password && <div className="cf-error-text">{errors.password}</div>}
+              </div>
+
+              <div className="cf-form-group" style={{ marginBottom: 0 }}>
+                <label className="cf-label">
+                  Confirm Password <span className="cf-req">*</span>
+                </label>
+                <div className="cf-input-wrapper">
+                  <span className="cf-input-icon">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    className={`cf-input ${errors.confirmPassword ? 'err-border' : ''}`}
+                    placeholder="Re-enter password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => {
+                      setFormData({ ...formData, confirmPassword: e.target.value });
+                      if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: null });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="cf-password-toggle"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <div className="cf-error-text">{errors.confirmPassword}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ===================== RIGHT COLUMN: Professional & Preferences ===================== */}
+          <div className="cf-column-right">
+            {/* Card 2: Professional Details */}
+            <div className="cf-card">
+              <div className="cf-card-header">
+                <div className="cf-card-icon indigo">
+                  <Briefcase />
+                </div>
+                <div>
+                  <h2 className="cf-card-title">Professional Details</h2>
+                  <p className="cf-card-subtitle">Your current company role, tenure, and headquarters</p>
+                </div>
+              </div>
+
+              {/* Current Company & Designation */}
+              <div className="cf-row-2">
+                <div className="cf-form-group">
+                  <label className="cf-label">
+                    Current Company Name <span className="cf-req">*</span>
+                  </label>
+                  <div className="cf-input-wrapper">
+                    <span className="cf-input-icon">
+                      <Building size={16} />
+                    </span>
+                    <input
+                      type="text"
+                      className={`cf-input ${errors.companyName ? 'err-border' : ''}`}
+                      placeholder="e.g. Acme Technologies Pvt Ltd"
+                      value={formData.companyName}
+                      onChange={(e) => {
+                        setFormData({ ...formData, companyName: e.target.value });
+                        if (errors.companyName) setErrors({ ...errors, companyName: null });
+                      }}
+                    />
+                  </div>
+                  {errors.companyName && <div className="cf-error-text">{errors.companyName}</div>}
+                </div>
+
+                <div className="cf-form-group">
+                  <label className="cf-label">
+                    Current Designation <span className="cf-req">*</span>
+                  </label>
+                  <div className="cf-input-wrapper">
+                    <span className="cf-input-icon">
+                      <Briefcase size={16} />
+                    </span>
+                    <input
+                      type="text"
+                      className={`cf-input ${errors.designation ? 'err-border' : ''}`}
+                      placeholder="e.g. Talent Acquisition Lead"
+                      value={formData.designation}
+                      onChange={(e) => {
+                        setFormData({ ...formData, designation: e.target.value });
+                        if (errors.designation) setErrors({ ...errors, designation: null });
+                      }}
+                    />
+                  </div>
+                  {errors.designation && <div className="cf-error-text">{errors.designation}</div>}
+                </div>
+              </div>
+
+              <div className="cf-row-2">
+                <div className="cf-form-group">
+                  <label className="cf-label">Company Website Link</label>
+                  <div className="cf-input-wrapper">
+                    <span className="cf-input-icon">
+                      <Globe size={16} />
+                    </span>
+                    <input
+                      type="url"
+                      className="cf-input"
+                      placeholder="e.g. https://www.company.com"
+                      value={formData.websiteUrl}
+                      onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="cf-form-group">
+                  <label className="cf-label">Established Date</label>
+                  <div className="cf-input-wrapper">
+                    <span className="cf-input-icon">
+                      <Calendar size={16} />
+                    </span>
+                    <input
+                      type="text"
+                      className="cf-input"
+                      placeholder="e.g. 2018 or 15-08-2015"
+                      value={formData.establishedDate}
+                      onChange={(e) => setFormData({ ...formData, establishedDate: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sub-card: Company Address */}
+              <div className="cf-subcard">
+                <h4 className="cf-subcard-title">
+                  <MapPin size={16} color="#2563eb" /> Company Office Address
+                </h4>
+
+                <div className="cf-row-2">
+                  <div className="cf-form-group">
+                    <label className="cf-label">
+                      Address Line 1 <span className="cf-req">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`cf-input no-icon ${errors.address1 ? 'err-border' : ''}`}
+                      placeholder="e.g. Tower 3, Prestige Tech Cloud"
+                      value={formData.address1}
+                      onChange={(e) => {
+                        setFormData({ ...formData, address1: e.target.value });
+                        if (errors.address1) setErrors({ ...errors, address1: null });
+                      }}
+                    />
+                    {errors.address1 && <div className="cf-error-text">{errors.address1}</div>}
+                  </div>
+
+                  <div className="cf-form-group">
+                    <label className="cf-label">Address Line 2 (Optional)</label>
+                    <input
+                      type="text"
+                      className="cf-input no-icon"
+                      placeholder="e.g. 5th Floor, Suite 502"
+                      value={formData.address2}
+                      onChange={(e) => setFormData({ ...formData, address2: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="cf-row-3">
+                  <div className="cf-form-group" style={{ marginBottom: 0 }}>
+                    <label className="cf-label">
+                      City <span className="cf-req">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`cf-input no-icon ${errors.city ? 'err-border' : ''}`}
+                      placeholder="e.g. Bengaluru"
+                      value={formData.city}
+                      onChange={(e) => {
+                        setFormData({ ...formData, city: e.target.value });
+                        if (errors.city) setErrors({ ...errors, city: null });
+                      }}
+                    />
+                    {errors.city && <div className="cf-error-text">{errors.city}</div>}
+                  </div>
+
+                  <div className="cf-form-group" style={{ marginBottom: 0 }}>
+                    <label className="cf-label">
+                      State / Region <span className="cf-req">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`cf-input no-icon ${errors.state ? 'err-border' : ''}`}
+                      placeholder="e.g. Karnataka"
+                      value={formData.state}
+                      onChange={(e) => {
+                        setFormData({ ...formData, state: e.target.value });
+                        if (errors.state) setErrors({ ...errors, state: null });
+                      }}
+                    />
+                    {errors.state && <div className="cf-error-text">{errors.state}</div>}
+                  </div>
+
+                  <div className="cf-form-group" style={{ marginBottom: 0 }}>
+                    <label className="cf-label">
+                      Zip / PIN Code <span className="cf-req">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`cf-input no-icon ${errors.pincode ? 'err-border' : ''}`}
+                      placeholder="e.g. 560100"
+                      value={formData.pincode}
+                      onChange={(e) => {
+                        setFormData({ ...formData, pincode: e.target.value });
+                        if (errors.pincode) setErrors({ ...errors, pincode: null });
+                      }}
+                    />
+                    {errors.pincode && <div className="cf-error-text">{errors.pincode}</div>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Previous Company Expander */}
+              <div className="cf-prev-companies-container">
+                <button
+                  type="button"
+                  className="cf-add-prev-btn"
+                  onClick={addPreviousCompany}
+                >
+                  <Plus size={15} /> Add Previous Company Experience
+                </button>
+
+                {previousCompanies.map((prev, idx) => (
+                  <div key={prev.id} className="cf-prev-company-item">
+                    <div className="cf-prev-item-header">
+                      <span className="cf-prev-item-badge">Previous Role #{idx + 1}</span>
+                      <button
+                        type="button"
+                        className="cf-prev-delete-btn"
+                        onClick={() => removePreviousCompany(prev.id)}
+                        title="Remove Company"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+
+                    <div className="cf-row-2">
+                      <div className="cf-form-group">
+                        <label className="cf-label">Company Name</label>
+                        <input
+                          type="text"
+                          className="cf-input no-icon"
+                          placeholder="Previous Company"
+                          value={prev.company_name}
+                          onChange={(e) => updatePreviousCompany(prev.id, 'company_name', e.target.value)}
+                        />
+                      </div>
+                      <div className="cf-form-group">
+                        <label className="cf-label">Designation</label>
+                        <input
+                          type="text"
+                          className="cf-input no-icon"
+                          placeholder="e.g. Recruiter"
+                          value={prev.designation}
+                          onChange={(e) => updatePreviousCompany(prev.id, 'designation', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="cf-row-2" style={{ marginBottom: 0 }}>
+                      <div className="cf-form-group" style={{ marginBottom: 0 }}>
+                        <CommonSelectField
+                          label="Start Year"
+                          value={prev.from_year}
+                          onChange={(val) => updatePreviousCompany(prev.id, 'from_year', val)}
+                          options={YEARS.map((y) => ({ label: y, value: y }))}
+                          placeholder="Select Year"
+                        />
+                      </div>
+                      <div className="cf-form-group" style={{ marginBottom: 0 }}>
+                        <CommonSelectField
+                          label="End Year"
+                          value={prev.to_year}
+                          onChange={(val) => updatePreviousCompany(prev.id, 'to_year', val)}
+                          options={YEARS.map((y) => ({ label: y, value: y }))}
+                          placeholder="Select Year"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Card 3: Hiring Preferences */}
+            <div className="cf-card">
+              <div className="cf-card-header">
+                <div className="cf-card-icon emerald">
+                  <Award />
+                </div>
+                <div>
+                  <h2 className="cf-card-title">Hiring Preferences</h2>
+                  <p className="cf-card-subtitle">Define candidate levels, industries, functions, and key skills you recruit for</p>
+                </div>
+              </div>
+
+              {/* Total Experience in Hiring & Referral Code */}
+              <div className="cf-row-2">
+                <div className="cf-form-group">
+                  <CommonSelectField
+                    label="Total Experience in Hiring"
+                    mandatory
+                    value={formData.hiringExperience}
+                    onChange={(val) => setFormData({ ...formData, hiringExperience: val })}
+                    options={HIRING_EXPERIENCE_OPTIONS}
+                    placeholder="Select Experience"
+                  />
+                </div>
+
+                <div className="cf-form-group">
+                  <label className="cf-label">Referral Code (Optional)</label>
+                  <div className="cf-input-wrapper">
+                    <input
+                      type="text"
+                      className="cf-input no-icon"
+                      placeholder="e.g. FASTHIRING2026"
+                      value={formData.referralCode}
+                      onChange={(e) => setFormData({ ...formData, referralCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Level I Hire For (Selectable Chips) */}
+              <div className="cf-form-group">
+                <label className="cf-label">
+                  Level I Hire For <span className="cf-req">*</span>
+                </label>
+                <div className="cf-chips-grid">
+                  {HIRING_LEVELS_OPTIONS.map((lvl) => {
+                    const isSelected = selectedHiringLevels.includes(lvl);
+                    return (
+                      <div
+                        key={lvl}
+                        className={`cf-chip ${isSelected ? 'active' : ''}`}
+                        onClick={() => toggleHiringLevel(lvl)}
+                      >
+                        {isSelected && <Check size={13} className="cf-chip-check" />}
+                        <span>{lvl}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ==================== 1. SEARCHABLE SELECT: Industry (Max 4) ==================== */}
+              <div className="cf-form-group">
+                <div className="cf-chips-header">
+                  <label className="cf-label" style={{ margin: 0 }}>
+                    Industry <span className="cf-req">*</span>
+                  </label>
+                  <span
+                    className={`cf-counter-badge ${selectedIndustries.length >= 4 ? 'limit-reached' : ''
+                      }`}
+                  >
+                    {selectedIndustries.length} / 4 Selected
+                  </span>
+                </div>
+
+                <Select
+                  mode="multiple"
+                  showSearch
+                  allowClear
+                  maxTagCount={4}
+                  placeholder="Type to search and select industries (Max 4)..."
+                  value={selectedIndustries}
+                  loading={loadingIndustries}
+                  onChange={(vals) => {
+                    if (vals.length > 4) {
+                      showToast('You can select a maximum of 4 industries.', 'error');
+                      return;
+                    }
+                    setSelectedIndustries(vals);
+                    if (errors.industries) setErrors({ ...errors, industries: null });
+                  }}
+                  filterOption={(input, option) =>
+                    (option?.label || option?.value || '')
+                      .toLowerCase()
+                      .includes(input.toLowerCase().trim())
+                  }
+                  options={allIndustries.map((name) => ({
+                    label: name,
+                    value: name,
+                    disabled:
+                      selectedIndustries.length >= 4 && !selectedIndustries.includes(name),
+                  }))}
+                  className={`cf-search-select ${errors.industries ? 'err-border' : ''}`}
+                  classNames={{
+                    popup: { root: 'cf-search-select-dropdown' },
+                  }}
+                  notFoundContent={
+                    <div style={{ padding: '8px', color: '#94a3b8', fontSize: '13px' }}>
+                      No matching industry found
+                    </div>
+                  }
+                />
+                {errors.industries && <div className="cf-error-text">{errors.industries}</div>}
+              </div>
+
+              {/* ==================== 2. SEARCHABLE SELECT: Function / Domain (Max 4) ==================== */}
+              <div className="cf-form-group">
+                <div className="cf-chips-header">
+                  <label className="cf-label" style={{ margin: 0 }}>
+                    Function / Domain <span className="cf-req">*</span>
+                  </label>
+                  <span
+                    className={`cf-counter-badge ${selectedFunctions.length >= 4 ? 'limit-reached' : ''
+                      }`}
+                  >
+                    {selectedFunctions.length} / 4 Selected
+                  </span>
+                </div>
+
+                <Select
+                  mode="multiple"
+                  showSearch
+                  allowClear
+                  maxTagCount={4}
+                  placeholder="Type to search and select functional areas or domains (Max 4)..."
+                  value={selectedFunctions}
+                  loading={loadingFunctions}
+                  onChange={(vals) => {
+                    if (vals.length > 4) {
+                      showToast('You can select a maximum of 4 functions.', 'error');
+                      return;
+                    }
+                    setSelectedFunctions(vals);
+                    if (errors.functions) setErrors({ ...errors, functions: null });
+                  }}
+                  filterOption={(input, option) =>
+                    (option?.label || option?.value || '')
+                      .toLowerCase()
+                      .includes(input.toLowerCase().trim())
+                  }
+                  options={allFunctions.map((name) => ({
+                    label: name,
+                    value: name,
+                    disabled:
+                      selectedFunctions.length >= 4 && !selectedFunctions.includes(name),
+                  }))}
+                  className={`cf-search-select ${errors.functions ? 'err-border' : ''}`}
+                  classNames={{
+                    popup: { root: 'cf-search-select-dropdown' },
+                  }}
+                  notFoundContent={
+                    <div style={{ padding: '8px', color: '#94a3b8', fontSize: '13px' }}>
+                      No matching function/domain found
+                    </div>
+                  }
+                />
+                {errors.functions && <div className="cf-error-text">{errors.functions}</div>}
+              </div>
+
+              {/* Skills I Hire For */}
+              <div className="cf-form-group">
+                <label className="cf-label">
+                  Skills I Hire For <span className="cf-req">*</span>
+                </label>
+                <div className="cf-skills-box">
+                  {skillsList.map((skill) => (
+                    <span key={skill} className="cf-skill-tag">
+                      {skill}
+                      <button
+                        type="button"
+                        className="cf-skill-tag-remove"
+                        onClick={() => handleRemoveSkill(skill)}
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    className="cf-skills-input"
+                    placeholder="Type skill & press Enter..."
+                    value={skillInput}
+                    onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={handleSkillKeyDown}
+                    onBlur={() => handleAddSkill()}
+                  />
+                </div>
+                {errors.skills && <div className="cf-error-text">{errors.skills}</div>}
+              </div>
+
+              {/* Terms & Agreement Checkbox */}
+              <div className="cf-terms-container">
+                <input
+                  type="checkbox"
+                  id="cf-terms-cb"
+                  className="cf-terms-checkbox"
+                  checked={formData.agreeTerms}
+                  onChange={(e) => {
+                    setFormData({ ...formData, agreeTerms: e.target.checked });
+                    if (errors.agreeTerms) setErrors({ ...errors, agreeTerms: null });
+                  }}
+                />
+                <label htmlFor="cf-terms-cb" className="cf-terms-text">
+                  I agree to use the aforesaid details to create my Recruiter Profile & display it on the CareerFast platform, and also agree to be bound by the{' '}
+                  <a href="/terms" target="_blank" rel="noreferrer" className="cf-terms-link">
+                    Terms of Use
+                  </a>{' '}
+                  &{' '}
+                  <a href="/privacy" target="_blank" rel="noreferrer" className="cf-terms-link">
+                    Privacy Policy
+                  </a>{' '}
+                  of CareerFast.
+                </label>
+              </div>
+              {errors.agreeTerms && <div className="cf-error-text">{errors.agreeTerms}</div>}
+
+              {/* Submit CTA Button */}
+              <div className="cf-submit-container">
+                <button type="submit" className="cf-submit-btn" disabled={isLoading}>
+                  {isLoading ? (
+                    <span>Creating Recruiter Profile...</span>
+                  ) : (
+                    <>
+                      <span>Complete Registration & Go to Dashboard</span>
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      {/* Trust & Assurance Footnote */}
+      <footer className="cf-trust-footer">
+        <div className="cf-trust-grid">
+          <div className="cf-trust-item">
+            <div className="cf-trust-icon">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h5 className="cf-trust-title">100% Verified Profiles</h5>
+              <p className="cf-trust-desc">Screened candidates and genuine portfolios</p>
+            </div>
+          </div>
+
+          <div className="cf-trust-item">
+            <div className="cf-trust-icon">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h5 className="cf-trust-title">Zero Hidden Fees</h5>
+              <p className="cf-trust-desc">40 free job postings on onboarding</p>
+            </div>
+          </div>
+
+          <div className="cf-trust-item">
+            <div className="cf-trust-icon">
+              <Lock size={20} />
+            </div>
+            <div>
+              <h5 className="cf-trust-title">256-Bit SSL Security</h5>
+              <p className="cf-trust-desc">Enterprise data confidentiality & privacy</p>
+            </div>
+          </div>
+
+          <div className="cf-trust-item">
+            <div className="cf-trust-icon">
+              <Globe size={20} />
+            </div>
+            <div>
+              <h5 className="cf-trust-title">Direct HR Hiring</h5>
+              <p className="cf-trust-desc">Connect directly with applicants via chat & email</p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

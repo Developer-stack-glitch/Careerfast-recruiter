@@ -110,21 +110,6 @@ const ALL_MASTER_INDUSTRIES = [
   'Textiles, Apparel & Fashion',
 ];
 
-const POPULAR_INDUSTRIES = [
-  'IT / Software Services',
-  'Banking & Financial Services (BFSI)',
-  'Healthcare & Pharmaceuticals',
-  'E-Commerce & Retail',
-  'Manufacturing & Engineering',
-  'Education & EdTech',
-  'Consulting & Professional Services',
-  'Media, Entertainment & Gaming',
-  'Telecom & Networking',
-  'Automobile & Electric Vehicles',
-  'Real Estate & Construction',
-  'Logistics & Supply Chain',
-];
-
 // Master Functional Areas / Domains from job categories database
 const ALL_MASTER_FUNCTIONS = [
   'Software Development & Engineering',
@@ -213,19 +198,6 @@ const ALL_MASTER_FUNCTIONS = [
   'K-12 Education',
 ];
 
-const POPULAR_FUNCTIONS = [
-  'Software Development & Engineering',
-  'Human Resources & Talent Acquisition',
-  'Sales & Business Development',
-  'Marketing, Content & Growth',
-  'Product Management',
-  'UI / UX & Product Design',
-  'Operations & Customer Success',
-  'Finance, Accounting & Tax',
-  'Quality Assurance & Testing',
-  'Data Science, Analytics & AI/ML',
-];
-
 const HIRING_LEVELS_OPTIONS = [
   'Entry Level / Freshers (0-2 yrs)',
   'Mid-Level Professionals (2-5 yrs)',
@@ -233,36 +205,6 @@ const HIRING_LEVELS_OPTIONS = [
   'Lead / Engineering Manager (8-12 yrs)',
   'Director / CXO / Executive Leadership',
   'All Experience Levels',
-];
-
-const POPULAR_SKILLS = [
-  'React.js',
-  'Node.js',
-  'Python',
-  'Java',
-  'Fullstack',
-  'AWS',
-  'DevOps',
-  'SQL',
-  'Product Management',
-  'Talent Acquisition',
-  'Technical Sourcing',
-  'Sales',
-];
-
-const MONTHS = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();

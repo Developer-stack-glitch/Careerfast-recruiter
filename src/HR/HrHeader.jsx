@@ -299,7 +299,7 @@ const HrHeader = () => {
 
     const displayName = recruiterDetails?.first_name
         ? `${recruiterDetails.first_name} ${recruiterDetails.last_name || ''}`.trim()
-        : 'SANDIYA MS';
+        : (recruiterDetails?.name || 'Recruiter');
 
     const isSearchActive = pathname?.startsWith('/candidate-search');
     const isJobActive = pathname?.startsWith('/post-job') ||
@@ -586,9 +586,11 @@ const HrHeader = () => {
                                     <p className="text-[13.5px] font-semibold text-slate-900 truncate mb-0.5">
                                         {displayName}
                                     </p>
-                                    <p className="text-[12px] text-slate-500 truncate mb-0">
-                                        {recruiterDetails?.email || 'recruiter@careerfast.com'}
-                                    </p>
+                                    {recruiterDetails?.email && (
+                                        <p className="text-[12px] text-slate-500 truncate mb-0">
+                                            {recruiterDetails.email}
+                                        </p>
+                                    )}
                                     {userAccess.isSubRecruiter ? (
                                         <div className="mt-2 flex flex-col gap-1.5">
                                             <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/60 w-fit">

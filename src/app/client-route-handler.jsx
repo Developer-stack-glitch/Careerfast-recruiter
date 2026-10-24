@@ -88,20 +88,21 @@ export default function ClientRouteHandler({ children }) {
         const stored = localStorage.getItem("loginDetails");
         if (stored) {
           const loginDetails = JSON.parse(stored);
-          isRecruiter = loginDetails?.role?.name === "RECRUITER" || loginDetails?.role_name === "RECRUITER" || loginDetails?.role_id === 3;
+          isRecruiter = loginDetails?.role?.name === "RECRUITER" || loginDetails?.role_name === "RECRUITER" || Number(loginDetails?.role_id) === 3 || Number(loginDetails?.role_id) === 1;
           isVerified = !!loginDetails?.is_email_verified;
         }
       } catch (e) { }
+
+      // If authenticated user visits login or register, redirect to overview
+      if (pathName === "login" || pathName === "register") {
+        router.replace("/overview");
+        return;
+      }
 
       if (isRecruiter) {
         // Create-profile page is removed; redirect any direct visits to recruiter overview
         if (pathname === "/create-profile" || pathname === "/create-hr-profile") {
           router.replace("/overview");
-          return;
-        }
-
-        // Allow recruiter to preview job details
-        if (pathName === "job-details" && searchParams.get('preview') === 'true') {
           return;
         }
 
@@ -117,45 +118,13 @@ export default function ClientRouteHandler({ children }) {
         return;
       }
 
-      if (pathName === "recruiter") {
-        router.replace("/profiledetails");
-        return;
-      }
-
-      if (!pathName || pathName === "/") return;
-
-      const allowedPrefixes = [
-        "job-details", "internship-details", "scholarship-details",
-        "admin-dashboard", "edit-opportunity", "blog", "course",
-        "mentor", "competitions", "admin-profile", "admin", "superadmin"
-      ];
-
-      if (allowedPrefixes.some(prefix => pathName.includes(prefix))) return;
-
-      const allowedRoutes = [
-        "jobs", "internship", "scholarship", "internship-filter", "job-filter"
-      ];
-
-      if (allowedRoutes.includes(pathName)) return;
-
-      // Keep current path if it's already there to avoid infinite loops
-      // router.replace(pathname); 
+      // If token exists but is not recruiter/admin
+      router.replace("/login");
     } else {
       if (isLoggedIn) dispatch(storeLoginStatus(false));
-      if (pathName === "register") {
-        // router.replace("/register");
-      } else if (pathName === "login") {
-        // router.replace("/login");
-      } else if ([
-        "internship", "internship-filter", "job-filter", "scholarship",
-        "course", "event-filter", "workshop-filter", "blogs", "mentors",
-        "mentor", "competitions"
-      ].includes(pathName)) {
-        return;
-      } else if (pathname.startsWith("/blog/")) {
-        return;
-      } else if (pathname.includes("/job-details/")) {
-        return;
+      const publicPaths = ["login", "register", "forgot-password", "reset-password"];
+      if (!publicPaths.includes(pathName)) {
+        router.replace("/login");
       }
     }
   }, [pathname, dispatch, isLoggedIn, searchParams, router]);

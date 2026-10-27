@@ -186,7 +186,19 @@ export default function Posting() {
     const [subscription, setSubscription] = useState(null);
     const [quotaLoading, setQuotaLoading] = useState(true);
     const [showLimitModal, setShowLimitModal] = useState(false);
+    const [limitModalTitle, setLimitModalTitle] = useState("");
     const [limitModalMessage, setLimitModalMessage] = useState("");
+
+    const isSubscriptionExpired = Boolean(
+        subscription?.is_expired ||
+        subscription?.status === 'Expired' ||
+        subscription?.subscription_status === 'Expired'
+    );
+    const isSubscriptionSuspended = Boolean(
+        subscription?.is_suspended ||
+        subscription?.status === 'Suspended' ||
+        subscription?.subscription_status === 'Suspended'
+    );
 
     const activeJobsLimit = subscription?.limits?.active_job_limit ?? subscription?.usage?.active_job_limit ?? 0;
     const activeJobsCount = subscription?.usage?.active_jobs_count ?? 0;
@@ -199,8 +211,9 @@ export default function Posting() {
     const isCompanyLimitReached = Boolean(subscription?.company_limit_reached || subscription?.can_post_jobs === false || subscription?.permissions?.can_post_jobs === false);
     const isActiveLimitReached = !quotaLoading && subscription && (activeJobsRemaining <= 0 || (isSubRecruiter && isCompanyLimitReached));
     const isMonthlyLimitReached = !quotaLoading && subscription && ((jobPostsLimit > 0 && jobPostsRemaining <= 0) || (isSubRecruiter && isCompanyLimitReached));
-    const isLimitReached = isActiveLimitReached || isMonthlyLimitReached || isCompanyLimitReached;
-    const planName = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+    const isLimitReached = isSubscriptionExpired || isSubscriptionSuspended || isActiveLimitReached || isMonthlyLimitReached || isCompanyLimitReached;
+    const rawPlanName = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+    const planName = rawPlanName.replace(/\s*plan$/i, '').trim();
 
     // --- State Variables ---
     const [jobNatureId, setJobNatureId] = useState(null);
@@ -850,25 +863,42 @@ export default function Posting() {
 
         // Quota check before submitting
         if (subscription) {
+            if (isSubscriptionExpired) {
+                setLimitModalTitle("Subscription Plan Expired");
+                setLimitModalMessage("Your subscription plan has expired. Please upgrade or renew your plan to post jobs.");
+                setShowLimitModal(true);
+                return;
+            }
+
+            if (isSubscriptionSuspended) {
+                setLimitModalTitle("Account Suspended");
+                setLimitModalMessage("Your recruiter account is currently suspended. Please contact the administrator.");
+                setShowLimitModal(true);
+                return;
+            }
+
             const activeLimit = subscription?.limits?.active_job_limit ?? subscription?.usage?.active_job_limit ?? 0;
             const activeRem = subscription?.usage?.active_jobs_remaining ?? Math.max(0, activeLimit - (subscription?.usage?.active_jobs_count ?? 0));
             const postLimit = subscription?.limits?.job_post_limit ?? subscription?.usage?.job_posts_limit ?? 0;
             const postRem = subscription?.usage?.job_posts_remaining ?? Math.max(0, postLimit - (subscription?.usage?.job_posts_used ?? 0));
-            const planTitle = subscription?.plan?.name || subscription?.plan_name || 'Basic';
+            const planTitle = planName;
 
             if (isSubRecruiter && (isCompanyLimitReached || activeRem <= 0 || postRem <= 0)) {
+                setLimitModalTitle("Quota Limit Reached");
                 setLimitModalMessage(subscription?.limit_reason || "Your company has reached its subscription plan job limit. Contact your primary recruiter to upgrade the plan or close an existing active job.");
                 setShowLimitModal(true);
                 return;
             }
 
             if (activeRem <= 0) {
+                setLimitModalTitle("Active Job Limit Reached");
                 setLimitModalMessage(`You have reached your maximum active job limit (${activeLimit}) on the ${planTitle} Plan. To publish this job, please close an existing active job from your dashboard or upgrade your plan.`);
                 setShowLimitModal(true);
                 return;
             }
 
             if (postLimit > 0 && postRem <= 0) {
+                setLimitModalTitle("Monthly Limit Reached");
                 setLimitModalMessage(`You have used all ${postLimit} monthly job posts available on the ${planTitle} Plan. Please upgrade your subscription plan to post more jobs.`);
                 setShowLimitModal(true);
                 return;
@@ -883,13 +913,24 @@ export default function Posting() {
         } catch (error) {
             console.error("Error posting job:", error);
             const errorDetails = error.response?.data?.details || error.response?.data?.message || "";
+            const lowerErr = errorDetails.toLowerCase();
+            const isExpiredError = lowerErr.includes("expired");
+            const isSuspendedError = lowerErr.includes("suspended");
+
             if (
                 error.response?.status === 403 ||
-                errorDetails.toLowerCase().includes("limit") ||
-                errorDetails.toLowerCase().includes("quota") ||
-                errorDetails.toLowerCase().includes("subscription") ||
-                errorDetails.toLowerCase().includes("active job")
+                lowerErr.includes("limit") ||
+                lowerErr.includes("quota") ||
+                lowerErr.includes("subscription") ||
+                lowerErr.includes("active job")
             ) {
+                if (isExpiredError) {
+                    setLimitModalTitle("Subscription Plan Expired");
+                } else if (isSuspendedError) {
+                    setLimitModalTitle("Account Suspended");
+                } else {
+                    setLimitModalTitle("Hiring Quota Limit Reached");
+                }
                 setLimitModalMessage(errorDetails || "You have reached your active job posting quota limit. Close an existing job or upgrade your plan.");
                 setShowLimitModal(true);
             } else {
@@ -2252,15 +2293,24 @@ export default function Posting() {
                         </button>
                         <h1 className="text-[22px] mb-0 font-bold text-gray-900 tracking-tight">Post a job</h1>
                         {subscription && (
-                            <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold ${activeJobsRemaining <= 0
-                                ? 'bg-amber-50 text-amber-800 border-1 border-amber-200'
-                                : 'bg-blue-50 text-[#0A66C2] border-1 border-blue-100'
-                                }`}>
-                                <span>Active: {activeJobsCount}/{activeJobsLimit}</span>
-                                {activeJobsRemaining <= 0 ? (
-                                    <span className="text-[10px] font-bold uppercase bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-900">0 Free</span>
+                            <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold ${
+                                isSubscriptionExpired
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                    : activeJobsRemaining <= 0
+                                        ? 'bg-amber-50 text-amber-800 border-1 border-amber-200'
+                                        : 'bg-blue-50 text-[#0A66C2] border-1 border-blue-100'
+                            }`}>
+                                {isSubscriptionExpired ? (
+                                    <span className="text-red-700 font-bold">Plan Expired</span>
                                 ) : (
-                                    <span className="text-gray-500 font-normal">({activeJobsRemaining} left)</span>
+                                    <>
+                                        <span>Active: {activeJobsCount}/{activeJobsLimit}</span>
+                                        {activeJobsRemaining <= 0 ? (
+                                            <span className="text-[10px] font-bold uppercase bg-amber-200/80 px-1.5 py-0.5 rounded text-amber-900">0 Free</span>
+                                        ) : (
+                                            <span className="text-gray-500 font-normal">({activeJobsRemaining} left)</span>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
@@ -2346,20 +2396,28 @@ export default function Posting() {
                                         <div>
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <h4 className="font-bold text-gray-900 text-sm mb-0">
-                                                    {isSubRecruiter && isCompanyLimitReached
-                                                        ? `Company Plan Limit Reached (Active Slots & Monthly Posts Exhausted)`
-                                                        : isActiveLimitReached
-                                                            ? `Active Job Limit Reached (${activeJobsCount}/${activeJobsLimit} Slots Used${pendingJobsCount > 0 ? `, ${pendingJobsCount} Pending Review` : ''})`
-                                                            : `Monthly Posting Limit Reached (${jobPostsUsed}/${jobPostsLimit} Posts Used)`}
+                                                    {isSubscriptionExpired
+                                                        ? "Subscription Plan Expired"
+                                                        : isSubscriptionSuspended
+                                                            ? "Recruiter Account Suspended"
+                                                            : isSubRecruiter && isCompanyLimitReached
+                                                                ? `Company Plan Limit Reached (Active Slots & Monthly Posts Exhausted)`
+                                                                : isActiveLimitReached
+                                                                    ? `Active Job Limit Reached (${activeJobsCount}/${activeJobsLimit} Slots Used${pendingJobsCount > 0 ? `, ${pendingJobsCount} Pending Review` : ''})`
+                                                                    : `Monthly Posting Limit Reached (${jobPostsUsed}/${jobPostsLimit} Posts Used)`}
                                                 </h4>
                                                 <span className="px-2 py-0.5 bg-amber-200/70 text-amber-900 text-[11px] font-bold rounded-full">{planName} Plan</span>
                                             </div>
                                             <p className="text-xs text-gray-600 mt-1 mb-0 leading-relaxed">
-                                                {isSubRecruiter
-                                                    ? `Your organization's subscription plan has filled all available active job slots or monthly postings. As a sub-recruiter, you cannot publish new jobs until your primary recruiter closes an active job or upgrades the plan.`
-                                                    : isActiveLimitReached
-                                                        ? `You currently have 0 active job slots available. You can fill out this job now, but to publish it, please either close an existing job from your dashboard or upgrade your plan.`
-                                                        : `You have used all ${jobPostsLimit} monthly job posts included in your ${planName} Plan. Please upgrade your subscription plan to post additional jobs.`}
+                                                {isSubscriptionExpired
+                                                    ? "Your subscription plan has expired. Please renew or upgrade your plan to publish jobs."
+                                                    : isSubscriptionSuspended
+                                                        ? "Your recruiter account is currently suspended. Please contact support or your administrator."
+                                                        : isSubRecruiter
+                                                            ? `Your organization's subscription plan has filled all available active job slots or monthly postings. As a sub-recruiter, you cannot publish new jobs until your primary recruiter closes an active job or upgrades the plan.`
+                                                            : isActiveLimitReached
+                                                                ? `You currently have 0 active job slots available. You can fill out this job now, but to publish it, please either close an existing job from your dashboard or upgrade your plan.`
+                                                                : `You have used all ${jobPostsLimit} monthly job posts included in your ${planName} Plan. Please upgrade your subscription plan to post additional jobs.`}
                                             </p>
                                         </div>
                                     </div>
@@ -2374,7 +2432,7 @@ export default function Posting() {
                                             </button>
                                         ) : (
                                             <>
-                                                {isActiveLimitReached && (
+                                                {isActiveLimitReached && !isSubscriptionExpired && (
                                                     <button
                                                         type="button"
                                                         onClick={() => navigate('/my-jobs')}
@@ -2388,7 +2446,7 @@ export default function Posting() {
                                                     onClick={() => navigate('/subscription')}
                                                     className="text-xs font-medium px-3.5 py-2 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl transition flex items-center gap-1.5 shadow-sm"
                                                 >
-                                                    <Crown size={14} /> Upgrade Plan
+                                                    <Crown size={14} /> {isSubscriptionExpired ? "Renew Plan" : "Upgrade Plan"}
                                                 </button>
                                             </>
                                         )}
@@ -2420,18 +2478,18 @@ export default function Posting() {
                         </button>
                     ) : (
                         <div className="flex items-center gap-3">
-                            {activeJobsRemaining <= 0 && (
+                            {activeJobsRemaining <= 0 && !isSubscriptionExpired && (
                                 <span className="text-xs text-amber-700 font-medium hidden sm:inline-flex items-center gap-1">
                                     <AlertTriangle size={14} /> 0 active slots available
                                 </span>
                             )}
                             <button
                                 onClick={handlePublishPost}
-                                disabled={isLoading || (isSubRecruiter && isLimitReached)}
+                                disabled={isLoading || (isSubRecruiter && isLimitReached) || isSubscriptionExpired || isSubscriptionSuspended}
                                 className="bg-[#0A66C2] hover:bg-[#004182] text-white px-8 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : null}
-                                {isLoading ? 'Publishing...' : (isSubRecruiter && isLimitReached ? "Publish Job (Quota Full)" : "Publish Job")}
+                                {isLoading ? 'Publishing...' : isSubscriptionExpired ? "Publish Job (Plan Expired)" : (isSubRecruiter && isLimitReached ? "Publish Job (Quota Full)" : "Publish Job")}
                             </button>
                         </div>
                     )}
@@ -2666,15 +2724,23 @@ export default function Posting() {
                     <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-4">
                         <AlertTriangle size={28} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Hiring Quota Limit Reached</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        {limitModalTitle || (isSubscriptionExpired ? "Subscription Plan Expired" : "Hiring Quota Limit Reached")}
+                    </h3>
                     <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-                        {limitModalMessage || `You have reached your maximum active job limit (${activeJobsLimit}). Close an existing job or upgrade your subscription plan to publish more jobs.`}
+                        {limitModalMessage || (isSubscriptionExpired ? "Your subscription plan has expired. Please upgrade or renew your plan to post jobs." : `You have reached your maximum active job limit (${activeJobsLimit}). Close an existing job or upgrade your subscription plan to publish more jobs.`)}
                     </p>
 
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 text-left mb-6 space-y-2.5">
                         <div className="flex items-center justify-between text-xs text-gray-600">
                             <span>Current Plan</span>
                             <span className="font-semibold text-gray-900">{planName} Plan</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-600">
+                            <span>Plan Status</span>
+                            <span className={`font-semibold ${isSubscriptionExpired ? 'text-red-600' : 'text-emerald-600'}`}>
+                                {isSubscriptionExpired ? 'Expired' : (subscription?.status || 'Active')}
+                            </span>
                         </div>
                         <div className="flex items-center justify-between text-xs text-gray-600">
                             <span>Active Jobs on Portal</span>
@@ -2710,9 +2776,9 @@ export default function Posting() {
                                     }}
                                     className="w-full py-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white font-medium text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-sm"
                                 >
-                                    <Crown size={16} /> Upgrade Subscription Plan
+                                    <Crown size={16} /> {isSubscriptionExpired ? "Renew / Upgrade Subscription Plan" : "Upgrade Subscription Plan"}
                                 </button>
-                                {activeJobsRemaining <= 0 && (
+                                {activeJobsRemaining <= 0 && !isSubscriptionExpired && (
                                     <button
                                         onClick={() => {
                                             setShowLimitModal(false);

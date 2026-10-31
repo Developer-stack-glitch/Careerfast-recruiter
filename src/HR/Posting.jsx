@@ -44,7 +44,6 @@ import { nameValidator } from "../Common/Validation";
 import { useNavigate, useSearchParams } from "@/routing-shim";
 import dummyLogo from "../images/dummy_img.jpg";
 import currencySymbol from "currency-symbols";
-import cities from "cities-list";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     getBenifitsData,

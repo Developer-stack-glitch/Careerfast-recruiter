@@ -1,15 +1,14 @@
 import "../index.css";
 import "../App.css";
 import "../css/CommonLoader.css";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import { Providers } from "./providers";
 import ClientRouteHandler from "./client-route-handler";
 import ScrollToTop from "../ScrollTop/ScrollToTop";
-import CommonLoader from "../Common/CommonLoader";
 import Script from "next/script";
 import { Suspense } from "react";
 import { Outfit } from "next/font/google";
+
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || "G-YX6Y57X00W";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -26,12 +25,12 @@ export const viewport = {
 
 export const metadata = {
   metadataBase: new URL('https://careerfast.in'),
-  title: "CareerFast",
-  description: "Discover premium job opportunities and internships with top-tier companies. CareerFast connects job seekers with verified recruiters.",
-  robots: "index, follow",
+  title: "CareerFast | Recruiter Portal",
+  description: "Connect with top job seekers and manage candidates efficiently with CareerFast Recruiter Portal.",
+  robots: "noindex, nofollow",
   openGraph: {
     type: "website",
-    siteName: "CareerFast",
+    siteName: "CareerFast Recruiter Portal",
     images: ["https://careerfast.in/og-image.png"],
     locale: "en_US",
   },
@@ -54,7 +53,6 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://www.transparenttextures.com" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" precedence="default" />
-
       </head>
       <body className={`${outfit.className} antialiased`} suppressHydrationWarning>
         <Providers>
@@ -66,23 +64,20 @@ export default function RootLayout({ children }) {
           </Suspense>
         </Providers>
         {/* GA Script Integration */}
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-YX6Y57X00W" strategy="afterInteractive" />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag() { dataLayer.push(arguments); }
-            gtag('js', new Date());
-            gtag('config', 'G-YX6Y57X00W');
-          `}
-        </Script>
-        {/* Google Maps Integration (temporarily disabled: billing not enabled on GCP) */}
-        {/* <Script
-          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA2-QH2Uf2Jq9AyVfotBjQfgS9-VkPTLQ4&libraries=places&loading=async"
-          strategy="lazyOnload"
-        /> */}
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} strategy="afterInteractive" />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag() { dataLayer.push(arguments); }
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );
 }
-
-

@@ -39,7 +39,6 @@ import "react-quill-new/dist/quill.snow.css";
 import { nameValidator } from "../Common/Validation";
 import { useNavigate } from "@/routing-shim";
 import dummyLogo from "../images/dummy_img.jpg";
-import cities from "cities-list";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     getBenifitsData,

@@ -3,7 +3,7 @@ import axios from "axios";
 import { Modal } from "antd";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'https://careerfast.in',
 });
 
 // In-memory & SessionStorage cache for static master data (15 minutes TTL)

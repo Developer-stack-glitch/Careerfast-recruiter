@@ -37,7 +37,6 @@ const nextConfig = {
       'antd',
       'date-fns',
       'framer-motion',
-      'recharts',
     ],
   },
   webpack: (config, { dev, isServer }) => {

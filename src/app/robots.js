@@ -1,10 +1,32 @@
+const baseUrl = process.env.NEXT_PUBLIC_HR_PORTAL_URL || 'https://recruit.careerfast.in';
+
 export default function robots() {
   return {
     rules: {
       userAgent: '*',
-      allow: '/',
-      disallow: ['/admin-dashboard', '/candidate-profile', '/all-candidates'],
+      allow: ['/', '/login', '/register', '/recruit'],
+      disallow: [
+        '/overview',
+        '/all-candidates',
+        '/applicants',
+        '/applicants/*',
+        '/candidate-search',
+        '/candidate-search/*',
+        '/my-jobs',
+        '/post-job',
+        '/post-internship',
+        '/post-course',
+        '/edit-job',
+        '/edit-job/*',
+        '/saved-candidates',
+        '/folders',
+        '/manage-folder',
+        '/reports',
+        '/team',
+        '/settings',
+        '/billing',
+      ],
     },
-    sitemap: 'https://careerfast.in/sitemap.xml',
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

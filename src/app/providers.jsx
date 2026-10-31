@@ -3,15 +3,14 @@
 import { Provider } from "react-redux";
 import { store } from "../Redux/store";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "react-hot-toast";
 import { App, ConfigProvider } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import axios from "axios";
 import { requestForToken, messaging } from "../firebase/fireBase";
 import { onMessage } from "firebase/messaging";
 
-const CLIENT_ID = "288981358654-vrhl2uqu61r1ju40blnk4ibde6sbnu47.apps.googleusercontent.com";
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "288981358654-vrhl2uqu61r1ju40blnk4ibde6sbnu47.apps.googleusercontent.com";
 
 // Suppress specific noisy development warnings from Dev Overlay
 if (typeof window !== "undefined") {
@@ -52,8 +51,6 @@ if (typeof window !== "undefined") {
 }
 
 export function Providers({ children }) {
-  const [isTokenFound, setTokenFound] = useState(false);
-
   useEffect(() => {
     // disable console logs in production
     if (process.env.NODE_ENV === "production") {
@@ -69,7 +66,7 @@ export function Providers({ children }) {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/firebase-messaging-sw.js")
-        .then(() => console.log("✅ Firebase Service Worker registered"))
+        .then(() => {})
         .catch((err) => console.error("❌ SW registration failed", err));
     }
   }, []);
@@ -79,17 +76,14 @@ export function Providers({ children }) {
       if (typeof window !== 'undefined' && Notification.permission !== "granted") {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
-          console.log("❌ Notifications denied by user");
           return;
         }
       }
 
       const token = await requestForToken();
       if (token) {
-        console.log("✅ FCM Token:", token);
         const subscribedToken = localStorage.getItem("fcm_subscribed_token");
         if (subscribedToken === token) {
-          console.log("✅ Already subscribed to allUsers topic");
           return;
         }
 
@@ -97,7 +91,6 @@ export function Providers({ children }) {
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL;
           if (apiUrl) {
             await axios.post(`${apiUrl}/api/subscribe-topic`, { token });
-            console.log("✅ Token subscribed to allUsers topic");
             localStorage.setItem("fcm_subscribed_token", token);
           } else {
             console.warn("⚠️ API URL not configured, skipping FCM subscription");
@@ -120,32 +113,30 @@ export function Providers({ children }) {
   }, []);
 
   return (
-    <HelmetProvider>
-      <GoogleOAuthProvider clientId={CLIENT_ID}>
-        <Provider store={store}>
-          <ConfigProvider
-            theme={{
-              token: {
-                fontFamily: "var(--font-outfit), 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-              },
-            }}
-          >
-            <App>
-              {children}
-            </App>
-          </ConfigProvider>
-          <Toaster 
-            position="top-center"
-            toastOptions={{
-              duration: 1500,
-              style: {
-                background: '#fff',
-                color: '#363636',
-              },
-            }}
-          />
-        </Provider>
-      </GoogleOAuthProvider>
-    </HelmetProvider>
+    <GoogleOAuthProvider clientId={CLIENT_ID}>
+      <Provider store={store}>
+        <ConfigProvider
+          theme={{
+            token: {
+              fontFamily: "var(--font-outfit), 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            },
+          }}
+        >
+          <App>
+            {children}
+          </App>
+        </ConfigProvider>
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            duration: 1500,
+            style: {
+              background: '#fff',
+              color: '#363636',
+            },
+          }}
+        />
+      </Provider>
+    </GoogleOAuthProvider>
   );
 }

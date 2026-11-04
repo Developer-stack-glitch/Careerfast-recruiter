@@ -2035,3 +2035,34 @@ export {
 } from "../Common/worldwideDataService";
 
 
+
+
+// ==========================================
+// ⚡ Naukri-style Nvites (Job Invitations) APIs
+// ==========================================
+export const sendNvitesAPI = async (payload) => {
+  try {
+    const response = await api.post("/api/nvites/send", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getRecruiterNvitesAPI = async (params = {}) => {
+  try {
+    const response = await api.get("/api/nvites/recruiter", { params });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const resendNviteAPI = async (id) => {
+  try {
+    const response = await api.post(`/api/nvites/${id}/resend`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

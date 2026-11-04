@@ -23,7 +23,8 @@ import {
     Check,
     RotateCcw,
     BookOpen,
-    Users
+    Users,
+    Send
 } from 'lucide-react';
 import logo from '../images/hrportal_logo1.png';
 
@@ -317,7 +318,7 @@ const HrHeader = () => {
             {/* Top subtle brand gradient line */}
             <div className="h-[3px] w-full bg-gradient-to-r from-[#0A66C2] via-blue-500 to-amber-500 sticky top-0 z-50" />
 
-            <header className="h-[64px] bg-white border-b border-slate-200/80 px-3 sm:px-5 lg:px-7 flex items-center justify-between sticky top-[3px] z-50 shadow-xs [&_a]:no-underline [&_a:hover]:no-underline font-outfit font-sans w-full max-w-full" style={{ fontFamily: "var(--font-outfit), 'Outfit', sans-serif" }}>
+            <header className="h-[64px] bg-white border-b border-slate-200/80 px-3 sm:px-5 lg:px-7 flex items-center justify-between sticky top-[3px] z-50 shadow-xs [&_a]:no-underline [&_a:hover]:no-underline font-geist font-sans w-full max-w-full" style={{ fontFamily: "var(--font-geist), 'Geist', sans-serif" }}>
 
                 {/* Left Side: Logo & Main Navigation */}
                 <div className="flex items-center gap-2 sm:gap-3 lg:gap-5 shrink-0">
@@ -429,6 +430,15 @@ const HrHeader = () => {
                                         <CheckCircle2 size={16} className="text-slate-500" />
                                         <span>Manage questionnaire</span>
                                     </Link>
+                                    <Link
+                                        href="/nvites"
+                                        onClick={() => setJobDropdownOpen(false)}
+                                        style={{ textDecoration: 'none' }}
+                                        className="flex items-center gap-2.5 px-4 py-2.5 text-[13.5px] font-medium text-slate-700 hover:bg-blue-50/70 hover:text-[#0A66C2] transition-colors no-underline hover:no-underline border-t border-slate-100"
+                                    >
+                                        <Send size={15} className="text-slate-500" />
+                                        <span>Manage Nvites</span>
+                                    </Link>
                                 </div>
                             )}
                         </div>
@@ -443,6 +453,18 @@ const HrHeader = () => {
                                 }`}
                         >
                             <span>Folders</span>
+                        </Link>
+
+                        {/* 5. Nvites (Job Invitations) */}
+                        <Link
+                            href="/nvites"
+                            style={{ textDecoration: 'none' }}
+                            className={`px-2.5 lg:px-3 py-1.5 text-[13px] lg:text-[13.5px] font-medium whitespace-nowrap transition-all duration-150 rounded-lg flex items-center gap-1.5 no-underline hover:no-underline ${pathname?.startsWith('/nvites')
+                                ? 'text-[#0A66C2] font-semibold bg-blue-50/80'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                }`}
+                        >
+                            <span>Nvites</span>
                         </Link>
 
                         {/* 6. Usage */}

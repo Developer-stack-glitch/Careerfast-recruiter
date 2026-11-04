@@ -37,7 +37,8 @@ import {
     AlertCircle,
     Crown,
     Lock,
-    Building2
+    Building2,
+    Send
 } from 'lucide-react';
 import { getHrDashboardSummary, deleteHrSearch, clearHrSearches, consumeResumeDownloadAPI } from '../ApiService/action';
 import { downloadResumeFile } from '../utils/downloadResume';
@@ -887,6 +888,14 @@ export default function HrDashboard() {
                         >
                             <RefreshCw size={16} className={loading ? 'animate-spin text-[#0A66C2]' : ''} />
                         </button>
+                        <Link
+                            href="/nvites"
+                            className="px-3.5 py-2 rounded-xl bg-blue-50/70 hover:bg-blue-100/80 text-[#0A66C2] hover:text-[#0A66C2] border border-blue-200/70 font-medium text-xs transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer no-underline"
+                            title="Manage candidate job invitations"
+                        >
+                            <Send size={13} />
+                            <span>Nvites</span>
+                        </Link>
                         <Link
                             href="/reports"
                             className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100/80 text-[#0A66C2] border border-blue-200/80 font-semibold text-xs transition-all inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"

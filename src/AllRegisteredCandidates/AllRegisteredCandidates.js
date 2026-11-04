@@ -51,10 +51,13 @@ import {
 // ✅ Import APIs
 import { getUsers, getUserProfile, getMySubscription } from "../ApiService/action";
 import { FaBehance, FaDribbble, FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa6";
-import { Lock, Crown, ArrowRight, Check } from "lucide-react";
+import { Lock, Crown, ArrowRight, Check, Send, Sparkles } from "lucide-react";
 import "../css/AllRegisteredCandidates.css";
 
 import { useDebounce } from "../utils/useDebounce";
+import HrHeader from "../HR/HrHeader";
+import SendNviteModal from "../Components/SendNviteModal";
+import NvitesManagement from "../HR/NvitesManagement";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -65,7 +68,27 @@ export default function AllRegisteredCandidates() {
     const [subscription, setSubscription] = useState(null);
     const [checkingSubscription, setCheckingSubscription] = useState(true);
     const [hasAccess, setHasAccess] = useState(false);
-    const [activeRole, setActiveRole] = useState("candidate"); // "candidate" or "recruiter"
+    const [activeRole, setActiveRole] = useState("candidate"); // "candidate", "recruiter", or "nvites"
+
+    // Nvites Selection & Modal States
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+    const [selectedRowCandidates, setSelectedRowCandidates] = useState([]);
+    const [nviteModalOpen, setNviteModalOpen] = useState(false);
+    const [nviteCandidates, setNviteCandidates] = useState([]);
+
+    const handleOpenSingleNvite = (candidate) => {
+        setNviteCandidates([candidate]);
+        setNviteModalOpen(true);
+    };
+
+    const handleOpenBulkNvite = () => {
+        if (selectedRowCandidates.length === 0) {
+            message.warning("Please select at least one candidate first.");
+            return;
+        }
+        setNviteCandidates(selectedRowCandidates);
+        setNviteModalOpen(true);
+    };
 
     // Search and Filters
     const [searchTerm, setSearchTerm] = useState("");
@@ -422,44 +445,72 @@ export default function AllRegisteredCandidates() {
         {
             title: "",
             key: "action",
-            width: 80,
+            width: 140,
             render: (_, record) => (
-                <Dropdown
-                    menu={{
-                        items: [
-                            {
-                                key: "view",
-                                icon: <EyeOutlined />,
-                                label: "View Full Profile",
-                                onClick: () => handleGetUserProfile(record.id),
-                            },
-                            {
-                                key: "email",
-                                icon: <MailOutlined />,
-                                label: "Send Direct Email",
-                                onClick: () => window.location.href = `mailto:${record.email}`,
-                            },
-                            {
-                                key: "download",
-                                icon: <DownloadOutlined />,
-                                label: "Download CV",
-                                disabled: !record.resume,
-                                onClick: () => record.resume && window.open(getImageUrl(record.resume)),
-                            },
-                        ],
-                    }}
-                    placement="bottomRight"
-                >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                     <Button
-                        shape="circle"
-                        icon={<MoreOutlined />}
+                        type="primary"
+                        size="small"
+                        onClick={() => handleOpenSingleNvite(record)}
                         style={{
-                            border: "1px solid #e2e8f0",
-                            background: "#fff",
-                            boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                            background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                            border: "none",
+                            borderRadius: 10,
+                            fontWeight: 700,
+                            fontSize: 12,
+                            height: 32,
+                            padding: "0 10px",
+                            boxShadow: "0 2px 6px rgba(124, 58, 237, 0.25)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4
                         }}
-                    />
-                </Dropdown>
+                    >
+                        <span>⚡ Nvite</span>
+                    </Button>
+                    <Dropdown
+                        menu={{
+                            items: [
+                                {
+                                    key: "nvite",
+                                    icon: <span style={{ color: "#7c3aed" }}>⚡</span>,
+                                    label: <span style={{ fontWeight: 700, color: "#7c3aed" }}>Send Job Nvite</span>,
+                                    onClick: () => handleOpenSingleNvite(record),
+                                },
+                                {
+                                    key: "view",
+                                    icon: <EyeOutlined />,
+                                    label: "View Full Profile",
+                                    onClick: () => handleGetUserProfile(record.id),
+                                },
+                                {
+                                    key: "email",
+                                    icon: <MailOutlined />,
+                                    label: "Send Direct Email",
+                                    onClick: () => window.location.href = `mailto:${record.email}`,
+                                },
+                                {
+                                    key: "download",
+                                    icon: <DownloadOutlined />,
+                                    label: "Download CV",
+                                    disabled: !record.resume,
+                                    onClick: () => record.resume && window.open(getImageUrl(record.resume)),
+                                },
+                            ],
+                        }}
+                        placement="bottomRight"
+                    >
+                        <Button
+                            shape="circle"
+                            icon={<MoreOutlined />}
+                            style={{
+                                border: "1px solid #e2e8f0",
+                                background: "#fff",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                            }}
+                        />
+                    </Dropdown>
+                </div>
             ),
         },
     ];
@@ -699,7 +750,7 @@ export default function AllRegisteredCandidates() {
 
     return (
         <>
-            <Header />
+            <HrHeader />
             <Layout style={{ minHeight: "100vh", background: "#f8fafc" }}>
                 <Layout className="candidates-main-layout">
                     {/* Glassmorphic Header Card */}
@@ -712,12 +763,12 @@ export default function AllRegisteredCandidates() {
                                 Directory Network
                             </Title>
                             <Text style={{ fontSize: 15, color: "#64748b", marginTop: 4, display: "block" }}>
-                                View, filter, and inspect registered candidates and hiring employers in real-time.
+                                View, filter, inspect candidates, and send Naukri-style Nvites in real-time.
                             </Text>
                         </div>
 
                         {/* Interactive Slide Control Tab Switcher */}
-                        <div className="directory-tabs-wrapper">
+                        <div className="directory-tabs-wrapper" style={{ width: "auto" }}>
                             <button
                                 className={`directory-tab ${activeRole === "candidate" ? "active" : ""}`}
                                 onClick={() => {
@@ -736,16 +787,27 @@ export default function AllRegisteredCandidates() {
                             >
                                 <BankOutlined /> Recruiters
                             </button>
-                            <div
-                                className="directory-tab-indicator"
-                                style={{
-                                    left: activeRole === "candidate" ? "6px" : "138px",
-                                    width: activeRole === "candidate" ? "126px" : "122px",
+                            <button
+                                className={`directory-tab ${activeRole === "nvites" ? "active" : ""}`}
+                                onClick={() => {
+                                    setActiveRole("nvites");
                                 }}
-                            />
+                                style={{
+                                    color: activeRole === "nvites" ? "#7c3aed" : undefined,
+                                    fontWeight: activeRole === "nvites" ? 700 : undefined
+                                }}
+                            >
+                                <span>⚡ Sent Nvites</span>
+                            </button>
                         </div>
                     </div>
 
+                    {activeRole === "nvites" ? (
+                        <div style={{ padding: "0 4px", marginTop: 12 }}>
+                            <NvitesManagement onSelectCandidateForProfile={handleGetUserProfile} />
+                        </div>
+                    ) : (
+                        <>
                     {/* Animated Statistics Grid */}
                     {activeRole === "candidate" ? (
                         <div className="candidates-stats-grid">
@@ -936,11 +998,25 @@ export default function AllRegisteredCandidates() {
                                         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} results`,
                                         style: { marginTop: 24, paddingRight: 16 },
                                     }}
-                                    rowSelection={{ type: "checkbox", columnWidth: 48 }}
+                                    rowSelection={
+                                        activeRole === "candidate"
+                                            ? {
+                                                selectedRowKeys,
+                                                onChange: (keys, rows) => {
+                                                    setSelectedRowKeys(keys);
+                                                    setSelectedRowCandidates(rows);
+                                                },
+                                                type: "checkbox",
+                                                columnWidth: 48,
+                                            }
+                                            : undefined
+                                    }
                                 />
                             )}
                         </Card>
                     </Content>
+                    </>
+                    )}
 
                     {/* Premium Sliding Glassmorphism Profile Drawer */}
                     {selectedUser && (
@@ -993,6 +1069,30 @@ export default function AllRegisteredCandidates() {
                                         <EnvironmentOutlined style={{ color: "#ef4444" }} />
                                         <span>{selectedUser.location || "Location not provided"}</span>
                                     </div>
+
+                                    {/* Send Nvite Action Button in Drawer */}
+                                    {selectedUser.role_name !== "RECRUITER" && (
+                                        <Button
+                                            type="primary"
+                                            onClick={() => handleOpenSingleNvite(selectedUser)}
+                                            style={{
+                                                background: "#0A66C2",
+                                                border: "none",
+                                                borderRadius: 8,
+                                                fontWeight: 500,
+                                                fontSize: 13,
+                                                height: 36,
+                                                padding: "0 18px",
+                                                boxShadow: "0 2px 6px rgba(10, 102, 194, 0.25)",
+                                                marginTop: 14,
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: 6
+                                            }}
+                                        >
+                                            <span>Send Job Nvite</span>
+                                        </Button>
+                                    )}
 
                                     {/* Social Connect Link icons */}
                                     {selectedUser.social_links && (
@@ -1293,9 +1393,96 @@ export default function AllRegisteredCandidates() {
                             </div>
                         </Drawer>
                     )}
+
+                    {/* Floating Bulk Selection Action Bar for Nvites */}
+                    {activeRole === "candidate" && selectedRowKeys.length > 0 && (
+                        <div
+                            style={{
+                                position: "fixed",
+                                bottom: 24,
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                zIndex: 1000,
+                                background: "#0f172a",
+                                color: "#ffffff",
+                                padding: "10px 22px",
+                                borderRadius: 20,
+                                boxShadow: "0 20px 45px rgba(0,0,0,0.35)",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 16,
+                                border: "1px solid rgba(255,255,255,0.12)",
+                            }}
+                        >
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
+                                <span
+                                    style={{
+                                        background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
+                                        color: "#fff",
+                                        borderRadius: "50%",
+                                        width: 24,
+                                        height: 24,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 11,
+                                        fontWeight: 800
+                                    }}
+                                >
+                                    {selectedRowKeys.length}
+                                </span>
+                                <span>Selected</span>
+                            </div>
+                            <Button
+                                type="primary"
+                                onClick={handleOpenBulkNvite}
+                                style={{
+                                    background: "#0A66C2",
+                                    border: "none",
+                                    borderRadius: 8,
+                                    fontWeight: 500,
+                                    height: 34,
+                                    padding: "0 16px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    boxShadow: "0 2px 6px rgba(10, 102, 194, 0.25)"
+                                }}
+                            >
+                                <span>Send Nvite ({selectedRowKeys.length})</span>
+                            </Button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedRowKeys([]);
+                                    setSelectedRowCandidates([]);
+                                }}
+                                style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#94a3b8",
+                                    fontSize: 12,
+                                    cursor: "pointer",
+                                    padding: "4px 8px"
+                                }}
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Send Nvite Modal */}
+                    <SendNviteModal
+                        isOpen={nviteModalOpen}
+                        onClose={() => setNviteModalOpen(false)}
+                        candidates={nviteCandidates}
+                        onSuccess={() => {
+                            setSelectedRowKeys([]);
+                            setSelectedRowCandidates([]);
+                        }}
+                    />
                 </Layout>
             </Layout>
-            <Footer />
         </>
     );
 }

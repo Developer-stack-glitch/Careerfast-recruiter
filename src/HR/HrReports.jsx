@@ -356,6 +356,10 @@ export default function HrReports() {
     const rejectedJobs = jobsData.rejected !== undefined ? jobsData.rejected : jobsList.filter(j => j.approval_status === 'rejected').length;
     const closedJobs = jobsData.closed !== undefined ? jobsData.closed : jobsList.filter(j => (j.is_closed?.data ? j.is_closed.data[0] === 1 : j.is_closed === 1)).length;
 
+    // Limits & Usage Resolution from mySubscription and dashboardData
+    const subLimits = mySubscription?.limits || {};
+    const subUsage = mySubscription?.usage || {};
+
     // Credits breakdown from dashboard API or defaults
     const credits = dashboardData?.credits || {
         profile_usage_used: subUsage?.resume_views_used || 0,
@@ -368,10 +372,6 @@ export default function HrReports() {
         excel_downloads: subUsage?.excel_downloads_used || 0,
         excel_limit: subLimits?.excel_download_limit || 10
     };
-
-    // Limits & Usage Resolution from mySubscription and dashboardData
-    const subLimits = mySubscription?.limits || {};
-    const subUsage = mySubscription?.usage || {};
 
     const planName = mySubscription?.plan?.name || mySubscription?.plan_name || dashboardData?.subscription?.plan_name || 'Custom Plan';
     const planStatus = mySubscription?.status || dashboardData?.subscription?.status || 'Active';

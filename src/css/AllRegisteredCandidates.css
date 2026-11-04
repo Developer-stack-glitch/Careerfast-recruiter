@@ -4,7 +4,7 @@
 .candidates-main-layout {
     padding: 32px !important;
     background: #f8fafc !important;
-    font-family: 'Outfit', 'Inter', -apple-system, sans-serif !important;
+    font-family: 'Geist', var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* Premium Header Card */
@@ -88,6 +88,8 @@
 
 .directory-tab.active {
     color: #4f46e5;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12), 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .directory-tab-indicator {

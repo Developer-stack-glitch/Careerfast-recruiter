@@ -1,18 +1,19 @@
 'use client';
 
-import { 
-  useRouter, 
-  usePathname, 
-  useParams as nextUseParams, 
-  useSearchParams 
+import {
+  useRouter,
+  usePathname,
+  useParams as nextUseParams,
+  useSearchParams
 } from 'next/navigation';
+import { useEffect } from 'react';
+import NextLink from 'next/link';
 
 export const useNavigate = () => {
   const router = useRouter();
   return (to, options) => {
     if (typeof to === 'number') {
       if (to === -1) router.back();
-      // forward navigation not easily supported in a simple way
       return;
     }
     const href = typeof to === 'string' ? to : to.pathname;
@@ -30,16 +31,14 @@ export const useLocation = () => {
   return {
     pathname,
     search: searchParams.toString() ? `?${searchParams.toString()}` : '',
-    hash: '', // not easily available via next/navigation
-    state: null, // not easily available via next/navigation
+    hash: '',
+    state: null,
     key: 'default'
   };
 };
 
 export const useParams = nextUseParams;
 export { usePathname, useSearchParams };
-
-import NextLink from 'next/link';
 
 export const Link = ({ to, href, children, ...props }) => {
   return <NextLink href={to || href} {...props}>{children}</NextLink>;
@@ -59,9 +58,11 @@ export const NavLink = ({ to, children, className, ...props }) => {
 
 export const Navigate = ({ to, replace }) => {
   const router = useRouter();
-  if (typeof window !== 'undefined') {
-    if (replace) router.replace(to);
-    else router.push(to);
-  }
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (replace) router.replace(to);
+      else router.push(to);
+    }
+  }, [router, to, replace]);
   return null;
 };

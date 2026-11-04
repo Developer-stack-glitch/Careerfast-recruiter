@@ -63,7 +63,6 @@ export default function ClientRouteHandler({ children }) {
   }, []);
 
   useEffect(() => {
-    // ... existing token effect ...
     const handleTokenExpire = () => {
       router.push("/login");
     };
@@ -119,20 +118,20 @@ export default function ClientRouteHandler({ children }) {
       }
 
       // If token exists but is not recruiter/admin
-      router.replace("/login");
+      if (pathName !== "login") {
+        router.replace("/login");
+      }
     } else {
       if (isLoggedIn) dispatch(storeLoginStatus(false));
       const publicPaths = ["login", "register", "forgot-password", "reset-password"];
-      if (!publicPaths.includes(pathName)) {
+      if (!publicPaths.includes(pathName) && pathName !== "") {
         router.replace("/login");
       }
     }
   }, [pathname, dispatch, isLoggedIn, searchParams, router]);
 
-  if (isCheckingMaintenance) return null; // Avoid flicker
-
   const isExemptPath = pathname.startsWith('/admin') || pathname.startsWith('/login') || pathname.startsWith('/superadmin');
-  if (maintenanceMode && !isExemptPath) {
+  if (!isCheckingMaintenance && maintenanceMode && !isExemptPath) {
     const Maintenance = require('../Components/Maintenance').default;
     return <Maintenance />;
   }

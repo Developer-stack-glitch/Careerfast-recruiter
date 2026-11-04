@@ -118,7 +118,7 @@ export function Providers({ children }) {
         <ConfigProvider
           theme={{
             token: {
-              fontFamily: "var(--font-outfit), 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+              fontFamily: "'Geist', var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             },
           }}
         >

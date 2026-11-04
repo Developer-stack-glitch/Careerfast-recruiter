@@ -51,6 +51,8 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Root redirect to recruiter overview
+      { source: '/', destination: '/overview', permanent: false },
       // Redirect old /hr-* paths to root-level pages
       { source: '/hr-jobs', destination: '/overview', permanent: true },
       { source: '/hr-profile', destination: '/profile', permanent: true },

@@ -7,8 +7,10 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-outfit)', 'Outfit', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        outfit: ['var(--font-outfit)', 'Outfit', 'sans-serif'],
+        sans: ['"Geist"', 'var(--font-geist)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        geist: ['"Geist"', 'var(--font-geist)', 'sans-serif'],
+        heading: ['"Geist"', 'var(--font-heading)', 'sans-serif'],
+        outfit: ['"Geist"', 'var(--font-geist)', 'sans-serif'],
       },
     },
   },

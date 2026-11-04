@@ -288,10 +288,10 @@ export default function HrLogin({ onLoginSuccess, onNavigateRegister, onForgotPa
     <div className="hl-screen">
       {/* Styles & Cursive Font Import */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
 
         .hl-screen {
-          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Geist', var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           min-height: 100vh;
           width: 100%;
           display: flex;

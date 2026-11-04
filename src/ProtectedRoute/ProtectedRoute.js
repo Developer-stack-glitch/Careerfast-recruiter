@@ -1,6 +1,6 @@
 'use client';
 import { message } from "antd";
-import { useEffect, useState, useLayoutEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@/routing-shim";
 import CommonLoader from "../Common/CommonLoader";
 
@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(null); // null: checking, true: auth, false: unauth
     const [roleId, setRoleId] = useState(null);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         const checkAuth = () => {
             try {
                 if (typeof window !== "undefined") {
@@ -100,11 +100,14 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
     useEffect(() => {
         if (isAuthenticated === false) {
+            if (typeof window !== "undefined" && window.location.pathname === "/login") {
+                return;
+            }
             if (!localStorage.getItem("loginDetails") || !localStorage.getItem("AccessToken")) {
                 navigate("/login", { replace: true });
                 message.warning("Please login to access this section.");
             } else if (allowedRoles && !allowedRoles.includes(roleId)) {
-                navigate("/", { replace: true });
+                navigate("/overview", { replace: true });
                 message.error("Unauthorized access. This section is reserved for specific accounts only.");
             }
         } else if (isAuthenticated === true) {
@@ -137,4 +140,3 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 };
 
 export default ProtectedRoute;
-

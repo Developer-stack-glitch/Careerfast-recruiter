@@ -22,6 +22,7 @@ import NeatSelect from '../Common/NeatSelect';
 import { getImageUrl } from '../utils/getImageUrl';
 import { downloadResumeFile, viewResumeFile } from '../utils/downloadResume';
 import CandidateFilterSidebar from './CandidateFilterSidebar';
+import SendNviteModal from '../Components/SendNviteModal';
 
 // Helper to escape regex special characters
 const escapeRegExp = (str) => {
@@ -297,6 +298,7 @@ const CandidateSearchResults = () => {
 
   // Accordion Expand/Collapse States (19 Categories matching sidebar screenshot)
   const [openAccordions, setOpenAccordions] = useState({
+    activeIn: true,
     location: false,
     experience: false,
     noticePeriod: false,
@@ -342,6 +344,9 @@ const CandidateSearchResults = () => {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [saveSearchModal, setSaveSearchModal] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
+  // Nvite Modal States
+  const [nviteModalOpen, setNviteModalOpen] = useState(false);
+  const [nviteCandidates, setNviteCandidates] = useState([]);
   // Folder Modal States
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [folderSearchInput, setFolderSearchInput] = useState('');
@@ -1333,7 +1338,12 @@ const CandidateSearchResults = () => {
     if (np.length > 0) query.set('noticePeriod', np.join(','));
     if (filters.gender.length > 0) query.set('gender', filters.gender.join(','));
 
-    router.push(`/recruiter/candidate-search?${query.toString()}`);
+    if (searchParams?.get('from') === 'nvite') {
+      if (searchParams.get('jobId')) query.set('jobId', searchParams.get('jobId'));
+      router.push(`/nvites?${query.toString()}`);
+    } else {
+      router.push(`/candidate-search?${query.toString()}`);
+    }
   };
 
   const handleToggleModifyLocation = (loc) => {
@@ -1664,6 +1674,23 @@ const CandidateSearchResults = () => {
 
     if (filters.timePeriod && filters.timePeriod !== 'All time' && filters.timePeriod !== 'In last 12 months') {
       list.push({ key: 'timePeriod', label: `Time: ${filters.timePeriod}`, clear: () => handleSetFilter('timePeriod', 'All time') });
+    }
+
+    if (filters.activeUpdated && filters.activeUpdated !== 'All time') {
+      const activeMap = {
+        '3': 'Active in 3 days',
+        '7': 'Active in 7 days',
+        '15': 'Active in 15 days',
+        '30': 'Active in 30 days',
+        '60': 'Active in 2 months',
+        '90': 'Active in 3 months',
+        '180': 'Active in 6 months',
+      };
+      list.push({
+        key: 'activeUpdated',
+        label: activeMap[filters.activeUpdated] || `Active: ${filters.activeUpdated}`,
+        clear: () => handleSetFilter('activeUpdated', 'All time')
+      });
     }
 
     filters.location.forEach(loc => {
@@ -2212,14 +2239,16 @@ const CandidateSearchResults = () => {
             <button
               type="button"
               onClick={() => {
-                if (window.history.length > 1) {
+                if (searchParams?.get('from') === 'nvite') {
+                  router.push('/nvites');
+                } else if (window.history.length > 1) {
                   router.back();
                 } else {
                   router.push('/candidate-search');
                 }
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-[#0A66C2] border border-slate-200 hover:border-blue-200 rounded-xl font-semibold text-[12.5px] transition-all cursor-pointer shadow-2xs mr-1"
-              title="Back to Candidate Search"
+              title={searchParams?.get('from') === 'nvite' ? 'Back to NVites' : 'Back to Candidate Search'}
             >
               <ArrowLeft size={14} className="text-slate-600" />
               <span>Back</span>
@@ -2235,6 +2264,11 @@ const CandidateSearchResults = () => {
             ) : (
               <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full font-semibold border border-slate-200">
                 All Candidate Profiles
+              </span>
+            )}
+            {searchParams?.get('from') === 'nvite' && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-full font-bold text-xs border border-purple-200 shadow-2xs">
+                <Send size={11} className="text-purple-600" /> NVite Dispatch Mode
               </span>
             )}
 
@@ -2611,8 +2645,32 @@ const CandidateSearchResults = () => {
               </span>
             </div>
 
-            {/* Right: Email | WhatsApp | SMS | Save to folder | Export Excel | More */}
+            {/* Right: Nvite | Email | WhatsApp | SMS | Save to folder | Export Excel | More */}
             <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
+              {/* ⚡ Send Nvite (Naukri-style) */}
+              <button
+                type="button"
+                onClick={() => {
+                  const targetList = selectedCandidateIds.length > 0
+                    ? candidates.filter(c => selectedCandidateIds.includes(c.id))
+                    : candidates;
+                  if (targetList.length === 0) {
+                    CommonToaster('Please select at least one candidate to invite.', 'warning');
+                    return;
+                  }
+                  setNviteCandidates(targetList);
+                  setNviteModalOpen(true);
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-semibold shadow-2xs cursor-pointer transition-all text-[12.5px] ${searchParams?.get('from') === 'nvite'
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white ring-2 ring-purple-300'
+                  : 'bg-[#0A66C2] hover:bg-[#084e96] text-white'
+                  }`}
+                title="Send Naukri-style Nvite to selected candidates"
+              >
+                <Send size={13} />
+                <span>{selectedCandidateIds.length > 0 ? `Send NVite (${selectedCandidateIds.length})` : 'Send Nvite to All'}</span>
+              </button>
+
               {/* Email */}
               <button
                 type="button"
@@ -2968,7 +3026,7 @@ const CandidateSearchResults = () => {
                   /* ================= GRID CARD VIEW ================= */
                   <div
                     key={candidate.id}
-                    className={`bg-white rounded-2xl border transition-all p-4 shadow-2xs hover:shadow-md flex flex-col justify-between gap-3.5 ${isSelected ? 'border-[#0A66C2] ring-2 ring-[#0A66C2]/10 bg-blue-50/10' : 'border-slate-200/90 hover:border-slate-300'
+                    className={`bg-white rounded-2xl border transition-all p-4 shadow-2xs flex flex-col justify-between gap-3.5 ${isSelected ? 'border-[#0A66C2] ring-2 ring-[#0A66C2]/10 bg-blue-50/10' : 'border-slate-200/90 hover:border-slate-300'
                       }`}
                   >
                     <div>
@@ -3172,6 +3230,18 @@ const CandidateSearchResults = () => {
                         <span className="text-emerald-600 font-semibold">Active</span>
                       </div>
                       <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNviteCandidates([candidate]);
+                            setNviteModalOpen(true);
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-[#0A66C2] border border-slate-200 transition-colors cursor-pointer"
+                          title="Send Job Nvite"
+                        >
+                          <span><Send size={13} /></span>
+                          <span>Nvite</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
@@ -3482,8 +3552,8 @@ const CandidateSearchResults = () => {
                             {!candidate.phone
                               ? 'N/A'
                               : isUnmasked
-                              ? `${candidate.phone_code ? `${candidate.phone_code} ` : ''}${candidate.phone} (Viewed)`
-                              : `${candidate.phone_code || '+91'}-${candidate.phone.slice(0, 3)}******`}
+                                ? `${candidate.phone_code ? `${candidate.phone_code} ` : ''}${candidate.phone} (Viewed)`
+                                : `${candidate.phone_code || '+91'}-${candidate.phone.slice(0, 3)}******`}
                           </span>
                           {!isUnmasked && candidate.phone && (
                             <button
@@ -3496,6 +3566,20 @@ const CandidateSearchResults = () => {
                             </button>
                           )}
                         </div>
+
+                        {/* ⚡ Nvite Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNviteCandidates([candidate]);
+                            setNviteModalOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[12px] font-bold border border-slate-200 text-[#0A66C2] transition-colors shadow-2xs cursor-pointer"
+                          title="Send Job Nvite"
+                        >
+                          <Send size={13} />
+                          <span>Nvite</span>
+                        </button>
 
                         {/* Email Button */}
                         <button
@@ -4883,6 +4967,18 @@ const CandidateSearchResults = () => {
           </div>
         </div>
       )}
+
+      {/* ⚡ Send Nvite Modal */}
+      <SendNviteModal
+        isOpen={nviteModalOpen}
+        onClose={() => setNviteModalOpen(false)}
+        candidates={nviteCandidates}
+        initialJobId={searchParams?.get('jobId') || null}
+        onSuccess={() => {
+          setSelectedCandidateIds([]);
+          CommonToaster('NVite(s) sent successfully! View and track status in Nvites > Manage Sent NVites.', 'success');
+        }}
+      />
 
     </div>
   );

@@ -652,6 +652,84 @@ const CandidateFilterSidebar = ({
         </div>
       </div>
 
+      {/* ACCORDION: Active in (Freshness) */}
+      <div className="border-t border-slate-200/80 my-3">
+        <div onClick={() => toggleAccordion('activeIn')} className="w-full flex items-center justify-between pt-3 pb-1 px-0.5 text-left group cursor-pointer">
+          <div className="flex items-center gap-1.5 text-[14px] font-medium text-slate-800 hover:text-[#0A66C2] cursor-pointer">
+            <span>Active in</span>
+            {filters.activeUpdated && filters.activeUpdated !== 'All time' && (
+              <span className="inline-flex items-center justify-center px-2 py-0.5 text-[10.5px] font-semibold text-white bg-[#0A66C2] rounded-full shadow-2xs">
+                {filters.activeUpdated === '3' ? '3 days'
+                  : filters.activeUpdated === '7' ? '7 days'
+                  : filters.activeUpdated === '15' ? '15 days'
+                  : filters.activeUpdated === '30' ? '30 days'
+                  : filters.activeUpdated === '60' ? '2 months'
+                  : filters.activeUpdated === '90' ? '3 months'
+                  : filters.activeUpdated === '180' ? '6 months'
+                  : filters.activeUpdated}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {filters.activeUpdated && filters.activeUpdated !== 'All time' && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSetFilter('activeUpdated', 'All time');
+                }}
+                className="text-[12px] text-[#0A66C2] hover:text-[#004182] font-medium hover:underline cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+            <div className="text-slate-500 font-light text-[17px] leading-none select-none hover:text-[#0A66C2] cursor-pointer">
+              {openAccordions.activeIn ? '−' : '+'}
+            </div>
+          </div>
+        </div>
+
+        {openAccordions.activeIn && (
+          <div className="pb-3 pt-2 space-y-1">
+            {[
+              { label: '3 days', value: '3' },
+              { label: '7 days', value: '7' },
+              { label: '15 days', value: '15' },
+              { label: '30 days', value: '30' },
+              { label: '2 months', value: '60' },
+              { label: '3 months', value: '90' },
+              { label: '6 months', value: '180' },
+              { label: 'All time', value: 'All time' },
+            ].map((item) => {
+              const isSelected = String(filters.activeUpdated || 'All time') === String(item.value);
+              return (
+                <label
+                  key={item.value}
+                  className={`flex items-center justify-between text-[13px] px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                    isSelected ? 'bg-blue-50/70 text-[#0A66C2] font-semibold' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900 font-normal'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="radio"
+                      name="activeUpdatedSidebar"
+                      value={item.value}
+                      checked={isSelected}
+                      onChange={() => handleSetFilter('activeUpdated', item.value)}
+                      className="w-3.5 h-3.5 text-[#0A66C2] border-slate-300 focus:ring-[#0A66C2] cursor-pointer"
+                    />
+                    <span>{item.label}</span>
+                  </div>
+                  {isSelected && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0A66C2]" />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* ACCORDION 1: Location */}
       <div className="border-t border-slate-200/80 my-3">
         <div onClick={() => toggleAccordion('location')} className="w-full flex items-center justify-between pt-3 pb-1 px-0.5 text-left group cursor-pointer">

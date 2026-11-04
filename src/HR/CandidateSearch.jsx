@@ -53,7 +53,7 @@ const CandidateSearch = () => {
     excludedCompanies: [],
     designation: '',
     designationMatch: 'Current designation',
-    activeUpdated: 'All time',
+    activeUpdated: '180',
     smartInsights: [],
     gender: [],
     differentlyAbled: [],
@@ -1895,21 +1895,23 @@ const CandidateSearch = () => {
             )}
 
             {/* Sticky Bottom Bar */}
-            <div style={{ zIndex: 99 }} className="sticky bottom-0 bg-white/95 backdrop-blur-md border border-slate-200/90 p-3 px-6 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] rounded-2xl">
+            <div style={{ zIndex: 99 }} className="sticky bottom-[15px] bg-white/95 backdrop-blur-md border border-slate-200/90 p-3 px-6 sm:px-8 flex flex-col sm:flex-row justify-between items-center gap-3 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] rounded-2xl">
               <div className="flex items-center gap-4 text-[13px] font-medium text-slate-600">
                 <div className="flex items-center gap-2">
-                  <span className="text-slate-500">Updated:</span>
+                  <span className="text-slate-500 font-medium text-[13px]">Active in:</span>
                   <NeatSelect
-                    value={searchParams.activeUpdated}
+                    value={searchParams.activeUpdated || '180'}
                     onChange={(val) => setSearchParams(p => ({ ...p, activeUpdated: val }))}
                     size="sm"
                     options={[
+                      { value: '3', label: '3 days' },
+                      { value: '7', label: '7 days' },
+                      { value: '15', label: '15 days' },
+                      { value: '30', label: '30 days' },
+                      { value: '60', label: '2 months' },
+                      { value: '90', label: '3 months' },
+                      { value: '180', label: '6 months' },
                       { value: 'All time', label: 'All time' },
-                      { value: '7', label: 'In last 7 days' },
-                      { value: '15', label: 'In last 15 days' },
-                      { value: '30', label: 'In last 30 days' },
-                      { value: '90', label: 'In last 3 months' },
-                      { value: '180', label: 'In last 6 months' },
                     ]}
                     buttonClassName="bg-slate-50 border-slate-200"
                   />

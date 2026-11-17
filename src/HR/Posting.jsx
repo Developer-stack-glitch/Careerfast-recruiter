@@ -375,6 +375,8 @@ export default function Posting() {
     // Error states for Step 0 Validation
     const [minExpError, setMinExpError] = useState("");
     const [maxExpError, setMaxExpError] = useState("");
+    const [expireInMonths, setExpireInMonths] = useState(null);
+    const [expireError, setExpireError] = useState("");
 
     const MAX_LENGTH = 300000;
 
@@ -710,13 +712,19 @@ export default function Posting() {
                 }
             }
 
+            let expMonthErr = "";
+            if (!expireInMonths || expireInMonths < 1 || expireInMonths > 6) {
+                expMonthErr = "Please select job expiry duration (1-6 months)";
+            }
+
             setJobTitleError(jobTitleValidate);
             setMinExpError(minExpErr);
             setMaxExpError(maxExpErr);
             setSalaryMinError(salMinErr);
             setSalaryMaxError(salMaxErr);
+            setExpireError(expMonthErr);
 
-            if (jobTitleValidate || minExpErr || maxExpErr || salMinErr || salMaxErr) return;
+            if (jobTitleValidate || minExpErr || maxExpErr || salMinErr || salMaxErr || expMonthErr) return;
         }
 
         if (!completedSteps.includes(currentStep)) {
@@ -790,6 +798,14 @@ export default function Posting() {
 
     const handlePublishPost = async () => {
         if (isLoading) return;
+
+        if (!expireInMonths || expireInMonths < 1 || expireInMonths > 6) {
+            toast.error("Please select a job expiry duration (1-6 months)");
+            setCurrentStep(0);
+            setExpireError("Please select job expiry duration (1-6 months)");
+            return;
+        }
+
         // Validation logic for final step
         const getUserDetails = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("loginDetails") || "{}") : {};
         const now = new Date();
@@ -857,7 +873,8 @@ export default function Posting() {
             google_maps_url: googleMapsUrl,
             team_members: teamMembers,
             apply_link: isExternalApply ? applyLink : null,
-            about_company: isExternalApply ? aboutCompany : null
+            about_company: isExternalApply ? aboutCompany : null,
+            expire_in_months: expireInMonths
         };
 
         // Quota check before submitting
@@ -1651,6 +1668,58 @@ export default function Posting() {
                                         <PlusOutlined className="text-[12px]" />
                                     </button>
                                 </div>
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-2">
+                                    <label className="block text-[15px] font-semibold text-gray-700">
+                                        Job post validity / Expiry option <span className="text-red-500">*</span>
+                                    </label>
+                                    {expireInMonths && (
+                                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-[#0A66C2] border border-blue-200">
+                                            Expires on: {(() => {
+                                                const d = new Date();
+                                                d.setMonth(d.getMonth() + Number(expireInMonths));
+                                                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                                            })()}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-[13px] text-gray-500 mb-3">
+                                    Select how long this job post will remain active (1 to 6 months). The job will automatically expire once this period ends.
+                                </p>
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+                                    {[1, 2, 3, 4, 5, 6].map((months) => {
+                                        const isSelected = expireInMonths === months;
+                                        return (
+                                            <button
+                                                key={months}
+                                                type="button"
+                                                onClick={() => {
+                                                    setExpireInMonths(months);
+                                                    setExpireError("");
+                                                }}
+                                                className={`py-3 px-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                                                    isSelected
+                                                        ? 'border-[#0A66C2] bg-[#f0f7ff] text-[#0A66C2] font-semibold shadow-xs ring-2 ring-[#0A66C2]/20'
+                                                        : expireError
+                                                            ? 'border-red-300 bg-red-50/20 text-gray-700 hover:border-red-400'
+                                                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                <span className="text-[14px] font-bold">{months} {months === 1 ? 'Month' : 'Months'}</span>
+                                                <span className="text-[11px] text-gray-500 font-normal mt-0.5">
+                                                    {months * 30} days
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {expireError && (
+                                    <p className="text-red-500 text-xs mt-1.5 mb-0 font-medium flex items-center gap-1">
+                                        <InfoCircleOutlined className="text-[12px]" /> {expireError}
+                                    </p>
+                                )}
                             </div>
 
 

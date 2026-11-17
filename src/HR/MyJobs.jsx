@@ -961,6 +961,19 @@ const MyJobs = () => {
                                                     <div className="text-slate-400 text-[10px] mt-0.5">
                                                         {job.created_at ? formatDistanceToNow(new Date(job.created_at), { addSuffix: true }) : ''}
                                                     </div>
+                                                    {job.expires_at && (
+                                                        <div className="text-[10px] mt-1 flex items-center gap-1 font-medium">
+                                                            <span className="text-slate-400">Expires:</span>
+                                                            <span className={job.is_closed === 1 ? 'text-slate-500' : 'text-amber-600 font-semibold'}>
+                                                                {format(new Date(job.expires_at), 'MMM dd, yyyy')}
+                                                            </span>
+                                                            {job.expire_in_months && (
+                                                                <span className="text-[9px] bg-slate-100 text-slate-500 px-1 py-0.2 rounded">
+                                                                    {job.expire_in_months}m
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </td>
 
                                                 {/* 6. Actions */}

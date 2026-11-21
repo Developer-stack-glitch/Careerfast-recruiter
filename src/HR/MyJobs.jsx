@@ -1007,7 +1007,7 @@ const MyJobs = () => {
                                                                             <a
                                                                                 target="_blank"
                                                                                 rel="noopener noreferrer"
-                                                                                href={getJobDetailsUrl(job)}
+                                                                                href={getJobDetailsUrl(job, true)}
                                                                                 className="flex items-center gap-2.5 py-0.5 text-xs font-medium text-slate-700 hover:text-slate-900 no-underline"
                                                                             >
                                                                                 <Eye size={14} className="text-slate-400" />

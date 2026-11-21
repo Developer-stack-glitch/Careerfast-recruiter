@@ -815,7 +815,11 @@ export default function Posting() {
         const allBenefitsData = selectedBenefits;
 
         // Map UI state to payload
-        const expReq = freshersAllowed ? ["All"] : (minExp && maxExp ? `${minExp}-${maxExp} Years` : experienceRequired);
+        const expReq = freshersAllowed
+            ? ["Fresher"]
+            : (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined
+                ? [`${minExp}-${maxExp} Years`]
+                : (Array.isArray(experienceRequired) ? experienceRequired.filter(Boolean) : [experienceRequired].filter(Boolean)));
 
         let mappedGender = [];
         if (genderPreference === 'Male') mappedGender = ['Male'];
@@ -838,7 +842,7 @@ export default function Posting() {
             work_location: specificCity ? specificCity : (specificLocation.length > 0 ? specificLocation : "Pan India"),
             job_category: department ? [department] : jobCategory,
             skills: skillsRequired,
-            experience_type: freshersAllowed ? "Fresher" : "Experienced",
+            experience_type: freshersAllowed ? "Fresher" : ((minExp === 0 && maxExp === 0) ? "Fresher" : "Experienced"),
             experience_required: expReq,
             salary_type: salaryType,
             hide_salary: hideSalary,

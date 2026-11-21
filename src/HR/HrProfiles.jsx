@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { message, Modal, Form, Input, Select, Button, Dropdown } from 'antd';
+import React, { useEffect, useState, useRef } from 'react';
+import { message, Modal, Form, Input, Select, Button, Dropdown, Tabs, Spin, Tooltip } from 'antd';
 import {
     CheckCircleFilled,
     MoreOutlined
@@ -21,10 +21,16 @@ import {
     Pencil,
     BadgeCheck,
     Check,
-    ExternalLink
+    ExternalLink,
+    Camera,
+    Trash2,
+    User,
+    Share2,
+    Sparkles
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getHrProfileData, insertHrProfileData } from '../ApiService/action';
+import { getHrProfileData, insertHrProfileData, updateProfileImage } from '../ApiService/action';
+import { compressImage } from '../utils/imageCompressor';
 import CommonLoader from '../Common/CommonLoader';
 import '../css/HrProfiles.css';
 
@@ -37,6 +43,25 @@ const cleanHtml = (htmlString) => {
         .replace(/&nbsp;/g, ' ')
         .replace(/\u00A0/g, ' ')
         .replace(/[\u00AD\u200B\u200C\u200D]/g, '');
+};
+
+const cleanEstablishedYear = (val) => {
+    if (!val) return '';
+    if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (trimmed.includes('T')) {
+            const dt = new Date(trimmed);
+            if (!isNaN(dt.getTime())) {
+                return String(dt.getFullYear());
+            }
+        }
+        if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+            return trimmed.slice(0, 4);
+        }
+        return trimmed;
+    }
+    if (typeof val === 'number') return String(val);
+    return '';
 };
 
 const parseList = (val) => {
@@ -62,6 +87,8 @@ const HrProfiles = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [modalSection, setModalSection] = useState('all'); // all | company | hiring | experience | contact | about
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const directAvatarInputRef = useRef(null);
 
     useEffect(() => {
         fetchProfile();
@@ -96,6 +123,47 @@ const HrProfiles = () => {
         setIsEditModalOpen(true);
     };
 
+    const handleDirectAvatarUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            message.error('Please upload an image file (PNG, JPG, or WEBP)');
+            return;
+        }
+
+        setIsUploadingAvatar(true);
+        try {
+            const base64 = await compressImage(file, 200);
+            const stored = localStorage.getItem("loginDetails");
+            const loginDetails = stored ? JSON.parse(stored) : null;
+            if (!loginDetails?.id) {
+                message.error("User not logged in");
+                return;
+            }
+
+            await updateProfileImage({
+                user_id: loginDetails.id,
+                profile_image: base64
+            });
+
+            setProfile(prev => ({ ...prev, profile_image: base64 }));
+
+            // Update loginDetails in localStorage so header shows it
+            loginDetails.profile_image = base64;
+            localStorage.setItem("loginDetails", JSON.stringify(loginDetails));
+            window.dispatchEvent(new Event("storage"));
+
+            message.success("Profile photo updated successfully!");
+        } catch (err) {
+            console.error("Failed to upload avatar", err);
+            message.error("Failed to update profile photo");
+        } finally {
+            setIsUploadingAvatar(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
     const handleSaveProfile = async (values) => {
         setIsSaving(true);
         try {
@@ -105,30 +173,56 @@ const HrProfiles = () => {
                 return;
             }
             const loginDetails = JSON.parse(stored);
+
             const payload = {
                 user_id: loginDetails.id,
-                profile_image: profile?.profile_image || '',
+                profile_image: values.profile_image !== undefined ? values.profile_image : (profile?.profile_image || ''),
                 banner_image: profile?.banner_image || '',
                 company_name: values.company_name,
                 about_us: values.about_us,
                 organization_type: values.organization_type,
                 industry_type: values.industry_type,
                 team_size: values.team_size,
-                year_established: values.year_established,
+                year_established: cleanEstablishedYear(values.year_established),
                 website_url: values.website_url,
                 vision: values.vision,
-                map_location: values.map_location || [values.address1, values.city, values.state].filter(Boolean).join(', '),
+                map_location: [values.address1, values.city, values.state].filter(Boolean).join(', ') || values.map_location,
                 contact_phone: values.contact_phone,
                 contact_email: values.contact_email,
+                first_name: values.first_name,
+                last_name: values.last_name,
+                headline: values.headline,
+                address1: values.address1,
+                address2: values.address2,
+                city: values.city,
+                state: values.state,
+                country: values.country || 'India',
+                pincode: values.pincode,
+                career_level: values.career_level,
+                preferred_roles: values.preferred_roles,
+                skills: values.skills,
+                total_years: values.total_years,
                 social_links: {
                     facebook: values.facebook,
                     twitter: values.twitter,
                     instagram: values.instagram,
-                    youtube: values.youtube,
+                    youtube: values.youtube || values.linkedin,
                 }
             };
 
             await insertHrProfileData(payload);
+
+            // Update loginDetails in localStorage
+            try {
+                const parsed = JSON.parse(stored);
+                if (payload.first_name) parsed.first_name = payload.first_name;
+                if (payload.last_name) parsed.last_name = payload.last_name;
+                if (payload.company_name) parsed.organization = payload.company_name;
+                if (payload.profile_image) parsed.profile_image = payload.profile_image;
+                localStorage.setItem("loginDetails", JSON.stringify(parsed));
+                window.dispatchEvent(new Event("storage"));
+            } catch (e) { }
+
             message.success("Profile updated successfully!");
             setIsEditModalOpen(false);
             fetchProfile();
@@ -183,22 +277,23 @@ const HrProfiles = () => {
 
     // Display Fields
     const companyDisplayName = company_name || extra.company_name || 'N/A';
-    const recruiterFullName = [first_name, last_name].filter(Boolean).join(' ') || (extra.first_name ? [extra.first_name, extra.last_name].filter(Boolean).join(' ') : 'N/A');
-    const headerTitle = companyDisplayName || recruiterFullName || 'N/A';
-    const designationRole = headline || extra.designation || 'N/A';
+    const recruiterFullName = [first_name, last_name].filter(Boolean).join(' ') || (extra.first_name ? [extra.first_name, extra.last_name].filter(Boolean).join(' ') : '');
+    const headerTitle = companyDisplayName !== 'N/A' ? companyDisplayName : (recruiterFullName || 'Recruiter Profile');
+    const designationRole = headline || extra.designation || 'Technical Recruiter';
     const activeWebsite = website_url || extra.website_url || '';
-    const activeEstablished = year_established || extra.year_established || 'N/A';
+    const activeEstablished = cleanEstablishedYear(year_established || extra.year_established);
     const activeLocation = (city && state) ? `${city}, ${state}` : (location || map_location || 'N/A');
     const activeIndustry = industry_type || organization_type || extra.industry_type || 'N/A';
-    const hiringExpYears = total_years || extra.hiring_experience || 'N/A';
-    const activeEmail = contact_email || extra.email || 'N/A';
-    const activePhone = contact_phone || extra.phone || 'N/A';
+    const hiringExpYears = total_years || extra.hiring_experience || '';
+    const activeEmail = contact_email || extra.email || '';
+    const activePhone = contact_phone || extra.phone || '';
 
     // Formatted Address Block
     const formattedAddressLines = [
-        address1 || extra.address1 || '8H Venkateshwara Nagar',
-        address2 || extra.address2 || 'Velachery, Chennai,',
-        `${state || extra.state || 'Tamil Nadu'}, ${pincode || extra.pincode || '600042'}, ${country || extra.country || 'India'}`
+        address1 || extra.address1,
+        address2 || extra.address2,
+        [city || extra.city, state || extra.state].filter(Boolean).join(', '),
+        [pincode || extra.pincode, country || extra.country || 'India'].filter(Boolean).join(', ')
     ].filter(Boolean);
 
     // Lists
@@ -225,16 +320,40 @@ const HrProfiles = () => {
             <div className="recruiter-main-header-card">
                 <div className="recruiter-header-top-row">
 
-                    {/* Left: Logo/Avatar Container */}
-                    <div className="recruiter-avatar-box">
-                        {profile_image ? (
-                            <img src={profile_image} alt={headerTitle} />
-                        ) : (
-                            <div className="recruiter-logo-placeholder">
-                                <span className="logo-text-bold">{headerTitle.slice(0, 5)}</span>
-                                <span className="logo-text-sub">{headerTitle.slice(5, 9) || 'Nutp'}</span>
-                            </div>
-                        )}
+                    {/* Left: Logo/Avatar Container with Camera Upload Button */}
+                    <div className="recruiter-avatar-wrapper">
+                        <div className="recruiter-avatar-box">
+                            {profile_image ? (
+                                <img src={profile_image} alt={headerTitle} />
+                            ) : (
+                                <div className="recruiter-logo-placeholder">
+                                    <span className="logo-text-bold">{headerTitle.slice(0, 5)}</span>
+                                    <span className="logo-text-sub">{headerTitle.slice(5, 9) || 'Nutp'}</span>
+                                </div>
+                            )}
+                            {isUploadingAvatar && (
+                                <div className="avatar-uploading-spinner">
+                                    <Spin size="small" />
+                                </div>
+                            )}
+                        </div>
+                        <Tooltip title="Upload / Change Profile Photo">
+                            <button
+                                type="button"
+                                className="recruiter-avatar-edit-badge"
+                                onClick={() => directAvatarInputRef.current?.click()}
+                                disabled={isUploadingAvatar}
+                            >
+                                <Camera size={14} />
+                            </button>
+                        </Tooltip>
+                        <input
+                            ref={directAvatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={handleDirectAvatarUpload}
+                        />
                     </div>
 
                     {/* Middle: Details */}
@@ -251,6 +370,7 @@ const HrProfiles = () => {
 
                         <p className="recruiter-designation-sub">
                             {designationRole} at {companyDisplayName}
+                            {recruiterFullName && recruiterFullName !== companyDisplayName ? ` • ${recruiterFullName}` : ''}
                         </p>
 
                         <div className="recruiter-meta-items-row">
@@ -262,14 +382,24 @@ const HrProfiles = () => {
                                 <Building2 size={15} className="meta-icon" />
                                 <span>{activeIndustry}</span>
                             </div>
-                            <div className="recruiter-meta-item">
-                                <Calendar size={15} className="meta-icon" />
-                                <span>{hiringExpYears.includes('Exp') ? hiringExpYears : `${hiringExpYears} Experience`}</span>
-                            </div>
-                            <div className="recruiter-meta-item">
-                                <Mail size={15} className="meta-icon" />
-                                <a href={`mailto:${activeEmail}`}>{activeEmail}</a>
-                            </div>
+                            {hiringExpYears && (
+                                <div className="recruiter-meta-item">
+                                    <Calendar size={15} className="meta-icon" />
+                                    <span>{hiringExpYears.toLowerCase().includes('exp') || hiringExpYears.toLowerCase().includes('year') ? hiringExpYears : `${hiringExpYears} Experience`}</span>
+                                </div>
+                            )}
+                            {activeEmail && (
+                                <div className="recruiter-meta-item">
+                                    <Mail size={15} className="meta-icon" />
+                                    <a href={`mailto:${activeEmail}`}>{activeEmail}</a>
+                                </div>
+                            )}
+                            {activePhone && (
+                                <div className="recruiter-meta-item">
+                                    <Phone size={15} className="meta-icon" />
+                                    <a href={`tel:${activePhone}`}>{activePhone}</a>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -427,9 +557,13 @@ const HrProfiles = () => {
                                 <span>Office Address</span>
                             </div>
                             <div className="recruiter-kv-value address-block bold">
-                                {formattedAddressLines.map((line, idx) => (
-                                    <div key={idx}>{line}</div>
-                                ))}
+                                {formattedAddressLines.length > 0 ? (
+                                    formattedAddressLines.map((line, idx) => (
+                                        <div key={idx}>{line}</div>
+                                    ))
+                                ) : (
+                                    <span className="text-muted font-normal">Not specified</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -529,9 +663,13 @@ const HrProfiles = () => {
                                 <span>Email Address</span>
                             </div>
                             <div className="recruiter-kv-value">
-                                <a href={`mailto:${activeEmail}`} className="recruiter-link-blue bold">
-                                    {activeEmail}
-                                </a>
+                                {activeEmail ? (
+                                    <a href={`mailto:${activeEmail}`} className="recruiter-link-blue bold">
+                                        {activeEmail}
+                                    </a>
+                                ) : (
+                                    <span className="text-muted font-normal">Not provided</span>
+                                )}
                             </div>
                         </div>
 
@@ -541,9 +679,13 @@ const HrProfiles = () => {
                                 <span>Mobile Number</span>
                             </div>
                             <div className="recruiter-kv-value">
-                                <a href={`tel:${activePhone}`} className="recruiter-link-blue bold">
-                                    {activePhone}
-                                </a>
+                                {activePhone ? (
+                                    <a href={`tel:${activePhone}`} className="recruiter-link-blue bold">
+                                        {activePhone}
+                                    </a>
+                                ) : (
+                                    <span className="text-muted font-normal">Not provided</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -586,6 +728,7 @@ const HrProfiles = () => {
                     open={isEditModalOpen}
                     onCancel={() => setIsEditModalOpen(false)}
                     profile={profile}
+                    section={modalSection}
                     onSave={handleSaveProfile}
                     isSaving={isSaving}
                 />
@@ -594,8 +737,20 @@ const HrProfiles = () => {
     );
 };
 
-const EditProfileModal = ({ open, onCancel, profile, onSave, isSaving }) => {
+const EditProfileModal = ({ open, onCancel, profile, section = 'all', onSave, isSaving }) => {
     const [form] = Form.useForm();
+    const [activeTab, setActiveTab] = useState('company');
+    const [modalImage, setModalImage] = useState(profile?.profile_image || '');
+    const [isProcessingImage, setIsProcessingImage] = useState(false);
+
+    useEffect(() => {
+        if (section === 'hiring') setActiveTab('hiring');
+        else if (section === 'experience') setActiveTab('recruiter');
+        else if (section === 'contact') setActiveTab('contact');
+        else if (section === 'about') setActiveTab('about');
+        else if (section === 'address') setActiveTab('address');
+        else setActiveTab('company');
+    }, [section, open]);
 
     const getInitialValues = () => {
         let extra = {};
@@ -608,15 +763,16 @@ const EditProfileModal = ({ open, onCancel, profile, onSave, isSaving }) => {
         }
 
         return {
+            profile_image: profile?.profile_image || '',
             first_name: profile?.first_name || extra.first_name || '',
             last_name: profile?.last_name || extra.last_name || '',
             headline: profile?.headline || extra.designation || '',
             company_name: profile?.company_name || extra.company_name || '',
             about_us: profile?.about_us || extra.about_us || '',
-            organization_type: profile?.organization_type || extra.organization_type || '',
-            industry_type: profile?.industry_type || extra.industry_type || '',
+            organization_type: profile?.organization_type || extra.organization_type || 'Public',
+            industry_type: profile?.industry_type || extra.industry_type || 'IT & Software',
             team_size: profile?.team_size || extra.team_size || '',
-            year_established: profile?.year_established || extra.year_established || '',
+            year_established: cleanEstablishedYear(profile?.year_established || extra.year_established || ''),
             website_url: profile?.website_url || extra.website_url || '',
             vision: profile?.vision || extra.vision || '',
             map_location: profile?.map_location || profile?.location || '',
@@ -628,103 +784,427 @@ const EditProfileModal = ({ open, onCancel, profile, onSave, isSaving }) => {
             pincode: profile?.pincode || extra.pincode || '',
             contact_phone: profile?.contact_phone || extra.phone || '',
             contact_email: profile?.contact_email || extra.email || '',
+            career_level: parseList(profile?.career_level).length ? parseList(profile.career_level) : (parseList(extra.hiring_levels).length ? parseList(extra.hiring_levels) : ['Entry Level / Freshers (0-2 yrs)']),
+            preferred_roles: parseList(profile?.preferred_roles).length ? parseList(profile.preferred_roles) : (parseList(extra.functions).length ? parseList(extra.functions) : ['Front End Developer', 'Full Stack Developer']),
+            skills: parseList(profile?.skills).length ? parseList(profile.skills) : (parseList(extra.skills).length ? parseList(extra.skills) : ['React.js', 'Node.js', 'Talent Acquisition']),
+            total_years: profile?.total_years || extra.hiring_experience || '',
+            facebook: profile?.facebook || '',
+            twitter: profile?.twitter || '',
+            instagram: profile?.instagram || '',
+            youtube: profile?.youtube || profile?.linkedin || '',
         };
     };
 
+    const handleImageChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            message.error('Please select an image file (PNG, JPG, or WEBP)');
+            return;
+        }
+
+        setIsProcessingImage(true);
+        try {
+            const base64 = await compressImage(file, 200);
+            setModalImage(base64);
+            form.setFieldsValue({ profile_image: base64 });
+        } catch (err) {
+            console.error('Image compression failed', err);
+            message.error('Could not process image');
+        } finally {
+            setIsProcessingImage(false);
+            if (e.target) e.target.value = '';
+        }
+    };
+
+    const tabItems = [
+        {
+            key: 'company',
+            label: (
+                <span className="flex items-center gap-1.5">
+                    <Building2 size={15} /> Company Details
+                </span>
+            ),
+            forceRender: true,
+            children: (
+                <div className="modal-tab-pane-content">
+                    {/* Logo / Avatar Section */}
+                    <div className="modal-logo-uploader-card">
+                        <div className="modal-logo-preview">
+                            {isProcessingImage ? (
+                                <Spin size="small" />
+                            ) : modalImage ? (
+                                <img src={modalImage} alt="Company Logo" />
+                            ) : (
+                                <Building2 size={32} className="text-gray-400" />
+                            )}
+                        </div>
+                        <div className="modal-logo-actions">
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <label className="modal-upload-btn-label">
+                                    <Camera size={14} /> Upload Company Logo / Photo
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        onChange={handleImageChange}
+                                        disabled={isProcessingImage}
+                                    />
+                                </label>
+                                {modalImage && (
+                                    <Button
+                                        size="small"
+                                        danger
+                                        icon={<Trash2 size={13} />}
+                                        onClick={() => {
+                                            setModalImage('');
+                                            form.setFieldsValue({ profile_image: '' });
+                                        }}
+                                    >
+                                        Remove Photo
+                                    </Button>
+                                )}
+                            </div>
+                            <span className="modal-upload-hint">Recommended: PNG, JPG, or WEBP under 5MB (auto-compressed).</span>
+                        </div>
+                    </div>
+
+                    <Form.Item
+                        name="company_name"
+                        label="Employer / Company Name"
+                        rules={[{ required: true, message: 'Please enter company name' }]}
+                    >
+                        <Input placeholder="e.g. Markerz Global" />
+                    </Form.Item>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="website_url" label="Company Website Link">
+                            <Input placeholder="https://example.com" />
+                        </Form.Item>
+                        <Form.Item
+                            name="year_established"
+                            label="Established Date / Year"
+                            tooltip="Enter established year (e.g. 2016)"
+                        >
+                            <Input placeholder="e.g. 2016" />
+                        </Form.Item>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="organization_type" label="Organization Type">
+                            <Select
+                                placeholder="Select organization type"
+                                options={[
+                                    { value: 'Public', label: 'Public' },
+                                    { value: 'Private', label: 'Private Limited' },
+                                    { value: 'Startup', label: 'Startup' },
+                                    { value: 'Sole Proprietorship', label: 'Sole Proprietorship' },
+                                    { value: 'Partnership', label: 'Partnership' },
+                                    { value: 'NGO / Non-Profit', label: 'NGO / Non-Profit' },
+                                    { value: 'Government / PSU', label: 'Government / PSU' },
+                                ]}
+                            />
+                        </Form.Item>
+                        <Form.Item name="industry_type" label="Industry Type">
+                            <Select
+                                placeholder="Select industry type"
+                                options={[
+                                    { value: 'IT & Software', label: 'IT & Software' },
+                                    { value: 'Financial Services & Banking', label: 'Financial Services & Banking' },
+                                    { value: 'Healthcare & Lifesciences', label: 'Healthcare & Lifesciences' },
+                                    { value: 'E-Commerce & Retail', label: 'E-Commerce & Retail' },
+                                    { value: 'Education & EdTech', label: 'Education & EdTech' },
+                                    { value: 'Manufacturing & Industrial', label: 'Manufacturing & Industrial' },
+                                    { value: 'Telecommunications', label: 'Telecommunications' },
+                                    { value: 'Staffing & Recruiting', label: 'Staffing & Recruiting' },
+                                    { value: 'Media & Entertainment', label: 'Media & Entertainment' },
+                                ]}
+                            />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="team_size" label="Company Team Size">
+                        <Select
+                            placeholder="Select team size"
+                            options={[
+                                { value: '1-10 Employees', label: '1-10 Employees' },
+                                { value: '11-50 Employees', label: '11-50 Employees' },
+                                { value: '51-200 Employees', label: '51-200 Employees' },
+                                { value: '201-500 Employees', label: '201-500 Employees' },
+                                { value: '501-1000 Employees', label: '501-1000 Employees' },
+                                { value: '1000+ Employees', label: '1000+ Employees' },
+                            ]}
+                        />
+                    </Form.Item>
+                </div>
+            )
+        },
+        {
+            key: 'recruiter',
+            label: (
+                <span className="flex items-center gap-1.5">
+                    <User size={15} /> Recruiter Details
+                </span>
+            ),
+            forceRender: true,
+            children: (
+                <div className="modal-tab-pane-content">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="first_name" label="First Name" rules={[{ required: true, message: 'Please enter first name' }]}>
+                            <Input placeholder="First Name" />
+                        </Form.Item>
+                        <Form.Item name="last_name" label="Last Name">
+                            <Input placeholder="Last Name" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="headline" label="Current Designation / Headline">
+                        <Input placeholder="e.g. Senior Technical Recruiter / HR Manager" />
+                    </Form.Item>
+
+                    <Form.Item name="total_years" label="Total Recruiting Experience">
+                        <Input placeholder="e.g. 5 Years or 3-5 Years" />
+                    </Form.Item>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="contact_email" label="Contact Email">
+                            <Input placeholder="recruiter@company.com" />
+                        </Form.Item>
+                        <Form.Item name="contact_phone" label="Contact Phone">
+                            <Input placeholder="+91 9876543210" />
+                        </Form.Item>
+                    </div>
+                </div>
+            )
+        },
+        {
+            key: 'hiring',
+            label: (
+                <span className="flex items-center gap-1.5">
+                    <Target size={15} /> Hiring Specialization
+                </span>
+            ),
+            forceRender: true,
+            children: (
+                <div className="modal-tab-pane-content">
+                    <Form.Item
+                        name="career_level"
+                        label="Target Candidate Seniority / Levels"
+                        tooltip="Select preset levels or type custom ones and press Enter"
+                    >
+                        <Select
+                            mode="tags"
+                            placeholder="Select or enter seniority levels"
+                            options={[
+                                { value: 'Entry Level / Freshers (0-2 yrs)', label: 'Entry Level / Freshers (0-2 yrs)' },
+                                { value: 'Mid Level (2-5 yrs)', label: 'Mid Level (2-5 yrs)' },
+                                { value: 'Senior Level (5-8 yrs)', label: 'Senior Level (5-8 yrs)' },
+                                { value: 'Lead / Staff (8-12 yrs)', label: 'Lead / Staff (8-12 yrs)' },
+                                { value: 'Manager / Director (12+ yrs)', label: 'Manager / Director (12+ yrs)' },
+                                { value: 'Executive / Leadership', label: 'Executive / Leadership' },
+                            ]}
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="preferred_roles"
+                        label="Functional Domains & Roles Hired For"
+                        tooltip="Roles and positions your team frequently evaluates and hires"
+                    >
+                        <Select
+                            mode="tags"
+                            placeholder="Select or type functional roles"
+                            options={[
+                                { value: 'Front End Developer', label: 'Front End Developer' },
+                                { value: 'Full Stack Developer', label: 'Full Stack Developer' },
+                                { value: 'Backend Developer', label: 'Backend Developer' },
+                                { value: 'Mobile App Developer', label: 'Mobile App Developer' },
+                                { value: 'DevOps / Cloud Engineer', label: 'DevOps / Cloud Engineer' },
+                                { value: 'UI/UX Designer', label: 'UI/UX Designer' },
+                                { value: 'Product Manager', label: 'Product Manager' },
+                                { value: 'QA / Automation Engineer', label: 'QA / Automation Engineer' },
+                                { value: 'Data Scientist / ML Engineer', label: 'Data Scientist / ML Engineer' },
+                                { value: 'Technical Recruiter', label: 'Technical Recruiter' },
+                            ]}
+                        />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="skills"
+                        label="Key Skills & Tech Stack Evaluated"
+                        tooltip="Primary tech stack and core competencies evaluated"
+                    >
+                        <Select
+                            mode="tags"
+                            placeholder="Select or enter technical skills"
+                            options={[
+                                { value: 'React.js', label: 'React.js' },
+                                { value: 'Node.js', label: 'Node.js' },
+                                { value: 'JavaScript', label: 'JavaScript' },
+                                { value: 'TypeScript', label: 'TypeScript' },
+                                { value: 'Python', label: 'Python' },
+                                { value: 'Java', label: 'Java' },
+                                { value: 'AWS', label: 'AWS' },
+                                { value: 'Docker', label: 'Docker' },
+                                { value: 'SQL', label: 'SQL' },
+                                { value: 'MongoDB', label: 'MongoDB' },
+                                { value: 'Talent Acquisition', label: 'Talent Acquisition' },
+                                { value: 'Technical Recruiting', label: 'Technical Recruiting' },
+                            ]}
+                        />
+                    </Form.Item>
+                </div>
+            )
+        },
+        {
+            key: 'address',
+            label: (
+                <span className="flex items-center gap-1.5">
+                    <MapPin size={15} /> Office Address
+                </span>
+            ),
+            forceRender: true,
+            children: (
+                <div className="modal-tab-pane-content">
+                    <Form.Item name="address1" label="Office Address Line 1">
+                        <Input placeholder="e.g. 8H Venkateshwara Nagar" />
+                    </Form.Item>
+
+                    <Form.Item name="address2" label="Address Line 2">
+                        <Input placeholder="e.g. Velachery, Chennai" />
+                    </Form.Item>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="city" label="City">
+                            <Input placeholder="Chennai" />
+                        </Form.Item>
+                        <Form.Item name="state" label="State">
+                            <Input placeholder="Tamil Nadu" />
+                        </Form.Item>
+                        <Form.Item name="pincode" label="Pin Code">
+                            <Input placeholder="600042" />
+                        </Form.Item>
+                    </div>
+
+                    <Form.Item name="country" label="Country">
+                        <Input placeholder="India" />
+                    </Form.Item>
+                </div>
+            )
+        },
+        {
+            key: 'about',
+            label: (
+                <span className="flex items-center gap-1.5">
+                    <FileText size={15} /> About & Vision
+                </span>
+            ),
+            forceRender: true,
+            children: (
+                <div className="modal-tab-pane-content">
+                    <Form.Item name="about_us" label="About Company">
+                        <Input.TextArea rows={5} placeholder="Describe your company, hiring mission, and culture..." />
+                    </Form.Item>
+
+                    <Form.Item name="vision" label="Company Vision & Mission">
+                        <Input.TextArea rows={3} placeholder="Describe company vision, core principles, and goals..." />
+                    </Form.Item>
+                </div>
+            )
+        },
+        {
+            key: 'contact',
+            label: (
+                <span className="flex items-center gap-1.5">
+                    <Share2 size={15} /> Social Links
+                </span>
+            ),
+            forceRender: true,
+            children: (
+                <div className="modal-tab-pane-content">
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="youtube" label="LinkedIn Company Page / Profile">
+                            <Input placeholder="https://linkedin.com/company/example" />
+                        </Form.Item>
+                        <Form.Item name="twitter" label="Twitter / X URL">
+                            <Input placeholder="https://twitter.com/example" />
+                        </Form.Item>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <Form.Item name="facebook" label="Facebook URL">
+                            <Input placeholder="https://facebook.com/example" />
+                        </Form.Item>
+                        <Form.Item name="instagram" label="Instagram URL">
+                            <Input placeholder="https://instagram.com/example" />
+                        </Form.Item>
+                    </div>
+                </div>
+            )
+        }
+    ];
+
     return (
         <Modal
-            title={<span style={{ fontSize: '18px', fontWeight: 700 }}>Edit Recruiter Profile Details</span>}
+            title={
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                        <Building2 size={20} />
+                    </div>
+                    <div>
+                        <div style={{ fontSize: '18px', fontWeight: 700, color: '#111827', lineHeight: 1.2 }}>Edit Recruiter Profile</div>
+                        <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: 400 }}>Update corporate branding, recruiter headline, and hiring specialization</div>
+                    </div>
+                </div>
+            }
             open={open}
             onCancel={onCancel}
             footer={null}
-            width={720}
-            destroyOnHidden
+            width={760}
+            destroyOnHidden={false}
+            className="recruiter-edit-modal"
         >
             <Form
                 form={form}
                 layout="vertical"
                 initialValues={getInitialValues()}
-                onFinish={onSave}
+                onFinish={(values) => {
+                    onSave({
+                        ...values,
+                        profile_image: modalImage
+                    });
+                }}
                 style={{ marginTop: '16px' }}
             >
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="first_name" label="First Name">
-                        <Input placeholder="First Name" />
-                    </Form.Item>
-                    <Form.Item name="last_name" label="Last Name">
-                        <Input placeholder="Last Name" />
-                    </Form.Item>
-                </div>
-
-                <Form.Item name="headline" label="Current Designation / Headline">
-                    <Input placeholder="e.g. HR Manager" />
+                <Form.Item name="profile_image" hidden>
+                    <Input />
                 </Form.Item>
 
-                <Form.Item
-                    name="company_name"
-                    label="Employer / Company Name"
-                    rules={[{ required: true, message: 'Please enter company name' }]}
-                >
-                    <Input placeholder="e.g. ACTE Technologies" />
-                </Form.Item>
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    items={tabItems}
+                    className="recruiter-edit-modal-tabs"
+                />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="website_url" label="Company Website Link">
-                        <Input placeholder="https://example.com" />
-                    </Form.Item>
-                    <Form.Item name="year_established" label="Established Date / Year">
-                        <Input placeholder="e.g. 2018 or 15-08-2015" />
-                    </Form.Item>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="organization_type" label="Organization Type">
-                        <Input placeholder="e.g. Software Development" />
-                    </Form.Item>
-                    <Form.Item name="industry_type" label="Industry Type">
-                        <Input placeholder="e.g. IT & Software Services" />
-                    </Form.Item>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="address1" label="Office Address Line 1">
-                        <Input placeholder="e.g. 8H Venkateshwara Nagar" />
-                    </Form.Item>
-                    <Form.Item name="address2" label="Address Line 2">
-                        <Input placeholder="e.g. Velachery, Chennai" />
-                    </Form.Item>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="city" label="City">
-                        <Input placeholder="Chennai" />
-                    </Form.Item>
-                    <Form.Item name="state" label="State">
-                        <Input placeholder="Tamil Nadu" />
-                    </Form.Item>
-                    <Form.Item name="pincode" label="Pin Code">
-                        <Input placeholder="600042" />
-                    </Form.Item>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                    <Form.Item name="contact_email" label="Contact Email">
-                        <Input placeholder="karthikeyan.m@actetechnologies.com" />
-                    </Form.Item>
-                    <Form.Item name="contact_phone" label="Contact Phone">
-                        <Input placeholder="6328963872" />
-                    </Form.Item>
-                </div>
-
-                <Form.Item name="about_us" label="About Company">
-                    <Input.TextArea rows={4} placeholder="Describe your company, hiring mission, and culture..." />
-                </Form.Item>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                    <Button onClick={onCancel}>
+                <div className="modal-custom-footer">
+                    <Button onClick={onCancel} style={{ borderRadius: '8px', fontWeight: 500 }}>
                         Cancel
                     </Button>
-                    <Button type="primary" htmlType="submit" loading={isSaving} style={{ backgroundColor: '#2563eb' }}>
+                    <Button
+                        type="primary"
+                        htmlType="submit"
+                        loading={isSaving}
+                        style={{
+                            backgroundColor: '#2563eb',
+                            borderColor: '#2563eb',
+                            borderRadius: '8px',
+                            fontWeight: 600,
+                            padding: '0 22px',
+                            height: '38px'
+                        }}
+                    >
                         Save Profile Changes
                     </Button>
                 </div>

@@ -35,8 +35,10 @@ import {
 } from "@ant-design/icons";
 import {
   CircleDollarSign,
-  ArrowLeft
+  ArrowLeft,
+  Eye
 } from 'lucide-react';
+import { getJobDetailsUrl } from "../utils/slug";
 import "react-quill-new/dist/quill.snow.css";
 import { nameValidator } from "../Common/Validation";
 import { useNavigate, useParams, useSearchParams } from "@/routing-shim";
@@ -935,10 +937,10 @@ export default function PostEdit() {
     const getUserDetails = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("loginDetails") || "{}") : {};
 
     const expReq = freshersAllowed
-      ? ["All"]
+      ? ["Fresher"]
       : (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined
         ? [`${minExp}-${maxExp} Years`]
-        : (Array.isArray(experienceRequired) ? experienceRequired : [experienceRequired].filter(Boolean)));
+        : (Array.isArray(experienceRequired) ? experienceRequired.filter(Boolean) : [experienceRequired].filter(Boolean)));
 
     let mappedGender = [];
     if (genderPreference === 'Male') mappedGender = ['Male'];
@@ -969,7 +971,7 @@ export default function PostEdit() {
       work_location: specificCity && specificCity.length > 0 ? specificCity : (specificLocation.length > 0 ? specificLocation : ["Pan India"]),
       job_category: department ? [department] : jobCategory,
       skills: skillsRequired,
-      experience_type: freshersAllowed ? "Fresher" : "Experienced",
+      experience_type: freshersAllowed ? "Fresher" : ((minExp === 0 && maxExp === 0) ? "Fresher" : "Experienced"),
       experience_required: expReq,
       salary_type: salaryType,
       hide_salary: hideSalary ? 1 : 0,
@@ -2445,19 +2447,33 @@ export default function PostEdit() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleSaveJob}
-              disabled={isLoading}
-              className="bg-[#0A66C2] hover:bg-[#004182] text-white px-6 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <CheckOutlined className="text-xs" />
+            <div className="flex items-center gap-2.5">
+              {id && (
+                <a
+                  href={getJobDetailsUrl({ id, approval_status: 'approved' }, true)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-white hover:bg-slate-50 text-slate-700 hover:text-[#0A66C2] border border-slate-200 hover:border-blue-300 px-4 py-2.5 rounded-full font-semibold text-xs transition shadow-xs flex items-center gap-1.5 no-underline hover:no-underline"
+                  title="Preview Job Details on live site"
+                >
+                  <Eye size={14} className="text-slate-500" />
+                  <span>Preview</span>
+                </a>
               )}
-              <span>{isLoading ? 'Saving Changes...' : 'Save Changes'}</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleSaveJob}
+                disabled={isLoading}
+                className="bg-[#0A66C2] hover:bg-[#004182] text-white px-6 py-2.5 rounded-full font-semibold text-sm transition shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckOutlined className="text-xs" />
+                )}
+                <span>{isLoading ? 'Saving Changes...' : 'Save Changes'}</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center w-full">

@@ -729,10 +729,11 @@ export default function Posting() {
         const allBenefitsData = selectedBenefits;
 
         // Map UI state to payload
-        const expReq = freshersAllowed
+        const isFresherSelection = freshersAllowed || (minExp === 0 && maxExp === 0);
+        const expReq = isFresherSelection
             ? ["Fresher"]
             : (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined
-                ? [`${minExp}-${maxExp} Years`]
+                ? (minExp === maxExp ? [`${minExp} Year${minExp !== 1 ? 's' : ''}`] : [`${minExp}-${maxExp} Years`])
                 : (Array.isArray(experienceRequired) ? experienceRequired.filter(Boolean) : [experienceRequired].filter(Boolean)));
 
         let mappedGender = [];
@@ -756,7 +757,7 @@ export default function Posting() {
             work_location: specificCity ? specificCity : (specificLocation.length > 0 ? specificLocation : "Pan India"),
             job_category: department ? [department] : jobCategory,
             skills: skillsRequired,
-            experience_type: freshersAllowed ? "Fresher" : ((minExp === 0 && maxExp === 0) ? "Fresher" : "Experienced"),
+            experience_type: isFresherSelection ? "Fresher" : "Experienced",
             experience_required: expReq,
             salary_type: salaryType,
             hide_salary: hideSalary,
@@ -1429,13 +1430,12 @@ export default function Posting() {
                                                     setExpireInMonths(months);
                                                     setExpireError("");
                                                 }}
-                                                className={`py-3 px-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
-                                                    isSelected
+                                                className={`py-3 px-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${isSelected
                                                         ? 'border-[#0A66C2] bg-[#f0f7ff] text-[#0A66C2] font-semibold shadow-xs ring-2 ring-[#0A66C2]/20'
                                                         : expireError
                                                             ? 'border-red-300 bg-red-50/20 text-gray-700 hover:border-red-400'
                                                             : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 <span className="text-[14px] font-bold">{months} {months === 1 ? 'Month' : 'Months'}</span>
                                                 <span className="text-[11px] text-gray-500 font-normal mt-0.5">
@@ -2076,13 +2076,12 @@ export default function Posting() {
                     <div className="flex items-center gap-3 mb-6">
                         <h1 className="text-[22px] mb-0 font-bold text-gray-900 tracking-tight">Post internship</h1>
                         {subscription && (
-                            <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold ${
-                                isSubscriptionExpired
+                            <div className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold ${isSubscriptionExpired
                                     ? 'bg-red-50 text-red-700 border border-red-200'
                                     : activeJobsRemaining <= 0
                                         ? 'bg-amber-50 text-amber-800 border-1 border-amber-200'
                                         : 'bg-blue-50 text-[#0A66C2] border-1 border-blue-100'
-                            }`}>
+                                }`}>
                                 {isSubscriptionExpired ? (
                                     <span className="text-red-700 font-bold">Plan Expired</span>
                                 ) : (

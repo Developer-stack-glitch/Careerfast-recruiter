@@ -402,7 +402,11 @@ export default function PostEdit() {
 
         setSkillsRequired(Array.isArray(job.skills) ? job.skills : (job.skills ? [job.skills] : []));
 
-        if (job.experience_type === "Fresher") {
+        const isFresherInDb = String(job.experience_type).toLowerCase() === "fresher" ||
+          (Array.isArray(job.experience_required) && job.experience_required.some(x => /0\s*[-–—to]\s*0/i.test(String(x)) || String(x).toLowerCase() === "fresher")) ||
+          (/0\s*[-–—to]\s*0/i.test(String(job.experience_required)));
+
+        if (isFresherInDb) {
           setFreshersAllowed(true);
           setMinExp(0);
           setMaxExp(0);
@@ -936,10 +940,11 @@ export default function PostEdit() {
 
     const getUserDetails = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("loginDetails") || "{}") : {};
 
-    const expReq = freshersAllowed
+    const isFresherSelection = freshersAllowed || (minExp === 0 && maxExp === 0);
+    const expReq = isFresherSelection
       ? ["Fresher"]
       : (minExp !== null && minExp !== undefined && maxExp !== null && maxExp !== undefined
-        ? [`${minExp}-${maxExp} Years`]
+        ? (minExp === maxExp ? [`${minExp} Year${minExp !== 1 ? 's' : ''}`] : [`${minExp}-${maxExp} Years`])
         : (Array.isArray(experienceRequired) ? experienceRequired.filter(Boolean) : [experienceRequired].filter(Boolean)));
 
     let mappedGender = [];
@@ -971,7 +976,7 @@ export default function PostEdit() {
       work_location: specificCity && specificCity.length > 0 ? specificCity : (specificLocation.length > 0 ? specificLocation : ["Pan India"]),
       job_category: department ? [department] : jobCategory,
       skills: skillsRequired,
-      experience_type: freshersAllowed ? "Fresher" : ((minExp === 0 && maxExp === 0) ? "Fresher" : "Experienced"),
+      experience_type: isFresherSelection ? "Fresher" : "Experienced",
       experience_required: expReq,
       salary_type: salaryType,
       hide_salary: hideSalary ? 1 : 0,
@@ -1423,7 +1428,15 @@ export default function PostEdit() {
                   <input
                     type="checkbox"
                     checked={freshersAllowed}
-                    onChange={(e) => setFreshersAllowed(e.target.checked)}
+                    onChange={(e) => {
+                      setFreshersAllowed(e.target.checked);
+                      if (e.target.checked) {
+                        setMinExp(0);
+                        setMaxExp(0);
+                        setMinExpError("");
+                        setMaxExpError("");
+                      }
+                    }}
                     className="w-4 h-4 rounded border-gray-300 text-[#0A66C2] focus:ring-[#0A66C2]"
                   />
                   <span className="text-[14px] text-gray-600">Freshers can also apply</span>

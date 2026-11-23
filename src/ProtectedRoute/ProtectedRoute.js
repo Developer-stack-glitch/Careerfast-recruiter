@@ -2,11 +2,10 @@
 import { message } from "antd";
 import { useEffect, useState } from "react";
 import { useNavigate } from "@/routing-shim";
-import CommonLoader from "../Common/CommonLoader";
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const navigate = useNavigate();
-    const [isAuthenticated, setIsAuthenticated] = useState(null); // null: checking, true: auth, false: unauth
+    const [isAuthenticated, setIsAuthenticated] = useState(true);
     const [roleId, setRoleId] = useState(null);
 
     useEffect(() => {
@@ -126,11 +125,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
             return () => clearInterval(intervalId);
         }
     }, [isAuthenticated, roleId, navigate, allowedRoles]);
-
-    // Show premium loader while checking
-    if (isAuthenticated === null) {
-        return <CommonLoader fullScreen={true} text="Verifying Recruiter Access..." />;
-    }
 
     if (isAuthenticated === false) {
         return null;

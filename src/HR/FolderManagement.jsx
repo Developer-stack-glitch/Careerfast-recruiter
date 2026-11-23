@@ -59,6 +59,7 @@ import { CommonToaster } from '../Common/CommonToaster';
 import Link from 'next/link';
 import { getImageUrl } from '../utils/getImageUrl';
 import { downloadResumeFile } from '../utils/downloadResume';
+import { FolderTableSkeleton, CandidateDrawerSkeleton } from '../Components/FolderSkeleton';
 
 export default function FolderManagement() {
   const router = useRouter();
@@ -1806,10 +1807,7 @@ export default function FolderManagement() {
               {/* 4. Candidate Cards (Screenshots 1, 2, 3) */}
               <div className="space-y-3.5">
                 {drawerLoading ? (
-                  <div className="rounded-2xl bg-white p-16 text-center shadow-xs border border-slate-200">
-                    <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#0A66C2] border-t-transparent" />
-                    <p className="mt-2 text-xs text-slate-500 font-medium">Loading candidate pipeline...</p>
-                  </div>
+                  <CandidateDrawerSkeleton count={3} />
                 ) : filteredPipelineCandidates.length === 0 ? (
                   <div className="rounded-2xl bg-white p-16 text-center shadow-xs border border-slate-200">
                     <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#0A66C2]">
@@ -2543,10 +2541,7 @@ export default function FolderManagement() {
                 {/* ── Table Rows / Folder Cards ───────────────────────────────── */}
                 <div className="mt-3 space-y-3">
                   {loading ? (
-                    <div className="py-20 text-center">
-                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-[#0A66C2] border-t-transparent"></div>
-                      <p className="mt-3 text-xs font-medium text-slate-500">Loading folders...</p>
-                    </div>
+                    <FolderTableSkeleton count={5} />
                   ) : paginatedFolders.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center">
                       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-[#0A66C2]">

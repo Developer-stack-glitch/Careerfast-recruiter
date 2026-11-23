@@ -7,7 +7,7 @@ import { MdPublic } from "react-icons/md";
 import { BiLayer } from "react-icons/bi";
 import { HiOutlineMail } from 'react-icons/hi';
 import { getSavedCandidatesHR, removeSavedCandidateHR, consumeResumeDownloadAPI, getMySubscription } from '../ApiService/action';
-import CommonLoader from '../Common/CommonLoader';
+import { SavedCandidatesListSkeleton } from '../Components/FolderSkeleton';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Lock, Crown, ArrowRight, Check } from 'lucide-react';
@@ -353,7 +353,7 @@ export default function SavedCandidates() {
                 {/* Candidate List */}
                 <div className="flex flex-col gap-3">
                     {loading ? (
-                        <CommonLoader fullScreen={false} text="Loading Saved Candidates..." />
+                        <SavedCandidatesListSkeleton count={5} />
                     ) : candidates.length === 0 ? (
                         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center bg-white rounded-xl border border-gray-100 p-8">
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5 border border-gray-100">

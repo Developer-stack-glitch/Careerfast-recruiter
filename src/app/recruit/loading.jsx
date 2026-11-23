@@ -1,5 +1,5 @@
-import CommonLoader from '@/Common/CommonLoader';
+import RouteLoading from '@/Components/RouteLoading';
 
 export default function Loading() {
-  return <CommonLoader fullScreen={true} text="Loading Recruiter Workspace..." />;
+  return <RouteLoading />;
 }

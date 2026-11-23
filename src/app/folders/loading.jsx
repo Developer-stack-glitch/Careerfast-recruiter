@@ -1,5 +1,5 @@
-import CommonLoader from '@/Common/CommonLoader';
+import { FolderPageSkeleton } from '@/Components/FolderSkeleton';
 
 export default function Loading() {
-  return <CommonLoader fullScreen={true} text="Loading Candidate Folders..." />;
+  return <FolderPageSkeleton />;
 }

@@ -1,10 +1,5 @@
-import HrLayout from '@/HR/HrLayout';
-import BillingSkeleton from '@/HR/BillingSkeleton';
+import RouteLoading from '@/Components/RouteLoading';
 
 export default function Loading() {
-  return (
-    <HrLayout>
-      <BillingSkeleton />
-    </HrLayout>
-  );
+  return <RouteLoading />;
 }

@@ -14,6 +14,32 @@ const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "288981358654-vrhl
 
 // Suppress specific noisy development warnings from Dev Overlay
 if (typeof window !== "undefined") {
+  // Auto-reload on Turbopack / Webpack ChunkLoadError to recover seamlessly from stale cache
+  const handleChunkError = (errorMsg) => {
+    if (
+      errorMsg.includes("ChunkLoadError") ||
+      errorMsg.includes("Failed to load chunk") ||
+      errorMsg.includes("Loading chunk")
+    ) {
+      const lastReload = sessionStorage.getItem("last_chunk_reload");
+      const now = Date.now();
+      if (!lastReload || now - Number(lastReload) > 5000) {
+        sessionStorage.setItem("last_chunk_reload", String(now));
+        window.location.reload();
+      }
+    }
+  };
+
+  window.addEventListener("error", (event) => {
+    const errorMsg = event?.message || event?.error?.message || "";
+    handleChunkError(errorMsg);
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const reason = event?.reason?.message || String(event?.reason || "");
+    handleChunkError(reason);
+  });
+
   const originalError = console.error;
   const originalWarn = console.warn;
 

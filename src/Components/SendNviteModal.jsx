@@ -9,6 +9,7 @@ import {
 import { getJobPostByUserId, sendNvitesAPI } from '../ApiService/action';
 import { CommonToaster } from '../Common/CommonToaster';
 import { getImageUrl } from '../utils/getImageUrl';
+import { formatExperienceDisplay } from '../utils/slug';
 
 const TEMPLATES = [
   {
@@ -506,7 +507,7 @@ export default function SendNviteModal({
                   </span>
                   <span className="flex items-center gap-1">
                     <Briefcase size={11} className="text-slate-400" />
-                    Exp: {selectedJob.experience_required || 'Open to All'}
+                    Exp: {formatExperienceDisplay(selectedJob.experience_required, selectedJob.experience_type, selectedJob) || 'Open to All'}
                   </span>
                   {(selectedJob.min_salary || selectedJob.max_salary) && (
                     <span className="font-medium text-emerald-700">

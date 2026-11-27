@@ -80,8 +80,8 @@ const nextConfig = {
       { source: '/recruiter/post-internship', destination: '/post-internship', permanent: true },
       { source: '/recruiter/post-course', destination: '/post-course', permanent: true },
       // Redirect job & internship details to public frontend
-      { source: '/job-details/:path*', destination: 'https://careerfast.in/job-details/:path*', permanent: false },
-      { source: '/internship-details/:path*', destination: 'https://careerfast.in/internship-details/:path*', permanent: false },
+      { source: '/job-details/:path*', destination: 'https://www.careerfast.in/job-details/:path*', permanent: false },
+      { source: '/internship-details/:path*', destination: 'https://www.careerfast.in/internship-details/:path*', permanent: false },
     ];
   },
 };

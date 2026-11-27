@@ -32,11 +32,11 @@ export const getImageUrl = (url, fallbackText) => {
   }
   
   const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL;
-  let baseUrl = envUrl || 'https://careerfast.in';
+  let baseUrl = envUrl || 'https://www.careerfast.in';
   if (typeof window !== 'undefined') {
     const isBrowserLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (!isBrowserLocal && (!envUrl || /localhost|127\.0\.0\.1/i.test(envUrl))) {
-      baseUrl = 'https://careerfast.in';
+      baseUrl = 'https://www.careerfast.in';
     }
   }
   // If it's just a filename or a path that doesn't look like a local asset, prepend API URL

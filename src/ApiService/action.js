@@ -3,7 +3,7 @@ import axios from "axios";
 import { Modal } from "antd";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'https://careerfast.in',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'https://www.careerfast.in',
 });
 
 // In-memory & SessionStorage cache for static master data (15 minutes TTL)
@@ -1240,7 +1240,7 @@ export const sendNotification = async () => {
       {
         title: "New Job Post Created 🚀",
         body: "Check out the job post details and apply now!",
-        link: "https://careerfast.in/",
+        link: "https://www.careerfast.in/",
         icon: "/favicon.png",
       }
     );

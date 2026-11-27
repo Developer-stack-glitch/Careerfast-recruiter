@@ -147,8 +147,8 @@ export default function PostCourse() {
     const envApi = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL;
     const isBrowserLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     const API_URL = (!isBrowserLocal && (!envApi || /localhost|127\.0\.0\.1/i.test(envApi)))
-        ? 'https://careerfast.in'
-        : (envApi || 'https://careerfast.in');
+        ? 'https://www.careerfast.in'
+        : (envApi || 'https://www.careerfast.in');
 
     useEffect(() => {
         const stored = localStorage.getItem("loginDetails");
@@ -1846,7 +1846,7 @@ export default function PostCourse() {
                                                         <Edit size={14} /> Edit
                                                     </button>
                                                     <Link
-                                                        href={`https://careerfast.in/courses/${course.slug}`}
+                                                        href={`https://www.careerfast.in/courses/${course.slug}`}
                                                         target="_blank"
                                                         className="px-3 py-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 text-[12.5px] font-medium rounded-lg transition-colors flex items-center gap-1 cursor-pointer no-underline"
                                                     >

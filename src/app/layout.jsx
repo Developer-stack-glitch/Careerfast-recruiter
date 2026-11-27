@@ -16,19 +16,19 @@ export const viewport = {
 };
 
 export const metadata = {
-  metadataBase: new URL('https://careerfast.in'),
+  metadataBase: new URL('https://www.careerfast.in'),
   title: "CareerFast | Recruiter Portal",
   description: "Connect with top job seekers and manage candidates efficiently with CareerFast Recruiter Portal.",
   robots: "noindex, nofollow",
   openGraph: {
     type: "website",
     siteName: "CareerFast Recruiter Portal",
-    images: ["https://careerfast.in/og-image.png"],
+    images: ["https://www.careerfast.in/og-image.png"],
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    images: ["https://careerfast.in/og-image.png"],
+    images: ["https://www.careerfast.in/og-image.png"],
   },
   icons: {
     icon: "/favicon.png",

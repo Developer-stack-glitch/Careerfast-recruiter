@@ -144,7 +144,11 @@ export default function PostCourse() {
     const [courseData, setCourseData] = useState(INITIAL_FORM_STATE);
     const [loading, setLoading] = useState(false);
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3006';
+    const envApi = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL;
+    const isBrowserLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    const API_URL = (!isBrowserLocal && (!envApi || /localhost|127\.0\.0\.1/i.test(envApi)))
+        ? 'https://careerfast.in'
+        : (envApi || 'https://careerfast.in');
 
     useEffect(() => {
         const stored = localStorage.getItem("loginDetails");

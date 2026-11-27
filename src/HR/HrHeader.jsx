@@ -169,7 +169,11 @@ const HrHeader = () => {
         // Live check from subscription & role API
         const fetchAccess = async () => {
             try {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3006';
+                const envApi = process.env.NEXT_PUBLIC_API_URL || process.env.REACT_APP_API_URL;
+                const isBrowserLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+                const apiBase = (!isBrowserLocal && (!envApi || /localhost|127\.0\.0\.1/i.test(envApi)))
+                    ? 'https://careerfast.in'
+                    : (envApi || 'https://careerfast.in');
                 const token = typeof window !== 'undefined' ? localStorage.getItem("AccessToken") : '';
                 if (!token) return;
 
